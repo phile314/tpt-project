@@ -1,0 +1,35 @@
+Simple Typed Lambda calculus + References
+
+Primitives 
+  Unit
+ 
+See pg 160 - 161
+Values
+Terms 
+
+
+References (At the moment contains only unit)
+Heap (List) and references are indeces
+Context (De Bruijn indeces)
+
+Semantics:
+  Small Step
+  Big Step
+  Denotational Semantics
+
+Based on what he wants us to proof choose the best.
+
+Properties
+  Progress - Preservation
+  Completness - Soundness
+
+Are they indipendent properties?
+
+Steps:
+0) Define datatypes Values Terms Context and Heap [MV]
+      Use GADTs to encode only well type terms
+   Semantics [PH]
+   Prove Properties (Progress - Preservation) [OP]
+   
+1) General type in references
+2) Ask wouter
