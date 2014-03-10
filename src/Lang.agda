@@ -6,7 +6,6 @@ module Lang where
 
 open import Data.Nat
 open import Data.List renaming (_∷_ to _::_)
-open import Data.Fin
 
 -- Types supported
 data Type : Set where
@@ -22,11 +21,8 @@ Context = List Type
 
 mutual
 
-  -- Vec-like unbounded heap. 
-  -- In a Heap n, n is the first position available to be allocated in a reference.
-  data Heap : ℕ  -> Set where
-    Empty : Heap 0
-    Alloc : {n : ℕ} -> Value unit -> Heap n -> Heap (suc n)
+  Heap : Set
+  Heap = List (Value unit)       -- references contain only unit
 
   -- Values contains explicit type information
   data Value : Type -> Set where
@@ -38,16 +34,20 @@ mutual
     Pop : forall {G u v} -> VarRef G u -> VarRef (v :: G) u
 
   -- Reference to an heap cell.
-  data HeapRef : {n : ℕ} -> Fin n -> Heap n -> Set where
-    Elem : {n : ℕ} -> (i : Fin n) -> (H : Heap n) -> HeapRef i H
+  data HeapRef : Heap -> Set where
+    Top : forall {H u} -> HeapRef (u :: H)
+    Pop : forall {H v} -> HeapRef H -> HeapRef (v :: H) 
 
-  data Term : Context -> (n : ℕ) -> Heap n -> Type -> Set where
-    Abs : forall {G n H u v} -> Term (u :: G) n H v -> Term G n H (u => v)
-    App : forall {G n H u v} -> Term G n H (u => v) -> Term G n H u -> Term G n H v
-    Var : forall {G n H u} -> VarRef G u -> Term G n H u
-    New : forall {G n H u} -> Term G n H u -> Term G (suc n) (Alloc UnitV H ) (Ref unit)  -- Create new reference
-    !_ : forall {G n H i} -> HeapRef i H -> Term G n H unit                               -- Deference
-    -- _:=_ : forall {G n H i} -> (r : HeapRef i H) -> (Term G n H unit) -> Term G n (insert H r UnitV) unit
+  -- A term in the lambda calculus. The language solely consists of
+  -- abstractions, applications and variable references.
+  data Term : Context -> Heap -> Type -> Set where
+    Abs : forall {G H u v} -> Term (u :: G) H v -> Term G H (u => v)
+    App : forall {G H u v} -> Term G H (u => v) -> Term G H u -> Term G H v
+    Var : forall {G H u} -> VarRef G u -> Term G H u
+    New : forall {G H u} -> Term G H u -> Term G (UnitV :: H) (Ref unit)  -- Create new reference
+    !_ : forall {G H} -> HeapRef H -> Term G H unit                       -- Deference
+    _:=_ : forall {G H} -> (r : HeapRef H) -> Term G H unit -> Term G (insert H r UnitV) unit  -- Assignment
 
-  -- insert : forall {i n} (H : Heap n) -> HeapRef i H -> Value unit -> H
-  -- insert v r h = ? 
+  insert : (h : Heap) -> HeapRef h -> Value unit -> Heap
+  insert .(u :: H) (Top {H} {u}) v = v :: H
+  insert .(v :: H) (Pop {H} {v} r) v₁ = v :: insert H r v₁
