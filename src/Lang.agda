@@ -41,6 +41,7 @@ mutual
   -- A term in the lambda calculus. The language solely consists of
   -- abstractions, applications and variable references.
   data Term : Context -> Heap -> Type -> Set where
+    Val : forall {G H ty} -> Value ty -> Term G H ty
     Abs : forall {G H u v} -> Term (u :: G) H v -> Term G H (u => v)
     App : forall {G H u v} -> Term G H (u => v) -> Term G H u -> Term G H v
     Var : forall {G H u} -> VarRef G u -> Term G H u
@@ -48,6 +49,7 @@ mutual
     !_ : forall {G H} -> HeapRef H -> Term G H unit                       -- Deference
     _:=_ : forall {G H} -> (r : HeapRef H) -> Term G H unit -> Term G (insert H r UnitV) unit  -- Assignment
 
+  -- is this really insert? looks more like a replace?
   insert : (h : Heap) -> HeapRef h -> Value unit -> Heap
   insert .(u :: H) (Top {H} {u}) v = v :: H
   insert .(v :: H) (Pop {H} {v} r) v₁ = v :: insert H r v₁
