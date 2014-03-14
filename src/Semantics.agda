@@ -14,7 +14,7 @@ data IsValue : {ctx : Context} {H : Heap} {ty : Type} -> Term ctx H ty -> Set wh
 lookupHeap : {ctx : Context} {H : Heap} (hr : HeapRef H) -> Term ctx H unit
 lookupHeap {ctx} {[]} ()
 lookupHeap {ctx} {x ∷ H} Top = Val x
-lookupHeap {ctx} {x ∷ H} (Pop hr) = {!!} --lookupHeap {ctx} {H} {!!}
+lookupHeap {ctx} {x ∷ H} (Pop hr) = lookupHeap {!hr!} --lookupHeap {ctx} {H} {!!}
 
 -- Small-step semantics
 
@@ -29,7 +29,7 @@ data Step : forall {ctx1 ctx2 H1 H2 ty} -> Term ctx1 H1 ty -> Term ctx2 H2 ty ->
               {t2 : Term ctx H ty1} -> IsNF t1 -> IsNF t2 -> Step {!!} {!!}
 
   E-Ref-New : {ctx : Context} {H1 H2 : Heap} {t : Term ctx H1 unit}
-              -> IsNF {ctx} {H1} t -> Step (New t) (Val {ctx} {insert H1 {!!} {!!}} {!!})
+              -> IsNF {ctx} {H1} t -> Step (New t) (Val {ctx} {replace H1 {!!} {!!}} {!!})
 
   E-Ref-De  :   {ctx : Context} {H : Heap} {hr : HeapRef H}
               -> Step {ctx} {ctx} {H} {H} {unit} (! hr) (lookupHeap hr)

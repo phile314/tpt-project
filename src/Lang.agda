@@ -47,9 +47,9 @@ mutual
     Var : forall {G H u} -> VarRef G u -> Term G H u
     New : forall {G H u} -> Term G H u -> Term G (UnitV :: H) (Ref unit)  -- Create new reference
     !_ : forall {G H} -> HeapRef H -> Term G H unit                       -- Deference
-    _:=_ : forall {G H} -> (r : HeapRef H) -> Term G H unit -> Term G (insert H r UnitV) unit  -- Assignment
+    _:=_ : forall {G H} -> (r : HeapRef H) -> Term G H unit -> Term G (replace H r UnitV) unit  -- Assignment
+    -- TODO Aliasing
 
-  -- is this really insert? looks more like a replace?
-  insert : (h : Heap) -> HeapRef h -> Value unit -> Heap
-  insert .(u :: H) (Top {H} {u}) v = v :: H
-  insert .(v :: H) (Pop {H} {v} r) v₁ = v :: insert H r v₁
+  replace : (h : Heap) -> HeapRef h -> Value unit -> Heap
+  replace .(u :: H) (Top {H} {u}) v = v :: H
+  replace .(v :: H) (Pop {H} {v} r) v₁ = v :: replace H r v₁
