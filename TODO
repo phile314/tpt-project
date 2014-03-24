@@ -1,6 +1,12 @@
+at latest Wednesday before PV
+
+MV    look at isPrefix stuff
+PH    Should we encode Elem proofs in ref
+OP    finish missing small step semantics
+
+
+
 - First use simple BoolNat language with references, port to Lambda calculus later
-
-
 
 
 Order of evaluation:
