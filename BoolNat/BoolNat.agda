@@ -88,8 +88,8 @@ data Closed : Type -> Set where
 
 -- TODO: add something like isPrefix, proofing that the shape never shrinks
 data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -> Term ty -> Term ty -> Set where
- E-IfTrue     : forall {S1 S2 H1 H2} {ty : Type} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} (if true  then t1 else t2) t1
- E-IfFalse    : forall {S1 S2 H1 H2} {ty : Type} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} (if false then t1 else t2) t2
+ E-IfTrue     : forall {S H} {ty : Type} {t1 t2 : Term ty} -> Step {ty} {S} {S} {H} {H} (if true  then t1 else t2) t1
+ E-IfFalse    : forall {S H} {ty : Type} {t1 t2 : Term ty} -> Step {ty} {S} {S} {H} {H} (if false then t1 else t2) t2
  E-If         : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' : Term Boolean} {t2 t3 : Term ty} ->
                 Step {Boolean} {S1} {S2} {H1} {H2} t1 t1' ->
                 Step {ty} {S1} {S2} {H1} {H2} (if t1 then t2 else t3) (if t1' then t2 else t3)
@@ -100,8 +100,8 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
  E-IsZero     : forall {S1 S2 H1 H2 t t'} -> Step {_} {S1} {S2} {H1} {H2} t t' -> Step {_} {S1} {S2} {H1} {H2} (iszero t) (iszero t')
  E-New        : forall {S1 S2 H1 H2 ty t t'} -> Step {ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {Ref ty} {S1} {S2} {H1} {H2} (new t) (new t')
- E-NewVal     : forall {S1 H1 ty v} -> {isV : isValue v} -> 
-                Step {Ref ty} {S1} {Cons ty S1} {H1} {Cons v S1 isV H1} (new v) (ref (Top {Cons ty S1}))
+ E-NewVal     : forall {S H ty v} -> {isV : isValue v} -> 
+                Step {Ref ty} {S} {Cons ty S} {H} {Cons v S isV H} (new v) (ref (Top {Cons ty S}))
  E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {ty} {S1} {S2} {H1} {H2} (! t) (! t')
  E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} -> (isP : IsPrefix S' S) -> 
@@ -112,8 +112,8 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
                 Step {Ref ty} {S1} {S2} {H1} {H2} t1 t1' -> Step {Ref ty} {S1} {S2} {H1} {H2} (t1 := t2) (t1' := t2)
  E-AliasRight : forall {S1 S2 H1 H2} {ty : Type} {v t t' : Term (Ref ty)} {isV : isValue v} -> 
                 Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> Step {Ref ty} {S1} {S2} {H1} {H2} (v := t) (v := t')
- E-AliasRed   : forall {S1 S2 H1 H2} {ty : Type} {v1 v2 : Term (Ref ty)} {isV1 : isValue v1} {isV2 : isValue v2} ->
-                Step {Ref ty} {S1} {S2} {H1} {H2} (v1 := v2) v2 -- This looks suspicious! Do we actually need aliasing in BoolNat/Lambda Calculus?
+ E-AliasRed   : forall {S H} {ty : Type} {v1 v2 : Term (Ref ty)} {isV1 : isValue v1} {isV2 : isValue v2} ->
+                Step {Ref ty} {S} {S} {H} {H} (v1 := v2) v2 -- This looks suspicious! Do we actually need aliasing in BoolNat/Lambda Calculus?
  E-AssLeft    : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' : Term (Ref ty)} {t2 : Term ty} ->
                 Step {Ref ty} {S1} {S2} {H1} {H2} t1 t1' ->  Step {ty} {S1} {S2} {H1} {H2} (t1 <- t2) (t1' <- t2)
  E-AssRight   : forall {S1 S2 H1 H2} {ty : Type} {v : Term (Ref ty)} {t t' : Term ty} {isV : isValue v} -> 
