@@ -41,39 +41,49 @@ data Term : Type -> Set where
                              -> (fcase : Term ty)
                              -> Term ty
  new           : forall {ty} -> Term ty -> Term (Ref ty)
- !_            : forall {S ty} -> Term (Ref ty) -> Elem S ty -> Term ty
+ !_            : forall {ty} -> Term (Ref ty) -> Term ty
  _:=_          : forall {ty} -> Term (Ref ty) -> Term (Ref ty) -> Term (Ref ty)
- _<-_          : forall {S ty} -> Term (Ref ty) -> Elem S ty -> Term ty -> Term ty
- ref           : forall {ty} -> Term (Ref ty) -- this doesn't actually contain the pointer/elem proof at the moment. maybe extend later.
+ _<-_          : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
+ ref           : forall {S ty} -> Elem S ty -> Term (Ref ty) -- this doesn't actually contain the pointer/elem proof at the moment. maybe extend later.
  
-
+-- are refs values as well?
 isValue : forall {ty} -> Term ty -> Set
 isValue true = Unit
 isValue false = Unit
 isValue zero = Unit
-isValue ref = Unit
+isValue (ref _) = Unit
 isValue (succ t) = isValue t
 isValue (iszero t) = ⊥
 isValue (if t then t₁ else t₂) = ⊥
 isValue (new t) = ⊥
-isValue (!_ t x) = ⊥
+isValue (!_ t) = ⊥
 isValue (t := t₁) = ⊥
-isValue (_<-_ t x t₁) = ⊥
+isValue (_<-_ t t₁) = ⊥
+
 
 data Heap : Shape -> Set where
   Nil : Heap Nil
   Cons : forall {ty} -> (t : Term ty) -> (s : Shape) -> isValue t -> Heap s -> Heap (Cons ty s)
 
+data IsPrefix : Shape -> Shape -> Set where
+-- TODO
 
-lookup : forall {ty} -> {S : Shape} -> (Heap S) -> (Elem S ty) -> Term ty
-lookup Nil ()
-lookup (Cons t s x hs) Top = t
-lookup (Cons t s x hs) (Pop e) = lookup hs e
+lookup : forall {ty} -> {S S' : Shape} -> (Heap S) -> (isP : IsPrefix S' S) -> (e : Elem S' ty) -> Term ty
+lookup h isp e = {!!} -- we need the IsPrefix proof now
+--lookup Nil ()
+--lookup (Cons t s x hs) Top = t
+--lookup (Cons t s x hs) (Pop e) = lookup hs e
 
-replace : forall {ty} -> {S : Shape} -> (Heap S) -> (Elem S ty) -> (t : Term ty) -> isValue t -> Heap S
+replace : forall {ty} -> {S : Shape} -> Heap S -> Elem S ty -> (t : Term ty) -> isValue t -> Heap S
 replace Nil () t _
 replace (Cons t s x h) Top t₁ iv = Cons t₁ s iv h
 replace (Cons t s x h) (Pop e) t₁ iv = Cons t s x (replace h e t₁ iv)
+
+
+data Closed : Type -> Set where
+  Closure : forall {ty} -> Term ty -> Shape -> Closed ty
+  CNew    : forall {ty} -> (S1 : Shape) -> Term ty -> (S2 : Shape) -> IsPrefix S1 S2 -> Closed ty
+  CAcc    : forall {ty} -> Closed ty
 
 -- TODO: add something like isPrefix, proofing that the shape never shrinks
 data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -> Term ty -> Term ty -> Set where
@@ -87,10 +97,11 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
 -- E-IsZeroSucc : forall {v} -> Step (iszero (succ (val v))) false 
  E-IsZero     : forall {t t'} -> Step t t' -> Step (iszero t) (iszero t')
  E-New        : forall {S1 S2 H1 H2 ty t t'} -> Step {ty} {S1} {S2} {H1} {H2} t t' -> Step {Ref ty} {S1} {S2} {H1} {H2} (new t) (new t')
- E-NewVal     : forall {S1 H1 ty v} -> {isV : isValue v} -> Step {Ref ty} {S1} {Cons ty S1} {H1} {Cons v S1 isV H1} (new v) ref
- E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> {E : Elem S2 ty} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> Step {ty} {S1} {S2} {H1} {H2} ((! t) E) ((! t') E) -- TODO the thing with the E proof looks 
- E-DerefVal   : forall {S H ty v} -> {isV : isValue v} -> {E : Elem S ty} -> Step {ty} {S} {S} {H} {H} ((! v) E) (lookup H E)
- -- a bit sketchy. Maybe use the isPrefix stuff to relate two proofs E1 and E2.
+ E-NewVal     : forall {S1 H1 ty v} -> {isV : isValue v} -> Step {Ref ty} {S1} {Cons ty S1} {H1} {Cons v S1 isV H1} (new v) (ref (Top {Cons ty S1}))
+ E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> {E : Elem S2 ty} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> Step {ty} {S1} {S2} {H1} {H2} (! t) (! t')
+ E-DerefVal   : forall {S S' H ty} -> {e : Elem S' ty} -> (isP : IsPrefix S' S) -> Step {ty} {S} {S} {H} {H} (! (ref {S'} e)) (lookup H isP e)
+                -- the E-DerefVal only works if the value is a (ref ..). The isValue ensures that, but agda cannot immediately see that. Instead we now directly
+                -- ensure that the term is a value by using (ref ...) directly in the first Term argument of Step.
 
 -- -- Example term.
 -- ex : Term Natural
