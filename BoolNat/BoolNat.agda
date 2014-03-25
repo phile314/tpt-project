@@ -106,22 +106,22 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
                 Step {Ref ty} {S} {Cons ty S} {H} {Cons v S isV H} (new v) (ref (Top {Cons ty S}))
  E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {ty} {S1} {S2} {H1} {H2} (! t) (! t')
- E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} -> (isP : S' ⊆ S) -> 
+ E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {isP : S' ⊆ S} -> 
                 Step {ty} {S} {S} {H} {H} (! (ref {S'} e)) (lookup H (weaken isP e))
                 -- the E-DerefVal only works if the value is a (ref ..). The isValue ensures that, but agda cannot immediately see that. Instead we now directly
                 -- ensure that the term is a value by using (ref ...) directly in the first Term argument of Step.
  E-AliasLeft  : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' t2 : Term (Ref ty)} -> 
                 Step {Ref ty} {S1} {S2} {H1} {H2} t1 t1' -> Step {Ref ty} {S1} {S2} {H1} {H2} (t1 := t2) (t1' := t2)
- E-AliasRight : forall {S1 S2 H1 H2} {ty : Type} {v t t' : Term (Ref ty)} {isV : isValue v} -> 
+ E-AliasRight : forall {S1 S2 H1 H2} {ty : Type} {v t t' : Term (Ref ty)} (isV : isValue v) -> 
                 Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> Step {Ref ty} {S1} {S2} {H1} {H2} (v := t) (v := t')
- E-AliasRed   : forall {S H} {ty : Type} {v1 v2 : Term (Ref ty)} {isV1 : isValue v1} {isV2 : isValue v2} ->
+ E-AliasRed   : forall {S H} {ty : Type} {v1 v2 : Term (Ref ty)} (isV1 : isValue v1) (isV2 : isValue v2) ->
                 Step {Ref ty} {S} {S} {H} {H} (v1 := v2) v2 -- This looks suspicious! Do we actually need aliasing in BoolNat/Lambda Calculus?
  E-AssLeft    : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' : Term (Ref ty)} {t2 : Term ty} ->
                 Step {Ref ty} {S1} {S2} {H1} {H2} t1 t1' ->  Step {ty} {S1} {S2} {H1} {H2} (t1 <- t2) (t1' <- t2)
- E-AssRight   : forall {S1 S2 H1 H2} {ty : Type} {v : Term (Ref ty)} {t t' : Term ty} {isV : isValue v} -> 
+ E-AssRight   : forall {S1 S2 H1 H2} {ty : Type} {v : Term (Ref ty)} {t t' : Term ty} (isV : isValue v) -> 
                 Step {ty} {S1} {S2} {H1} {H2} t t' -> Step {ty} {S1} {S2} {H1} {H2} (v <- t) (v <- t')
  E-AssRed     : forall {S S' H} {ty : Type} {v : Term ty} -> 
-                {isV : isValue v} {e : Elem S' ty} -> (isP : S' ⊆ S) ->
+                {isV : isValue v} {e : Elem S' ty} {isP : S' ⊆ S} ->
                 Step {ty} {S} {S} {H} {replace H (weaken isP e) v isV} ((ref e) <- v) v
 
 -- Proof that the shape only grows. Could be useful for proofs.
@@ -131,18 +131,18 @@ shape-does-not-shrink E-IfFalse = Same
 shape-does-not-shrink (E-If stp) = shape-does-not-shrink stp
 shape-does-not-shrink (E-Succ stp) = shape-does-not-shrink stp
 shape-does-not-shrink E-IsZeroZero = Same
-shape-does-not-shrink (E-IsZeroSucc x) = Same
+shape-does-not-shrink (E-IsZeroSucc isV) = Same
 shape-does-not-shrink (E-IsZero stp) = shape-does-not-shrink stp
 shape-does-not-shrink (E-New stp) = shape-does-not-shrink stp
 shape-does-not-shrink E-NewVal = Grow Same
 shape-does-not-shrink (E-Deref stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-DerefVal isP) = Same
+shape-does-not-shrink E-DerefVal = Same
 shape-does-not-shrink (E-AliasLeft stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-AliasRight stp) = shape-does-not-shrink stp
-shape-does-not-shrink E-AliasRed = Same
+shape-does-not-shrink (E-AliasRight isV stp) = shape-does-not-shrink stp
+shape-does-not-shrink (E-AliasRed isV1 isV2) = Same
 shape-does-not-shrink (E-AssLeft stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-AssRight stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-AssRed isP) = Same
+shape-does-not-shrink (E-AssRight isV stp) = shape-does-not-shrink stp
+shape-does-not-shrink E-AssRed = Same
 
 -- -- Example term.
 -- ex : Term Natural
