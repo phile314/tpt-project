@@ -65,21 +65,23 @@ data Heap : Shape -> Set where
   Nil : Heap Nil
   Cons : forall {ty} -> (t : Term ty) -> (s : Shape) -> isValue t -> Heap s -> Heap (Cons ty s)
 
+-- IsPrefix xs ys : xs is a prefix of ys, i.e. ∃ zs : xs ≡  zs ++ ys
 data IsPrefix : Shape -> Shape -> Set where
--- TODO
+  Same : ∀ {s} -> IsPrefix s s
+  Grow : ∀ {s1 s2 ty} -> IsPrefix s1 s2 -> IsPrefix s1 (Cons ty s2)
 
-lookup : forall {ty} -> {S S' : Shape} -> Heap S -> (isP : IsPrefix S' S) -> (e : Elem S' ty) -> Term ty
-lookup h isp e = {!!} -- we need the IsPrefix proof now
---lookup Nil ()
---lookup (Cons t s x hs) Top = t
---lookup (Cons t s x hs) (Pop e) = lookup hs e
+-- If S' is a prefix of S an element of S' is also an element S
+weaken : ∀ {ty S S'} -> IsPrefix S' S -> Elem S' ty -> Elem S ty
+weaken Same p = p
+weaken (Grow isP) p = Pop (weaken isP p)
 
-replace : forall {ty} -> {S S' : Shape} -> Heap S -> (isP : IsPrefix S' S) -> (e : Elem S' ty) -> (t : Term ty) -> isValue t -> Heap S
-replace h isp e t = {!!}
---replace Nil () t _
---replace (Cons t s x h) Top t₁ iv = Cons t₁ s iv h
---replace (Cons t s x h) (Pop e) t₁ iv = Cons t s x (replace h e t₁ iv)
+lookup : forall {ty S} -> Heap S -> Elem S ty -> Term ty
+lookup (Cons x S isV xs) Top = x
+lookup (Cons x S isV xs) (Pop p) = lookup xs p -- Note that due to ref you could also fill with ! ref p which does not make sense! 
 
+replace : ∀ {ty S} -> Heap S -> Elem S ty -> (t : Term ty) -> isValue t -> Heap S
+replace (Cons x S isV xs) Top x' isV' = Cons x' S isV' xs
+replace (Cons x S isV xs) (Pop p) x' isV' = Cons x S isV (replace xs p x' isV')
 
 data Closed : Type -> Set where
   Closure : forall {ty} -> Term ty -> Shape -> Closed ty
@@ -105,7 +107,7 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
  E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {ty} {S1} {S2} {H1} {H2} (! t) (! t')
  E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} -> (isP : IsPrefix S' S) -> 
-                Step {ty} {S} {S} {H} {H} (! (ref {S'} e)) (lookup H isP e)
+                Step {ty} {S} {S} {H} {H} (! (ref {S'} e)) (lookup H (weaken isP e))
                 -- the E-DerefVal only works if the value is a (ref ..). The isValue ensures that, but agda cannot immediately see that. Instead we now directly
                 -- ensure that the term is a value by using (ref ...) directly in the first Term argument of Step.
  E-AliasLeft  : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' t2 : Term (Ref ty)} -> 
@@ -118,9 +120,29 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
                 Step {Ref ty} {S1} {S2} {H1} {H2} t1 t1' ->  Step {ty} {S1} {S2} {H1} {H2} (t1 <- t2) (t1' <- t2)
  E-AssRight   : forall {S1 S2 H1 H2} {ty : Type} {v : Term (Ref ty)} {t t' : Term ty} {isV : isValue v} -> 
                 Step {ty} {S1} {S2} {H1} {H2} t t' -> Step {ty} {S1} {S2} {H1} {H2} (v <- t) (v <- t')
- E-AssRed     : forall {S S' H} {ty : Type} {v2 : Term ty} -> 
-                {isV2 : isValue v2} {e : Elem S' ty} -> (isP : IsPrefix S' S) ->
-                Step {ty} {S} {S} {H} {replace H isP e v2 isV2} ((ref e) <- v2) v2
+ E-AssRed     : forall {S S' H} {ty : Type} {v : Term ty} -> 
+                {isV : isValue v} {e : Elem S' ty} -> (isP : IsPrefix S' S) ->
+                Step {ty} {S} {S} {H} {replace H (weaken isP e) v isV} ((ref e) <- v) v
+
+-- Proof that the shape only grows. Could be useful for proofs.
+shape-does-not-shrink : ∀ {S1 S2 H1 H2 ty} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> IsPrefix S1 S2
+shape-does-not-shrink E-IfTrue = Same
+shape-does-not-shrink E-IfFalse = Same
+shape-does-not-shrink (E-If stp) = shape-does-not-shrink stp
+shape-does-not-shrink (E-Succ stp) = shape-does-not-shrink stp
+shape-does-not-shrink E-IsZeroZero = Same
+shape-does-not-shrink (E-IsZeroSucc x) = Same
+shape-does-not-shrink (E-IsZero stp) = shape-does-not-shrink stp
+shape-does-not-shrink (E-New stp) = shape-does-not-shrink stp
+shape-does-not-shrink E-NewVal = Grow Same
+shape-does-not-shrink (E-Deref stp) = shape-does-not-shrink stp
+shape-does-not-shrink (E-DerefVal isP) = Same
+shape-does-not-shrink (E-AliasLeft stp) = shape-does-not-shrink stp
+shape-does-not-shrink (E-AliasRight stp) = shape-does-not-shrink stp
+shape-does-not-shrink E-AliasRed = Same
+shape-does-not-shrink (E-AssLeft stp) = shape-does-not-shrink stp
+shape-does-not-shrink (E-AssRight stp) = shape-does-not-shrink stp
+shape-does-not-shrink (E-AssRed isP) = Same
 
 -- -- Example term.
 -- ex : Term Natural

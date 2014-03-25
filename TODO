@@ -2,6 +2,12 @@
 Since we don't have bindings (variables) it does not make much sense to have
 aliasing (just increases the number of rules)
 
+I am still dubious about ref.
+Why exactly do we need it? What is the advantage?
+If it allows to express something new then it's ok,
+but if assuming that the Elem objects are anywhere you need would work
+I would probably leave it out.
+
 at latest Wednesday before PV
 
 MV    look at isPrefix stuff
