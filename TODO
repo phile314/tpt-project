@@ -1,3 +1,7 @@
+-- Remark
+Since we don't have bindings (variables) it does not make much sense to have
+aliasing (just increases the number of rules)
+
 at latest Wednesday before PV
 
 MV    look at isPrefix stuff
