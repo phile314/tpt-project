@@ -65,13 +65,13 @@ data Heap : Shape -> Set where
   Nil : Heap Nil
   Cons : forall {ty} -> (t : Term ty) -> (s : Shape) -> isValue t -> Heap s -> Heap (Cons ty s)
 
--- IsPrefix xs ys : xs is a prefix of ys, i.e. ∃ zs : xs ≡  zs ++ ys
-data IsPrefix : Shape -> Shape -> Set where
-  Same : ∀ {s} -> IsPrefix s s
-  Grow : ∀ {s1 s2 ty} -> IsPrefix s1 s2 -> IsPrefix s1 (Cons ty s2)
+-- xs ⊆ ys i.e. ∃ zs : xs ≡  zs ++ ys
+data _⊆_ : Shape -> Shape -> Set where
+  Same : ∀ {s} -> s ⊆ s
+  Grow : ∀ {s1 s2 ty} -> s1 ⊆ s2 -> s1 ⊆ (Cons ty s2)
 
 -- If S' is a prefix of S an element of S' is also an element S
-weaken : ∀ {ty S S'} -> IsPrefix S' S -> Elem S' ty -> Elem S ty
+weaken : ∀ {ty S S'} -> S' ⊆ S -> Elem S' ty -> Elem S ty
 weaken Same p = p
 weaken (Grow isP) p = Pop (weaken isP p)
 
@@ -85,7 +85,7 @@ replace (Cons x S isV xs) (Pop p) x' isV' = Cons x S isV (replace xs p x' isV')
 
 data Closed : Type -> Set where
   Closure : forall {ty} -> Term ty -> Shape -> Closed ty
-  CNew    : forall {ty} -> (S1 : Shape) -> Term ty -> (S2 : Shape) -> IsPrefix S1 S2 -> Closed ty
+  CNew    : forall {ty} -> (S1 : Shape) -> Term ty -> (S2 : Shape) -> S1 ⊆ S2 -> Closed ty
   CAcc    : forall {ty} -> Closed ty
 
 -- TODO: add something like isPrefix, proofing that the shape never shrinks
@@ -106,7 +106,7 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
                 Step {Ref ty} {S} {Cons ty S} {H} {Cons v S isV H} (new v) (ref (Top {Cons ty S}))
  E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {ty} {S1} {S2} {H1} {H2} (! t) (! t')
- E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} -> (isP : IsPrefix S' S) -> 
+ E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} -> (isP : S' ⊆ S) -> 
                 Step {ty} {S} {S} {H} {H} (! (ref {S'} e)) (lookup H (weaken isP e))
                 -- the E-DerefVal only works if the value is a (ref ..). The isValue ensures that, but agda cannot immediately see that. Instead we now directly
                 -- ensure that the term is a value by using (ref ...) directly in the first Term argument of Step.
@@ -121,11 +121,11 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
  E-AssRight   : forall {S1 S2 H1 H2} {ty : Type} {v : Term (Ref ty)} {t t' : Term ty} {isV : isValue v} -> 
                 Step {ty} {S1} {S2} {H1} {H2} t t' -> Step {ty} {S1} {S2} {H1} {H2} (v <- t) (v <- t')
  E-AssRed     : forall {S S' H} {ty : Type} {v : Term ty} -> 
-                {isV : isValue v} {e : Elem S' ty} -> (isP : IsPrefix S' S) ->
+                {isV : isValue v} {e : Elem S' ty} -> (isP : S' ⊆ S) ->
                 Step {ty} {S} {S} {H} {replace H (weaken isP e) v isV} ((ref e) <- v) v
 
 -- Proof that the shape only grows. Could be useful for proofs.
-shape-does-not-shrink : ∀ {S1 S2 H1 H2 ty} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> IsPrefix S1 S2
+shape-does-not-shrink : ∀ {S1 S2 H1 H2 ty} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> S1 ⊆ S2
 shape-does-not-shrink E-IfTrue = Same
 shape-does-not-shrink E-IfFalse = Same
 shape-does-not-shrink (E-If stp) = shape-does-not-shrink stp
