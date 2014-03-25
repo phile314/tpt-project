@@ -68,16 +68,17 @@ data Heap : Shape -> Set where
 data IsPrefix : Shape -> Shape -> Set where
 -- TODO
 
-lookup : forall {ty} -> {S S' : Shape} -> (Heap S) -> (isP : IsPrefix S' S) -> (e : Elem S' ty) -> Term ty
+lookup : forall {ty} -> {S S' : Shape} -> Heap S -> (isP : IsPrefix S' S) -> (e : Elem S' ty) -> Term ty
 lookup h isp e = {!!} -- we need the IsPrefix proof now
 --lookup Nil ()
 --lookup (Cons t s x hs) Top = t
 --lookup (Cons t s x hs) (Pop e) = lookup hs e
 
-replace : forall {ty} -> {S : Shape} -> Heap S -> Elem S ty -> (t : Term ty) -> isValue t -> Heap S
-replace Nil () t _
-replace (Cons t s x h) Top t₁ iv = Cons t₁ s iv h
-replace (Cons t s x h) (Pop e) t₁ iv = Cons t s x (replace h e t₁ iv)
+replace : forall {ty} -> {S S' : Shape} -> Heap S -> (isP : IsPrefix S' S) -> (e : Elem S' ty) -> (t : Term ty) -> isValue t -> Heap S
+replace h isp e t = {!!}
+--replace Nil () t _
+--replace (Cons t s x h) Top t₁ iv = Cons t₁ s iv h
+--replace (Cons t s x h) (Pop e) t₁ iv = Cons t s x (replace h e t₁ iv)
 
 
 data Closed : Type -> Set where
@@ -112,14 +113,14 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
  E-AliasRight : forall {S1 S2 H1 H2} {ty : Type} {v t t' : Term (Ref ty)} {isV : isValue v} -> 
                 Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> Step {Ref ty} {S1} {S2} {H1} {H2} (v := t) (v := t')
  E-AliasRed   : forall {S1 S2 H1 H2} {ty : Type} {v1 v2 : Term (Ref ty)} {isV1 : isValue v1} {isV2 : isValue v2} ->
-                Step {Ref ty} {S1} {S2} {H1} {H2} (v1 := v2) v2
+                Step {Ref ty} {S1} {S2} {H1} {H2} (v1 := v2) v2 -- This looks suspicious! Do we actually need aliasing in BoolNat/Lambda Calculus?
  E-AssLeft    : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' : Term (Ref ty)} {t2 : Term ty} ->
                 Step {Ref ty} {S1} {S2} {H1} {H2} t1 t1' ->  Step {ty} {S1} {S2} {H1} {H2} (t1 <- t2) (t1' <- t2)
  E-AssRight   : forall {S1 S2 H1 H2} {ty : Type} {v : Term (Ref ty)} {t t' : Term ty} {isV : isValue v} -> 
                 Step {ty} {S1} {S2} {H1} {H2} t t' -> Step {ty} {S1} {S2} {H1} {H2} (v <- t) (v <- t')
- E-AssRed     : forall {S H} {ty : Type} {v1 : Term (Ref ty)} {v2 : Term ty} -> 
-                {isV1 : isValue v1} {isV2 : isValue v2} {e : Elem S ty} ->
-                Step {ty} {S} {S} {H} {replace H e v2 isV2} (v1 <- v2) v2
+ E-AssRed     : forall {S S' H} {ty : Type} {v2 : Term ty} -> 
+                {isV2 : isValue v2} {e : Elem S' ty} -> (isP : IsPrefix S' S) ->
+                Step {ty} {S} {S} {H} {replace H isP e v2 isV2} ((ref e) <- v2) v2
 
 -- -- Example term.
 -- ex : Term Natural
