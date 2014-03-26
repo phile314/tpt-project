@@ -44,14 +44,14 @@ data Term : Type -> Set where
  !_            : forall {ty} -> Term (Ref ty) -> Term ty
  _:=_          : forall {ty} -> Term (Ref ty) -> Term (Ref ty) -> Term (Ref ty)
  _<-_          : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
- ref           : forall {S ty} -> Elem S ty -> Term (Ref ty) -- this doesn't actually contain the pointer/elem proof at the moment. maybe extend later.
+ ref           : forall {ty} -> Term (Ref ty)
  
 -- are refs values as well?
 isValue : forall {ty} -> Term ty -> Set
 isValue true = Unit
 isValue false = Unit
 isValue zero = Unit
-isValue (ref _) = Unit
+isValue ref = Unit
 isValue (succ t) = isValue t
 isValue (iszero t) = ⊥
 isValue (if t then t₁ else t₂) = ⊥
@@ -59,7 +59,6 @@ isValue (new t) = ⊥
 isValue (!_ t) = ⊥
 isValue (t := t₁) = ⊥
 isValue (_<-_ t t₁) = ⊥
-
 
 data Heap : Shape -> Set where
   Nil : Heap Nil
@@ -103,11 +102,11 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
  E-New        : forall {S1 S2 H1 H2 ty t t'} -> Step {ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {Ref ty} {S1} {S2} {H1} {H2} (new t) (new t')
  E-NewVal     : forall {S H ty v} -> {isV : isValue v} -> 
-                Step {Ref ty} {S} {Cons ty S} {H} {Cons v S isV H} (new v) (ref (Top {Cons ty S}))
+                Step {Ref ty} {S} {Cons ty S} {H} {Cons v S isV H} (new v) ref
  E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {ty} {S1} {S2} {H1} {H2} (! t) (! t')
- E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {isP : S' ⊆ S} -> 
-                Step {ty} {S} {S} {H} {H} (! (ref {S'} e)) (lookup H (weaken isP e))
+ E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {t : Term (Ref ty)} {isP : S' ⊆ S} -> 
+                Step {ty} {S} {S} {H} {H} (! t) (lookup H (weaken isP e))
                 -- the E-DerefVal only works if the value is a (ref ..). The isValue ensures that, but agda cannot immediately see that. Instead we now directly
                 -- ensure that the term is a value by using (ref ...) directly in the first Term argument of Step.
  E-AliasLeft  : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' t2 : Term (Ref ty)} -> 
@@ -121,8 +120,8 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
  E-AssRight   : forall {S1 S2 H1 H2} {ty : Type} {v : Term (Ref ty)} {t t' : Term ty} (isV : isValue v) -> 
                 Step {ty} {S1} {S2} {H1} {H2} t t' -> Step {ty} {S1} {S2} {H1} {H2} (v <- t) (v <- t')
  E-AssRed     : forall {S S' H} {ty : Type} {v : Term ty} -> 
-                {isV : isValue v} {e : Elem S' ty} {isP : S' ⊆ S} ->
-                Step {ty} {S} {S} {H} {replace H (weaken isP e) v isV} ((ref e) <- v) v
+                {isV : isValue v} {e : Elem S' ty} {t : Term (Ref ty)} {isP : S' ⊆ S} ->
+                Step {ty} {S} {S} {H} {replace H (weaken isP e) v isV} (t <- v) v
 
 -- Proof that the shape only grows. Could be useful for proofs.
 shape-does-not-shrink : ∀ {S1 S2 H1 H2 ty} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> S1 ⊆ S2
