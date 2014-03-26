@@ -69,6 +69,19 @@ data _⊆_ : Shape -> Shape -> Set where
   Same : ∀ {s} -> s ⊆ s
   Grow : ∀ {s1 s2 ty} -> s1 ⊆ s2 -> s1 ⊆ (Cons ty s2)
 
+mutual
+  data Δ : ∀ {S1 S2} -> S1 ⊆ S2 -> Heap S1 -> Heap S2 -> Set where
+    Same : ∀ {S} -> (H : Heap S) -> Δ Same H H
+    Allocate : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {v : Term ty} {isV : isValue v} ->
+               Δ s H1 H2 -> Δ (Grow s) H1 (Cons v S2 isV H2)
+    Replace : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} (e : Elem S2 ty) (t : Term ty) {isV : isValue t} ->
+              Δ s H1 H2 -> Δ s H1 (replace H2 e t isV)  
+
+  replace : ∀ {ty S} -> Heap S -> Elem S ty -> (t : Term ty) -> isValue t -> Heap S
+  replace (Cons x S isV xs) Top x' isV' = Cons x' S isV' xs
+  replace (Cons x S isV xs) (Pop p) x' isV' = Cons x S isV (replace xs p x' isV')
+
+
 -- If S' is a prefix of S an element of S' is also an element S
 weaken : ∀ {ty S S'} -> S' ⊆ S -> Elem S' ty -> Elem S ty
 weaken Same p = p
@@ -78,89 +91,92 @@ lookup : forall {ty S} -> Heap S -> Elem S ty -> Term ty
 lookup (Cons x S isV xs) Top = x
 lookup (Cons x S isV xs) (Pop p) = lookup xs p -- Note that due to ref you could also fill with ! ref p which does not make sense! 
 
-replace : ∀ {ty S} -> Heap S -> Elem S ty -> (t : Term ty) -> isValue t -> Heap S
-replace (Cons x S isV xs) Top x' isV' = Cons x' S isV' xs
-replace (Cons x S isV xs) (Pop p) x' isV' = Cons x S isV (replace xs p x' isV')
-
 data Closed : Type -> Set where
   Closure : forall {ty} -> Term ty -> Shape -> Closed ty
   CNew    : forall {ty} -> (S1 : Shape) -> Term ty -> (S2 : Shape) -> S1 ⊆ S2 -> Closed ty
   CAcc    : forall {ty} -> Closed ty
 
 -- TODO: add something like isPrefix, proofing that the shape never shrinks
-data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -> Term ty -> Term ty -> Set where
- E-IfTrue     : forall {S H} {ty : Type} {t1 t2 : Term ty} -> Step {ty} {S} {S} {H} {H} (if true  then t1 else t2) t1
- E-IfFalse    : forall {S H} {ty : Type} {t1 t2 : Term ty} -> Step {ty} {S} {S} {H} {H} (if false then t1 else t2) t2
- E-If         : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' : Term Boolean} {t2 t3 : Term ty} ->
-                Step {Boolean} {S1} {S2} {H1} {H2} t1 t1' ->
-                Step {ty} {S1} {S2} {H1} {H2} (if t1 then t2 else t3) (if t1' then t2 else t3)
- E-Succ       : forall {S1 S2 H1 H2 t t'} -> Step {Natural} {S1} {S2} {H1} {H2} t  t' -> 
-                Step {Natural} {S1} {S2} {H1} {H2} (succ t) (succ t')
- E-IsZeroZero : forall {S H} -> Step {_} {S} {S} {H} {H} (iszero zero) true
- E-IsZeroSucc : forall {S H} {t : Term Natural} -> isValue t -> Step {_} {S} {S} {H} {H} (iszero (succ t)) false
- E-IsZero     : forall {S1 S2 H1 H2 t t'} -> Step {_} {S1} {S2} {H1} {H2} t t' -> Step {_} {S1} {S2} {H1} {H2} (iszero t) (iszero t')
- E-New        : forall {S1 S2 H1 H2 ty t t'} -> Step {ty} {S1} {S2} {H1} {H2} t t' -> 
-                Step {Ref ty} {S1} {S2} {H1} {H2} (new t) (new t')
- E-NewVal     : forall {S H ty v} -> {isV : isValue v} -> 
-                Step {Ref ty} {S} {Cons ty S} {H} {Cons v S isV H} (new v) ref
- E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> 
-                Step {ty} {S1} {S2} {H1} {H2} (! t) (! t')
- E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {t : Term (Ref ty)} {isP : S' ⊆ S} -> 
-                Step {ty} {S} {S} {H} {H} (! t) (lookup H (weaken isP e))
-                -- the E-DerefVal only works if the value is a (ref ..). The isValue ensures that, but agda cannot immediately see that. Instead we now directly
-                -- ensure that the term is a value by using (ref ...) directly in the first Term argument of Step.
- E-AliasLeft  : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' t2 : Term (Ref ty)} -> 
-                Step {Ref ty} {S1} {S2} {H1} {H2} t1 t1' -> Step {Ref ty} {S1} {S2} {H1} {H2} (t1 := t2) (t1' := t2)
- E-AliasRight : forall {S1 S2 H1 H2} {ty : Type} {v t t' : Term (Ref ty)} (isV : isValue v) -> 
-                Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> Step {Ref ty} {S1} {S2} {H1} {H2} (v := t) (v := t')
- E-AliasRed   : forall {S H} {ty : Type} {v1 v2 : Term (Ref ty)} (isV1 : isValue v1) (isV2 : isValue v2) ->
-                Step {Ref ty} {S} {S} {H} {H} (v1 := v2) v2 -- This looks suspicious! Do we actually need aliasing in BoolNat/Lambda Calculus?
- E-AssLeft    : forall {S1 S2 H1 H2} {ty : Type} {t1 t1' : Term (Ref ty)} {t2 : Term ty} ->
-                Step {Ref ty} {S1} {S2} {H1} {H2} t1 t1' ->  Step {ty} {S1} {S2} {H1} {H2} (t1 <- t2) (t1' <- t2)
- E-AssRight   : forall {S1 S2 H1 H2} {ty : Type} {v : Term (Ref ty)} {t t' : Term ty} (isV : isValue v) -> 
-                Step {ty} {S1} {S2} {H1} {H2} t t' -> Step {ty} {S1} {S2} {H1} {H2} (v <- t) (v <- t')
- E-AssRed     : forall {S S' H} {ty : Type} {v : Term ty} -> 
-                {isV : isValue v} {e : Elem S' ty} {t : Term (Ref ty)} {isP : S' ⊆ S} ->
-                Step {ty} {S} {S} {H} {replace H (weaken isP e) v isV} (t <- v) v
+data Step : forall {ty S1 S2} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆ S2} -> Δ s H1 H2 -> Term ty -> Term ty -> Set where
+ E-IfTrue     : ∀ {ty S} {H : Heap S} {t1 t2 : Term ty} -> Step (Same H) (if true  then t1 else t2) t1
+ E-IfFalse    : ∀ {ty S} {H : Heap S} {t1 t2 : Term ty} -> Step (Same H) (if false then t1 else t2) t2
+ E-If         : ∀ {ty S1 S2 t1 t1'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t2 t3 : Term ty} ->
+                Step δ t1 t1' -> Step δ (if t1 then t2 else t3) (if t1' then t2 else t3)
+ E-Succ       : ∀ {S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} -> 
+                Step {Natural} δ t  t' -> Step δ (succ t) (succ t')
+ E-IsZeroZero : ∀ {S} {H : Heap S} -> Step (Same H) (iszero zero) true
+ E-IsZeroSucc : ∀ {S t} {H : Heap S} -> isValue t -> Step (Same H) (iszero (succ t)) false
+ E-IsZero     : ∀ {S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
+                Step δ t t' -> Step δ (iszero t) (iszero t')
+ E-New        : ∀ {ty S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
+                Step δ t t' -> Step {Ref ty} δ (new t) (new t')
+ E-NewVal     : ∀ {ty S} {H : Heap S} {v : Term ty} {isV : isValue v} -> 
+                Step (Allocate {v = v} {isV = isV} (Same H)) (new v) ref
+ E-Deref      : ∀ {ty S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
+                Step {Ref ty} δ t t' -> Step {ty} δ (! t) (! t')
+ E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {isP : S' ⊆ S} {t : Term (Ref ty)} -> 
+                Step {ty} (Same H) (! t) (lookup H (weaken isP e))
+ E-AssLeft    : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t1 t1' : Term (Ref ty)} {t2 : Term ty} ->
+                Step {Ref ty} δ t1 t1' ->  Step {ty} δ (t1 <- t2) (t1' <- t2)
+ E-AssRight   : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {v : Term (Ref ty)} {t t' : Term ty} 
+                (isV : isValue v) -> Step δ t t' -> Step δ (v <- t) (v <- t')
+ E-AssRed     : ∀ {ty S S'} {H : Heap S} {v1 : Term (Ref ty)} {v2 : Term ty} -> 
+                {isV1 : isValue v1} {isV2 : isValue v2} {e : Elem S' ty} {isP : S' ⊆ S} ->
+                Step (Replace (weaken isP e) v2 {isV2} (Same H)) (v1 <- v2) v2
 
+-- You don't need this proof anymore, it's directly encoded in the Step
 -- Proof that the shape only grows. Could be useful for proofs.
-shape-does-not-shrink : ∀ {S1 S2 H1 H2 ty} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> S1 ⊆ S2
-shape-does-not-shrink E-IfTrue = Same
-shape-does-not-shrink E-IfFalse = Same
-shape-does-not-shrink (E-If stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-Succ stp) = shape-does-not-shrink stp
-shape-does-not-shrink E-IsZeroZero = Same
-shape-does-not-shrink (E-IsZeroSucc isV) = Same
-shape-does-not-shrink (E-IsZero stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-New stp) = shape-does-not-shrink stp
-shape-does-not-shrink E-NewVal = Grow Same
-shape-does-not-shrink (E-Deref stp) = shape-does-not-shrink stp
-shape-does-not-shrink E-DerefVal = Same
-shape-does-not-shrink (E-AliasLeft stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-AliasRight isV stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-AliasRed isV1 isV2) = Same
-shape-does-not-shrink (E-AssLeft stp) = shape-does-not-shrink stp
-shape-does-not-shrink (E-AssRight isV stp) = shape-does-not-shrink stp
-shape-does-not-shrink E-AssRed = Same
+-- shape-does-not-shrink : ∀ {S1 S2 H1 H2 ty} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> S1 ⊆ S2
+-- shape-does-not-shrink E-IfTrue = Same
+-- shape-does-not-shrink E-IfFalse = Same
+-- shape-does-not-shrink (E-If stp) = shape-does-not-shrink stp
+-- shape-does-not-shrink (E-Succ stp) = shape-does-not-shrink stp
+-- shape-does-not-shrink E-IsZeroZero = Same
+-- shape-does-not-shrink (E-IsZeroSucc isV) = Same
+-- shape-does-not-shrink (E-IsZero stp) = shape-does-not-shrink stp
+-- shape-does-not-shrink (E-New stp) = shape-does-not-shrink stp
+-- shape-does-not-shrink E-NewVal = Grow Same
+-- shape-does-not-shrink (E-Deref stp) = shape-does-not-shrink stp
+-- shape-does-not-shrink E-DerefVal = Same
+-- shape-does-not-shrink (E-AssLeft stp) = shape-does-not-shrink stp
+-- shape-does-not-shrink (E-AssRight isV stp) = shape-does-not-shrink stp
+-- shape-does-not-shrink E-AssRed = Same
 
 
 -- Sequences of small steps.
 
--- A sequence of steps that can be applied in succession.
-data Steps : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -> Term ty -> Term ty -> Set where
-  []  : ∀ {ty} {S : Shape} {H : Heap S} {t : Term ty} -> Steps {ty} {S} {S} {H} {H} t t
-  _::_ : ∀ {ty} {S1 S2 S3 : Shape} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {t1 t2 t3 : Term ty} ->
-         Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S2} {S3} {H2} {H3} t2 t3 -> Steps {ty} {S1} {S3} {H1} {H3} t1 t3
+trans : ∀ {S1 S2 S3} -> S1 ⊆ S2 -> S2 ⊆ S3 -> S1 ⊆ S3
+trans Same s2 = s2
+trans (Grow s1) Same = Grow s1
+trans (Grow s1) (Grow s2) = Grow (trans (Grow s1) s2)
 
--- Single-step sequence.
-[_] : forall {ty S1 S2 H1 H2} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S1} {S2} {H1} {H2} t1 t2
-[_] x = x :: [] 
+-- Concatenates deltas
+_<++>_ :  {S1 S2 S3 : Shape} {s1 : S1 ⊆ S2} {s2 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} ->   
+          Δ s1 H1 H2 -> Δ s2 H2 H3 -> Δ (trans s1 s2) H1 H3
+(Same H2) <++> δ2 = δ2
+Allocate {ty} {._} {S2} {s} {._} {H2} {v} {isV} δ1 <++> Same .(Cons v S2 isV H2) = Allocate δ1
+Allocate δ1 <++> Allocate δ2 = Allocate (Allocate δ1 <++> δ2)
+Allocate δ1 <++> Replace e t δ2 = Replace e t (Allocate δ1 <++> δ2) 
+Replace {ty} {._} {._} {._} {._} {H2} e t {isV} δ1 <++> Same .(replace H2 e t isV) = Replace e t (δ1 <++> Same H2)
+Replace e t δ1 <++> Allocate δ2 = {!!} -- Replace Top _ {!Allocate δ2 !}
+Replace e t δ1 <++> Replace e₁ t₁ δ2 = Replace e₁ t₁ (Replace e t δ1 <++> δ2)
+
+-- -- A sequence of steps that can be applied in succession.
+data Steps : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆ S2} -> Δ s H1 H2 -> Term ty -> Term ty -> Set where
+  []  : ∀ {ty} {S : Shape} {H : Heap S} {t : Term ty} -> Steps (Same H) t t
+  _::_ : ∀ {ty} {S1 S2 S3 : Shape} {s1 : S1 ⊆ S2} {s2 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} 
+           {δ1 : Δ s1 H1 H2} {δ2 : Δ s2 H2 H3} {t1 t2 t3 : Term ty} ->
+           Step δ1 t1 t2 -> Steps δ2 t2 t3 -> Steps (δ1 <++> δ2) t1 t3
+
+-- -- Single-step sequence.
+-- [_] : forall {ty S1 S2 H1 H2} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S1} {S2} {H1} {H2} t1 t2
+-- [_] x = x :: [] 
   
--- Concatenation.
-_++_ : forall {ty S1 S2 S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {t1 t2 t3 : Term ty} -> 
-       Steps {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S2} {S3} {H2} {H3} t2 t3 -> Steps t1 t3
-[] ++ ys = ys
-(x :: xs) ++ ys = x :: (xs ++ ys)
+-- -- Concatenation.
+-- _++_ : forall {ty S1 S2 S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {t1 t2 t3 : Term ty} -> 
+--        Steps {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S2} {S3} {H2} {H3} t2 t3 -> Steps t1 t3
+-- [] ++ ys = ys
+-- (x :: xs) ++ ys = x :: (xs ++ ys)
 
 
 -- -- Evidence type that shows a certain term represents a value.
