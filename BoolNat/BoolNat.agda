@@ -126,22 +126,9 @@ data Step : forall {ty S1 S2} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆
 
 -- You don't need this proof anymore, it's directly encoded in the Step
 -- Proof that the shape only grows. Could be useful for proofs.
--- shape-does-not-shrink : ∀ {S1 S2 H1 H2 ty} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> S1 ⊆ S2
--- shape-does-not-shrink E-IfTrue = Same
--- shape-does-not-shrink E-IfFalse = Same
--- shape-does-not-shrink (E-If stp) = shape-does-not-shrink stp
--- shape-does-not-shrink (E-Succ stp) = shape-does-not-shrink stp
--- shape-does-not-shrink E-IsZeroZero = Same
--- shape-does-not-shrink (E-IsZeroSucc isV) = Same
--- shape-does-not-shrink (E-IsZero stp) = shape-does-not-shrink stp
--- shape-does-not-shrink (E-New stp) = shape-does-not-shrink stp
--- shape-does-not-shrink E-NewVal = Grow Same
--- shape-does-not-shrink (E-Deref stp) = shape-does-not-shrink stp
--- shape-does-not-shrink E-DerefVal = Same
--- shape-does-not-shrink (E-AssLeft stp) = shape-does-not-shrink stp
--- shape-does-not-shrink (E-AssRight isV stp) = shape-does-not-shrink stp
--- shape-does-not-shrink E-AssRed = Same
-
+no-shrink :  ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} {t1 t2 : Term ty} {δ : Δ s H1 H2} 
+             -> Step δ t1 t2 -> S1 ⊆ S2
+no-shrink {s = s} stp = s
 
 -- Sequences of small steps.
 
