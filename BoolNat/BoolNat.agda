@@ -44,14 +44,14 @@ data Term : Type -> Set where
  !_            : forall {ty} -> Term (Ref ty) -> Term ty
  _:=_          : forall {ty} -> Term (Ref ty) -> Term (Ref ty) -> Term (Ref ty)
  _<-_          : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
- ref           : forall {ty} -> Term ty -> Term (Ref ty) -- lifts a term in the ref world (used in step)
+ ref           : forall {ty} -> Term (Ref ty)
  
 -- are refs values as well?
 isValue : forall {ty} -> Term ty -> Set
 isValue true = Unit
 isValue false = Unit
 isValue zero = Unit
-isValue (ref _) = Unit
+isValue ref = Unit
 isValue (succ t) = isValue t
 isValue (iszero t) = ⊥
 isValue (if t then t₁ else t₂) = ⊥
@@ -102,7 +102,7 @@ data Step : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -
  E-New        : forall {S1 S2 H1 H2 ty t t'} -> Step {ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {Ref ty} {S1} {S2} {H1} {H2} (new t) (new t')
  E-NewVal     : forall {S H ty v} -> {isV : isValue v} -> 
-                Step {Ref ty} {S} {Cons ty S} {H} {Cons v S isV H} (new v) (ref v)
+                Step {Ref ty} {S} {Cons ty S} {H} {Cons v S isV H} (new v) ref
  E-Deref      : forall {S1 S2 H1 H2 ty t t'} -> Step {Ref ty} {S1} {S2} {H1} {H2} t t' -> 
                 Step {ty} {S1} {S2} {H1} {H2} (! t) (! t')
  E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {t : Term (Ref ty)} {isP : S' ⊆ S} -> 
