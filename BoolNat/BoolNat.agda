@@ -144,65 +144,31 @@ shape-does-not-shrink (E-AssLeft stp) = shape-does-not-shrink stp
 shape-does-not-shrink (E-AssRight isV stp) = shape-does-not-shrink stp
 shape-does-not-shrink E-AssRed = Same
 
--- -- Example term.
--- ex : Term Natural
--- ex = if true then zero else succ zero
 
--- -- The values of the language are true, false and all natural numbers.
--- data Value : Type -> Set where
---  trueV falseV : Value Boolean
---  natV         : Nat -> Value Natural
+-- Sequences of small steps.
 
--- -- Obtain the term representing a certain natural.
--- natTerm : Nat -> Term Natural
--- natTerm Z = zero
--- natTerm (S n) = succ (natTerm n)
+-- A sequence of steps that can be applied in succession.
+data Steps : forall {ty} -> {S1 S2 : Shape} -> {H1 : Heap S1} -> {H2 : Heap S2} -> Term ty -> Term ty -> Set where
+  []  : ∀ {ty} {S : Shape} {H : Heap S} {t : Term ty} -> Steps {ty} {S} {S} {H} {H} t t
+  _::_ : ∀ {ty} {S1 S2 S3 : Shape} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {t1 t2 t3 : Term ty} ->
+         Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S2} {S3} {H2} {H3} t2 t3 -> Steps {ty} {S1} {S3} {H1} {H3} t1 t3
 
--- -- Convert a value to the corresponding term.
--- val : forall {ty} -> Value ty -> Term ty
--- val trueV = true
--- val falseV = false
--- val (natV x) = natTerm x
+-- Single-step sequence.
+[_] : forall {ty S1 S2 H1 H2} {t1 t2 : Term ty} -> Step {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S1} {S2} {H1} {H2} t1 t2
+[_] x = x :: [] 
+  
+-- Concatenation.
+_++_ : forall {ty S1 S2 S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {t1 t2 t3 : Term ty} -> 
+       Steps {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S2} {S3} {H2} {H3} t2 t3 -> Steps t1 t3
+[] ++ ys = ys
+(x :: xs) ++ ys = x :: (xs ++ ys)
 
-----------------------------------------------------------------------
--- Small-step semantics.
-
--- data Step : forall {ty} -> Term ty -> Term ty -> Set where
---  E-IfTrue     : {ty : Type} -> {t1 t2 : Term ty} -> Step (if true  then t1 else t2)  t1
---  E-IfFalse    : {ty : Type} -> {t1 t2 : Term ty} -> Step (if false then t1 else t2)  t2
---  E-If         : {ty : Type} -> {t1 t1' : Term Boolean} -> {t2 t3 : Term ty} ->
---                 Step t1 t1' ->
---                 Step (if t1 then t2 else t3) (if t1' then t2 else t3)
---  E-Succ       : forall {t t'} -> Step t  t' -> Step (succ t) (succ t')
---  E-IsZeroZero : Step (iszero zero) true
---  E-IsZeroSucc : forall {v} -> Step (iszero (succ (val v))) false 
---  E-IsZero     : forall {t t'} -> Step t t' -> Step (iszero t) (iszero t')
-
-
--- -- The example can be evaluated to zero.
--- exStep : Step ex zero
--- exStep = E-IfTrue
 
 -- -- Evidence type that shows a certain term represents a value.
 -- data Is-value : {ty : Type} -> Term ty -> Set where
 --   is-value : forall {ty} -> (v : Value ty) -> Is-value (val v)
 
 -- ------------------------------------------------------------------------
--- -- Sequences of small steps.
-
--- -- A sequence of steps that can be applied in succession.
--- data Steps : forall {ty} -> Term ty -> Term ty -> Set where
---   []  : forall {ty} {t : Term ty} -> Steps t t
---   _::_ : forall {ty} {t1 t2 t3 : Term ty} -> Step t1 t2 -> Steps t2 t3 -> Steps t1 t3
-
--- -- Single-step sequence.
--- [_] : forall {ty} {t1 t2 : Term ty} -> Step t1 t2 -> Steps t1 t2
--- [_] x = x :: [] 
-  
--- -- Concatenation.
--- _++_ : forall {ty} {t1 t2 t3 : Term ty} -> Steps t1 t2 -> Steps t2 t3 -> Steps t1 t3
--- [] ++ ys = ys
--- (x :: xs) ++ ys = x :: (xs ++ ys)
 
 -- -- An extension of the E-If rule, for multiple steps.
 -- E-If* : forall {ty} {t1 t1′ : Term Boolean} {t2 t3 : Term ty} ->
