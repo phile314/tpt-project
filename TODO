@@ -1,4 +1,7 @@
 -- Remark
+I think that storing the proof isValue in the Heap makes everything a little too verbose
+I think we would be able to proof that.
+
 Since we don't have bindings (variables) it does not make much sense to have
 aliasing (just increases the number of rules)
 
