@@ -145,7 +145,7 @@ Allocate {ty} {._} {S2} {s} {._} {H2} {v} {isV} δ1 <++> Same .(Cons v S2 isV H2
 Allocate δ1 <++> Allocate δ2 = Allocate (Allocate δ1 <++> δ2)
 Allocate δ1 <++> Replace e t δ2 = Replace e t (Allocate δ1 <++> δ2) 
 Replace {ty} {._} {._} {._} {._} {H2} e t {isV} δ1 <++> Same .(replace H2 e t isV) = Replace e t (δ1 <++> Same H2)
-Replace e t δ1 <++> Allocate δ2 = {!!} -- Replace Top _ {!Allocate δ2 !}
+Replace e t δ1 <++> (Allocate δ2) = Replace e t δ1 <++> Allocate δ2
 Replace e t δ1 <++> Replace e₁ t₁ δ2 = Replace e₁ t₁ (Replace e t δ1 <++> δ2)
 
 -- -- A sequence of steps that can be applied in succession.
