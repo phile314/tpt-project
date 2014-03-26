@@ -1,6 +1,12 @@
--- Remark
-I think that storing the proof isValue in the Heap makes everything a little too verbose
-I think we would be able to proof that.
+until Friday (or Monday if there is no time....)
+
+MV  Remove Aliasing stuff
+OP  BigStep semantics
+MV  Evaluation function
+PH  progress + preservation proof with SmallStep
+
+    Maybe remove isValue proof from heap, instead prove that all insert/replace steps only insert values into the heap
+
 
 - First use simple BoolNat language with references, port to Lambda calculus later
 
@@ -17,9 +23,22 @@ Term: indexed by Shape (and Context for Lambda version)
 
 
 
+Since we don't have bindings (variables) it does not make much sense to have
+aliasing (just increases the number of rules)
+
+I am still dubious about ref.
+Why exactly do we need it? What is the advantage?
+If it allows to express something new then it's ok,
+but if assuming that the Elem objects are anywhere you need would work
+I would probably leave it out.
 
 
 
+at latest Wednesday before PV
+
+MV    look at isPrefix stuff
+PH    Should we encode Elem proofs in ref
+OP    finish missing small step semantics
 
 
 Primitives 
