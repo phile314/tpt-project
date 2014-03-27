@@ -1,6 +1,10 @@
 module SmallStep where
 
 open import BoolNat
+open import Data.Sum
+open import Data.Product
+open import Data.Unit
+open import Relation.Binary.PropositionalEquality
 
 data Step : forall {ty S1 S2} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆ S2} -> Δ s H1 H2 -> Term ty -> Term ty -> Set where
  E-IfTrue     : ∀ {ty S} {H : Heap S} {t1 t2 : Term ty} -> Step (Same H) (if true  then t1 else t2) t1
@@ -33,3 +37,38 @@ data Step : forall {ty S1 S2} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆
 no-shrink :  ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} {t1 t2 : Term ty} {δ : Δ s H1 H2} 
              -> Step δ t1 t2 -> S1 ⊆ S2
 no-shrink {s = s} stp = s
+
+
+-- Progress and preservation
+--progress : forall {d} -> {ty : Type} -> (t : Term ty) -> ((isValue t) ⊎ (∃ (Step d t)))
+progress : {S1 S2 : Shape} -> {s1 : S1 ⊆ S2 } {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s1 H1 H2} {ty : Type} -> (t : Term ty) -> ((isValue t) ⊎ (∃ (Step δ t)))
+progress true = inj₁ unit
+progress false = inj₁ unit
+progress zero = inj₁ unit
+progress {S1} {S2} {s1} {H1} {H2} {ty} (succ t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
+progress (succ t) | inj₁ x = inj₁ x -- TODO shouldn't this be (succ t)?
+progress (succ t) | inj₂ (proj₁ , proj₂) = inj₂ ((succ proj₁) , (E-Succ proj₂))
+progress {S1} {S2} {s1} {H1} {H2} {ty} (iszero t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
+progress (iszero zero) | inj₁ x = inj₂ (true , {!E-IsZeroZero !})
+progress {S1} {S2} {s1} {H1} {H2} (iszero (succ t)) | inj₁ x = {!!} -- inj₂ (false , {!!})
+progress (iszero (if t then t₁ else t₂)) | inj₁ ()
+progress (iszero (! t)) | inj₁ ()
+progress (iszero (t <- t₁)) | inj₁ ()
+progress (iszero t) | inj₂ (proj₁ , proj₂) = inj₂ (iszero proj₁ , E-IsZero proj₂)
+progress (if t then t₁ else t₂) = {!!}
+progress {S1} {S2} {s1} {H1} {H2} {ty} (new t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
+progress (new t) | inj₁ x = inj₂ (ref {!!} , {!E-NewVal!})
+progress (new t) | inj₂ (proj₁ , proj₂) = inj₂ ((new proj₁) , (E-New proj₂))
+progress {S1} {S2} {s1} {H1} {H2} {ty} (! t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
+progress (! (if t then t₁ else t₂)) | inj₁ ()
+progress (! new t) | inj₁ ()
+progress (! (! t)) | inj₁ ()
+progress (! (t <- t₁)) | inj₁ ()
+progress {S1} {S2} {s1} {H1} {H2} (! ref x) | inj₁ unit = inj₂ ((lookup H1 (weaken {!!} x)) , {!E-DerefVal!}) -- we cannot use E-DerefVal here for some reason. Why? (Mismatching Heaps/Shapes?)
+progress (! t) | inj₂ (proj₁ , proj₂) = inj₂ (! proj₁ , E-Deref proj₂)
+progress (t <- t₁) = {!!}
+progress (ref e) = {!!}
+
+preservation : {S1 S2 : Shape} {s1 : S1 ⊆ S2 } {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s1 H1 H2} {ty : Type} {t : Term ty} {t' : Term ty} -> Step δ t t' -> ty ≡ ty
+preservation stp = refl
+
