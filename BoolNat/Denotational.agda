@@ -24,4 +24,4 @@ cond vfalse t e = e
 ⟦ new t ⟧ = {!!}
 ⟦ ! t ⟧ = {!!}
 ⟦ t <- t₁ ⟧ = {!!}
-⟦ ref ⟧ = {!!}
+⟦ ref e ⟧ = {!!}

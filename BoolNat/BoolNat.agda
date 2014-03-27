@@ -94,6 +94,12 @@ data Closed : Type -> Set where
   CNew    : forall {ty} -> (S1 : Shape) -> Term ty -> (S2 : Shape) -> S1 ⊆ S2 -> Closed ty
   CAcc    : forall {ty} -> Closed ty
 
+data Value : Type -> Set where
+  vtrue vfalse : Value Boolean
+  vzero : Value Natural
+  vsucc : Value Natural -> Value Natural
+  vref : ∀ {ty S} -> Elem S ty -> Value (Ref ty)
+
 -- -- Concatenation.
 -- _++_ : forall {ty S1 S2 S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {t1 t2 t3 : Term ty} -> 
 --        Steps {ty} {S1} {S2} {H1} {H2} t1 t2 -> Steps {ty} {S2} {S3} {H2} {H3} t2 t3 -> Steps t1 t3
