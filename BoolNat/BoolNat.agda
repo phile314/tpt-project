@@ -42,22 +42,20 @@ data Term : Type -> Set where
                              -> Term ty
  new           : forall {ty} -> Term ty -> Term (Ref ty)
  !_            : forall {ty} -> Term (Ref ty) -> Term ty
- _:=_          : forall {ty} -> Term (Ref ty) -> Term (Ref ty) -> Term (Ref ty)
  _<-_          : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
- ref           : forall {ty} -> Term (Ref ty)
+ ref           : forall {S ty} -> Elem S ty -> Term (Ref ty)
  
 -- are refs values as well?
 isValue : forall {ty} -> Term ty -> Set
 isValue true = Unit
 isValue false = Unit
 isValue zero = Unit
-isValue ref = Unit
+isValue (ref _) = Unit
 isValue (succ t) = isValue t
 isValue (iszero t) = ⊥
 isValue (if t then t₁ else t₂) = ⊥
 isValue (new t) = ⊥
 isValue (!_ t) = ⊥
-isValue (t := t₁) = ⊥
 isValue (_<-_ t t₁) = ⊥
 
 data Heap : Shape -> Set where
@@ -111,7 +109,7 @@ data Step : forall {ty S1 S2} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆
  E-New        : ∀ {ty S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
                 Step δ t t' -> Step {Ref ty} δ (new t) (new t')
  E-NewVal     : ∀ {ty S} {H : Heap S} {v : Term ty} {isV : isValue v} -> 
-                Step (Allocate {v = v} {isV = isV} (Same H)) (new v) ref
+                Step (Allocate {v = v} {isV = isV} (Same H)) (new v) (ref (Top {S}))
  E-Deref      : ∀ {ty S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
                 Step {Ref ty} δ t t' -> Step {ty} δ (! t) (! t')
  E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {isP : S' ⊆ S} {t : Term (Ref ty)} -> 
@@ -120,9 +118,8 @@ data Step : forall {ty S1 S2} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆
                 Step {Ref ty} δ t1 t1' ->  Step {ty} δ (t1 <- t2) (t1' <- t2)
  E-AssRight   : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {v : Term (Ref ty)} {t t' : Term ty} 
                 (isV : isValue v) -> Step δ t t' -> Step δ (v <- t) (v <- t')
- E-AssRed     : ∀ {ty S S'} {H : Heap S} {v1 : Term (Ref ty)} {v2 : Term ty} -> 
-                {isV1 : isValue v1} {isV2 : isValue v2} {e : Elem S' ty} {isP : S' ⊆ S} ->
-                Step (Replace (weaken isP e) v2 {isV2} (Same H)) (v1 <- v2) v2
+ E-AssRed     : ∀ {ty S S'} {H : Heap S} {v : Term ty} {isV : isValue v} {e : Elem S' ty} {isP : S' ⊆ S} ->
+                Step (Replace (weaken isP e) v {isV} (Same H)) ((ref e) <- v) v
 
 -- You don't need this proof anymore, it's directly encoded in the Step
 -- Proof that the shape only grows. Could be useful for proofs.
