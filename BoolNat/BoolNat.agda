@@ -96,8 +96,9 @@ data Closed : Type -> Set where
 
 data Value : Type -> Set where
   vtrue vfalse : Value Boolean
-  vzero : Value Natural
-  vsucc : Value Natural -> Value Natural
+  vnat : Nat -> Value Natural
+--  vzero : Value Natural
+--  vsucc : Value Natural -> Value Natural
   vref : ∀ {ty S} -> Elem S ty -> Value (Ref ty)
 
 -- -- Concatenation.
