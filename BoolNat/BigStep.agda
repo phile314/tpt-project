@@ -25,15 +25,17 @@ data BStep : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ 
               BStep δ n          (vnat (suc n')) →
               BStep δ (iszero n) vfalse
 
-  E-IfTrue  : ∀ {ty} {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {δ12 : Δ s12 H1 H2} {δ23 : Δ s23 H2 H3} {t : Term Boolean} {t1 t2 : Term ty} {v : Value ty} →
+  E-IfTrue  : ∀ {ty} {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} 
+                {δ12 : Δ s12 H1 H2} {δ23 : Δ s23 H2 H3} {t : Term Boolean} {t1 t2 : Term ty} {v : Value ty} →
               BStep δ12 t  vtrue → 
               BStep δ23 t1 v     →
-              BStep ({!!} δ12 δ23) (if t then t1 else t2) v -- Use <++> when finished
+              BStep (δ12 <++> δ23) (if t then t1 else t2) v
 
-  E-IfFalse : ∀ {ty} {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {δ12 : Δ s12 H1 H2} {δ23 : Δ s23 H2 H3} {t : Term Boolean} {t1 t2 : Term ty} {v : Value ty} →
+  E-IfFalse : ∀ {ty} {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} 
+                {δ12 : Δ s12 H1 H2} {δ23 : Δ s23 H2 H3} {t : Term Boolean} {t1 t2 : Term ty} {v : Value ty} →
               BStep δ12 t  vfalse →
               BStep δ23 t2 v      →
-              BStep ({!!} δ12 δ23) (if t then t1 else t2) v -- Use <++> when finished
+              BStep (δ12 <++> δ23) (if t then t1 else t2) v
 
   E-New     : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t : Term ty} {v : Value ty}{e : Elem S1 ty} →
               BStep δ t v ->
@@ -41,7 +43,8 @@ data BStep : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ 
   E-Ref     : ∀ {ty S} {H : Heap S} → {e : Elem S ty} →
               BStep (Same H) (ref e) (vref e)
   E-Assign  : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t : Term ty} {v : Value ty} {e : Elem S2 ty} ->
-              BStep δ t v → BStep (Replace e v δ) (ref e <- t) v
+              BStep δ t v → 
+              BStep (Replace e v δ) (ref e <- t) v
   E-Deref   : ∀ {ty S} {H : Heap S} {e : Elem S ty} {v : Value ty} →
               BStep (Same H) (! (ref e)) (lookup H e)
 

@@ -3,6 +3,7 @@
 -- boolean or a number.
 -- Small-step and big-step semantics are also defined for this language and the soundness and completeness thereof are 
 -- proven.
+
 module BoolNat where
 
 ------------------------------------------------------------------------
@@ -11,6 +12,7 @@ module BoolNat where
 open import Data.Nat renaming (ℕ to Nat)
 open import Data.Unit
 open import Data.Empty
+open import Relation.Binary.PropositionalEquality
 
 --------------------------------------------------------------------------------
 -- Types
@@ -43,10 +45,10 @@ weaken : ∀ {ty S S'} -> S' ⊆ S -> Elem S' ty -> Elem S ty
 weaken Same p = p
 weaken (Grow isP) p = Pop (weaken isP p)
 
-trans : ∀ {S1 S2 S3} -> S1 ⊆ S2 -> S2 ⊆ S3 -> S1 ⊆ S3
-trans Same s2 = s2
-trans (Grow s1) Same = Grow s1
-trans (Grow s1) (Grow s2) = Grow (trans (Grow s1) s2)
+trans⊆ : ∀ {S1 S2 S3} -> S1 ⊆ S2 -> S2 ⊆ S3 -> S1 ⊆ S3
+trans⊆ Same s2 = s2
+trans⊆ (Grow s1) Same = Grow s1
+trans⊆ (Grow s1) (Grow s2) = Grow (trans⊆ (Grow s1) s2)
 
 --------------------------------------------------------------------------------
 -- Terms and syntax and type rules.
@@ -125,9 +127,17 @@ mutual
   replace (Cons v S xs) Top v' = Cons v' S xs
   replace (Cons v S xs) (Pop p) v' = Cons v S (replace xs p v')
 
--- Allocate v δ1 <++> Same (Cons .v S2 H2)  = Allocate δ1
--- Allocate δ1 <++> Allocate δ2 = Allocate (Allocate δ1 <++> δ2)
--- Allocate δ1 <++> Replace e t δ2 = Replace e t (Allocate δ1 <++> δ2) 
--- Replace {ty} {._} {._} {._} {._} {H2} e t {isV} δ1 <++> Same .(replace H2 e t isV) = Replace e t (δ1 <++> Same H2)
--- Replace e t δ1 <++> (Allocate δ2) = {!!} -- FIX : This is just looping : Replace e t δ1 <++> Allocate δ2
--- Replace e t δ1 <++> Replace e₁ t₁ δ2 = Replace e₁ t₁ (Replace e t δ1 <++> δ2)
+trans⊆Grow : ∀ {ty S1 S2 S3} (s12 : S1 ⊆ S2) -> (s23 : S2 ⊆ S3) -> trans⊆ s12 (Grow {ty = ty} s23) ≡ Grow (trans⊆ s12 s23)
+trans⊆Grow Same s23 = refl
+trans⊆Grow (Grow s12) s23 = refl 
+
+-- Concatenates deltas 
+_<++>_ :  {S1 S2 S3 : Shape} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} ->   
+          Δ s12 H1 H2 -> Δ s23 H2 H3 -> Δ (trans⊆ s12 s23) H1 H3
+_<++>_ {.S2} {S2} {S3} {.Same} {s2} {.H2} {H2} (Same .H2) δ2 = δ2
+Allocate {ty} {._} {S2} {s} {._} {H2} v δ1 <++> Same .(Cons v S2 H2) = Allocate v δ1
+Allocate v δ1 <++> Allocate v₁ δ2 = Allocate v₁ (Allocate v δ1 <++> δ2)
+Allocate v δ1 <++> Replace e v₁ δ2 = Replace e v₁ (Allocate v δ1 <++> δ2)
+Replace {ty} {._} {._} {._} {._} {H2} e v δ1 <++> Same .(replace H2 e v) = Replace e v (δ1 <++> Same H2)
+_<++>_  {S3 = Cons ty S3} {s12 = s12} {s23 = Grow s23} (Replace e v δ1) (Allocate v₁ δ2) rewrite trans⊆Grow {ty} s12 s23 = Allocate v₁ (Replace e v δ1 <++> δ2)
+Replace e v δ1 <++> Replace e₁ v₁ δ2 = Replace e₁ v₁ (Replace e v δ1 <++> δ2)
