@@ -3,6 +3,7 @@ module BigStep where
 open import Data.Nat
 open import BoolNat
 
+-- This proofs already exist in the module Steps
 chain⊆s : ∀ {S1 S2 S3} →
           (s12 : S1 ⊆ S2) → (s23 : S2 ⊆ S3) →
           S1 ⊆ S3
@@ -14,7 +15,7 @@ chainδs : ∀ {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2
           Δ s13 H1 H3
 chainδs = {!!}
 
-
+-- TODO: there should be no isValue proofs in the big steps. Instead take another bigstep as parameter which reduces the argment to a value. (e.g. E-New)
 data BStep : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ s H1 H2 → Term ty → Value ty → Set where
   E-True    : ∀ {S} {H : Heap S} → 
               BStep (Same H) true vtrue
@@ -55,6 +56,6 @@ data BStep : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ 
               BStep δ t v →
               BStep (Replace e t {isV} δ) ((ref {S2} {ty} e) <- t) v
   E-Deref   : ∀ {ty S} {H : Heap S} {e : Elem S ty} {v : Value ty} →
-              BStep (Same H) (lookup H e) v →
+              BStep (Same H) (lookup H e) v → -- TODO The Heap only contains values. As soon as the Heap is converted to the value data type, use the value directly.
               BStep (Same H) (! (ref e)) v
 

@@ -1,9 +1,20 @@
-until Friday (or Monday if there is no time....)
+-- until Monday
 
-MV  Remove Aliasing stuff
-OP  BigStep semantics
+PH  Index terms by one Shape
+MV  Convert Heap to value data type
+MV  Move common functions to a utility module
+OP  BigStep semantics (fix issues, see comments, reuse existing proofs etc.)
+
+
+-- try as far as we get, as time permits
 MV  Evaluation function
 PH  progress + preservation proof with SmallStep
+
+==========================
+DONE:
+==========================
+
+MV  Remove Aliasing stuff
 
     Maybe remove isValue proof from heap, instead prove that all insert/replace steps only insert values into the heap
 
