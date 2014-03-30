@@ -3,6 +3,7 @@ module BigStep where
 open import Data.Nat
 open import BoolNat
 
+<<<<<<< HEAD
 -- This proofs already exist in the module Steps
 chain⊆s : ∀ {S1 S2 S3} →
           (s12 : S1 ⊆ S2) → (s23 : S2 ⊆ S3) →
@@ -16,6 +17,8 @@ chainδs : ∀ {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2
 chainδs = {!!}
 
 -- TODO: there should be no isValue proofs in the big steps. Instead take another bigstep as parameter which reduces the argment to a value. (e.g. E-New)
+=======
+>>>>>>> 14b9cb559faafdce5cef0465e52b4d402567321b
 data BStep : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ s H1 H2 → Term ty → Value ty → Set where
   E-True    : ∀ {S} {H : Heap S} → 
               BStep (Same H) true vtrue
@@ -38,24 +41,31 @@ data BStep : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ 
               BStep δ n          (vnat (suc n')) →
               BStep δ (iszero n) vfalse
 
-  E-IfTrue  : ∀ {ty} {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {δ12 : Δ s12 H1 H2} {δ23 : Δ s23 H2 H3} {t : Term Boolean} {t1 t2 : Term ty} {v : Value ty} →
+  E-IfTrue  : ∀ {ty} {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} 
+                {δ12 : Δ s12 H1 H2} {δ23 : Δ s23 H2 H3} {t : Term Boolean} {t1 t2 : Term ty} {v : Value ty} →
               BStep δ12 t  vtrue → 
               BStep δ23 t1 v     →
-              BStep (chainδs (chain⊆s s12 s23) δ12 δ23) (if t then t1 else t2) v
+              BStep (δ12 <++> δ23) (if t then t1 else t2) v
 
-  E-IfFalse : ∀ {ty} {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} {δ12 : Δ s12 H1 H2} {δ23 : Δ s23 H2 H3} {t : Term Boolean} {t1 t2 : Term ty} {v : Value ty} →
+  E-IfFalse : ∀ {ty} {S1 S2 S3} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} 
+                {δ12 : Δ s12 H1 H2} {δ23 : Δ s23 H2 H3} {t : Term Boolean} {t1 t2 : Term ty} {v : Value ty} →
               BStep δ12 t  vfalse →
               BStep δ23 t2 v      →
-              BStep (chainδs (chain⊆s s12 s23) δ12 δ23) (if t then t1 else t2) v
+              BStep (δ12 <++> δ23) (if t then t1 else t2) v
 
-  E-New     : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t : Term ty} {e : Elem S1 ty} {isV : isValue t} →
-              BStep (Allocate {ty} {S1} {S2} {s} {H1} {H2} {t} {isV} δ) (new t) (vref e)
+  E-New     : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t : Term ty} {v : Value ty}{e : Elem S1 ty} →
+              BStep δ t v ->
+              BStep (Allocate v δ) (new t) (vref e)
   E-Ref     : ∀ {ty S} {H : Heap S} → {e : Elem S ty} →
               BStep (Same H) (ref e) (vref e)
-  E-Assign  : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t : Term ty} {v : Value ty} {e : Elem S2 ty} {isV : isValue t} →
-              BStep δ t v →
-              BStep (Replace e t {isV} δ) ((ref {S2} {ty} e) <- t) v
+  E-Assign  : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t : Term ty} {v : Value ty} {e : Elem S2 ty} ->
+              BStep δ t v → 
+              BStep (Replace e v δ) (ref e <- t) v
   E-Deref   : ∀ {ty S} {H : Heap S} {e : Elem S ty} {v : Value ty} →
+<<<<<<< HEAD
               BStep (Same H) (lookup H e) v → -- TODO The Heap only contains values. As soon as the Heap is converted to the value data type, use the value directly.
               BStep (Same H) (! (ref e)) v
+=======
+              BStep (Same H) (! (ref e)) (lookup H e)
+>>>>>>> 14b9cb559faafdce5cef0465e52b4d402567321b
 

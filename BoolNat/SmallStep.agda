@@ -19,18 +19,18 @@ data Step : forall {ty S1 S2} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆
                 Step δ t t' -> Step δ (iszero t) (iszero t')
  E-New        : ∀ {ty S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
                 Step δ t t' -> Step {Ref ty} δ (new t) (new t')
- E-NewVal     : ∀ {ty S} {H : Heap S} {v : Term ty} {isV : isValue v} -> 
-                Step (Allocate {v = v} {isV = isV} (Same H)) (new v) (ref (Top {S}))
+ E-NewVal     : ∀ {ty S} {H : Heap S} {v : Value ty} -> 
+                Step (Allocate v (Same H)) (new ⌜ v ⌝) (ref (Top {S}))
  E-Deref      : ∀ {ty S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
                 Step {Ref ty} δ t t' -> Step {ty} δ (! t) (! t')
  E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {isP : S' ⊆ S} {t : Term (Ref ty)} -> 
-                Step {ty} (Same H) (! t) (lookup H (weaken isP e))
+                Step {ty} (Same H) (! t) (⌜ lookup H (weaken isP e) ⌝)
  E-AssLeft    : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t1 t1' : Term (Ref ty)} {t2 : Term ty} ->
                 Step {Ref ty} δ t1 t1' ->  Step {ty} δ (t1 <- t2) (t1' <- t2)
  E-AssRight   : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {v : Term (Ref ty)} {t t' : Term ty} 
                 (isV : isValue v) -> Step δ t t' -> Step δ (v <- t) (v <- t')
- E-AssRed     : ∀ {ty S S'} {H : Heap S} {v : Term ty} {isV : isValue v} {e : Elem S' ty} {isP : S' ⊆ S} ->
-                Step (Replace (weaken isP e) v {isV} (Same H)) ((ref e) <- v) v
+ E-AssRed     : ∀ {ty S S'} {H : Heap S} {v : Value ty} {e : Elem S' ty} {isP : S' ⊆ S} ->
+                Step (Replace (weaken isP e) v (Same H)) ((ref e) <- ⌜ v ⌝) ⌜ v ⌝
 
 -- You don't need this proof anymore, it's directly encoded in the Step
 -- Proof that the shape only grows. Could be useful for proofs.
@@ -64,7 +64,7 @@ progress (! (if t then t₁ else t₂)) | inj₁ ()
 progress (! new t) | inj₁ ()
 progress (! (! t)) | inj₁ ()
 progress (! (t <- t₁)) | inj₁ ()
-progress {S1} {S2} {s1} {H1} {H2} (! ref x) | inj₁ unit = inj₂ ((lookup H1 (weaken {!!} x)) , {!E-DerefVal!}) -- we cannot use E-DerefVal here for some reason. Why? (Mismatching Heaps/Shapes?)
+progress {S1} {S2} {s1} {H1} {H2} (! ref x) | inj₁ unit = inj₂ (( ⌜ lookup H1 ((weaken {!!} x)) ⌝ ) , {!E-DerefVal!}) -- we cannot use E-DerefVal here for some reason. Why? (Mismatching Heaps/Shapes?)
 progress (! t) | inj₂ (proj₁ , proj₂) = inj₂ (! proj₁ , E-Deref proj₂)
 progress (t <- t₁) = {!!}
 progress (ref e) = {!!}
