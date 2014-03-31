@@ -1,8 +1,6 @@
 -- until Monday
 
 PH  Index terms by one Shape
-MV  Convert Heap to value data type
-MV  Move common functions to a utility module
 OP  BigStep semantics (fix issues, see comments, reuse existing proofs etc.)
 
 
@@ -10,9 +8,24 @@ OP  BigStep semantics (fix issues, see comments, reuse existing proofs etc.)
 MV  Evaluation function
 PH  progress + preservation proof with SmallStep
 
+
+
+1. We need values in the heap (or isValue etc.), otherwise non-terminating [[]] def.
+2. The ref value contains an arbitrary shape. If Value is not indexed on the Shape,
+   we cannot relate the ref to anything else anymore.
+   We could index values by Shape. Is this really a good idea? Does it actually work? (PH will try it out)
+   Maybe something like Closed indexed by Shape works? (MV will try it out)
+   Should we have a Value datatype, isValue, Closed...? (we need values for BigStep/Denotational Semantics)
+
+
+
 ==========================
 DONE:
 ==========================
+
+
+MV  Convert Heap to value data type
+MV  Move common functions to a utility module
 
 MV  Remove Aliasing stuff
 
