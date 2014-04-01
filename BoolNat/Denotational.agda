@@ -3,6 +3,7 @@ module Denotational where
 open import BoolNat
 open import Data.Nat
 open import Data.Unit
+open import Data.Maybe
 
 ------------------------------------------------------------------------
 -- Denotational semantics.
@@ -35,29 +36,40 @@ data State : Type -> Set where
   _,_ : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} -> (v : Value ty) -> Δ s H1 H2 -> State ty
 
 -- Feeds the resulting heap of the delta in the evaluation of the term 
-_~>_ : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ s H1 H2 -> Term ty -> State ty
+_~>_ : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ s H1 H2 -> Term ty -> Maybe (State ty)
 
 -- Evaluation function.
 -- The Heap is a chained attribute, it is threaded through all the recursicve call.
-⟦_⟧ : ∀ {ty S} -> Term ty → Heap S -> State ty
-⟦ true ⟧ H = (vtrue , Same H)
-⟦ false ⟧ H = (vfalse , Same H)
+⟦_⟧ : ∀ {ty S} -> Term ty → Heap S -> Maybe (State ty)
+⟦ true ⟧ H = just (vtrue , Same H)
+⟦ false ⟧ H = just (vfalse , Same H)
 ⟦ if c then t else e ⟧ H with ⟦ c ⟧ H
-⟦_⟧ (if c then t else e) H | vtrue , δ  = δ ~> t
-⟦_⟧ (if c then t else e) H | vfalse , δ = δ ~> e
-⟦ zero ⟧ H = (vnat zero , Same H)
+⟦_⟧ (if c then t else e) H | just (vtrue , δ)  = δ ~> t
+⟦_⟧ (if c then t else e) H | just (vfalse , δ) = δ ~> e
+⟦_⟧ (if c then t else e) H | nothing = nothing
+⟦ zero ⟧ H = just (vnat zero , Same H)
 ⟦ succ t ⟧ H with ⟦ t ⟧ H 
-⟦_⟧ (succ t) H | vnat n , δ = (vnat (suc n)) , δ 
+⟦_⟧ (succ t) H | just (vnat n , δ) = just (vnat (suc n) , δ )
+⟦_⟧ (succ t) H | nothing = nothing 
 ⟦ iszero t ⟧ H with ⟦ t ⟧ H
-⟦ iszero t ⟧ H | ( v , δ ) = (vtrue , δ) 
+⟦_⟧ (iszero t) H | just (vnat zero , δ) = just (vtrue , δ) 
+⟦_⟧ (iszero t) H | just (vnat (suc x) , δ) = just (vfalse , δ)  
+⟦ iszero t ⟧ H | nothing = nothing 
 ⟦_⟧ {Ref ty} (new t) H with ⟦ t ⟧ H
-⟦_⟧ {Ref ty} (new t) H | _,_ {S2 = S2} v δ = vref (Top {S2}) , Allocate v δ
+⟦_⟧ {Ref ty} (new t) H | just (_,_ {S2 = S2} v δ) = just (vref (Top {S2}) , Allocate v δ)
+⟦_⟧ {Ref ty} (new t) H | nothing = nothing
 ⟦_⟧ (! t) H with ⟦_⟧ t H
--- Here I would need to map the term back to the value, but I cannot use ⟦ ⟧ or it might not terminate
-⟦_⟧ {S = S0} (! t) H | _,_ {S1 = S1} {S2 = S2} {s = s} {H2 = H2} (vref {S = S} x) δ = lookup H2 (weaken {!s!} x) , δ
+⟦_⟧ {ty = ty} (! t) H | just (_,_  {S2 = S2} {H2 = H2} (vref x) δ) with elem S2 ty
+... | just e = just ((lookup H2 e) , δ)
+... | nothing = nothing
+⟦_⟧ (! t) H | nothing = nothing
 ⟦ t <- t₁ ⟧ H with ⟦ t ⟧ H
-⟦_⟧ (t <- t₁) H | _,_ {H2 = H1} v δ1 with ⟦ t₁ ⟧ H1
-⟦_⟧ (t <- t₁) H | vref x , δ2 | v , δ = v , Replace {!!} v δ2 -- replace ? {!!} ⌜ v ⌝ (isValue? v)
-⟦ ref e ⟧ H = vref e , Same H
+⟦_⟧ (t <- t₁) H | nothing = nothing
+⟦_⟧ (t <- t₁) H | just (_,_ {H2 = H1} v δ1) with ⟦ t₁ ⟧ H1
+⟦_⟧ (t <- t₁) H | just (vref x , δ1) | just (_,_ {ty = ty} {S2 = S2} v  δ) with elem S2 ty
+⟦_⟧ (t <- t₁) H | just (vref x₁ , δ1) | just (v , δ) | just e = just (v , Replace e v δ)
+⟦_⟧ (t <- t₁) H | just (vref x , δ1) | just (v , δ) | nothing = nothing
+⟦_⟧ (t <- t₁) H | just (vref x , δ2) | nothing = nothing
+⟦ ref e ⟧ H = just (vref e , Same H)
 
 _~>_ {H2 = H2} δ t = ⟦ t ⟧ H2 
