@@ -1,9 +1,10 @@
--- until Monday
+-- until Thursday
 
-PH  Index terms by one Shape
-MV  Convert Heap to value data type
-MV  Move common functions to a utility module
-OP  BigStep semantics (fix issues, see comments, reuse existing proofs etc.)
+PH  Split types into Basic/Ref types
+PH  Restrict Heap to basic types
+MV  Use Maybe for denotational semantics
+OP  Adapt BigStep and check if they still work
+
 
 
 -- try as far as we get, as time permits
@@ -13,6 +14,10 @@ PH  progress + preservation proof with SmallStep
 ==========================
 DONE:
 ==========================
+PH  Index terms by one Shape
+MV  Convert Heap to value data type
+MV  Move common functions to a utility module
+OP  BigStep semantics (fix issues, see comments, reuse existing proofs etc.)
 
 MV  Remove Aliasing stuff
 
