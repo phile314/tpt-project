@@ -12,6 +12,7 @@ module BoolNat where
 open import Data.Nat renaming (ℕ to Nat)
 open import Data.Unit
 open import Data.Empty
+open import Data.Maybe
 open import Relation.Binary.PropositionalEquality
 
 --------------------------------------------------------------------------------
@@ -22,6 +23,15 @@ data Type : Set where
  Boolean : Type
  Natural : Type
  Ref : (ty : Type) -> Type
+
+-- View function : are two types the same?
+_=?_ : (ty : Type) -> (ty' : Type) -> Maybe (ty ≡ ty')
+Boolean =? Boolean = just refl
+Natural =? Natural = just refl
+Ref ty1 =? Ref ty2 with ty1 =? ty2
+Ref .ty2 =? Ref ty2 | just refl = just refl
+Ref ty1 =? Ref ty2 | nothing = nothing
+_ =? _ = nothing
 
 --------------------------------------------------------------------------------
 -- Shape
@@ -34,6 +44,18 @@ data Shape : Set where
 data Elem : Shape -> Type -> Set where
   Top : forall {S ty} -> Elem (Cons ty S) ty
   Pop : forall {S ty a} -> Elem S ty -> Elem (Cons a S) ty
+
+-- View function
+-- WARNING : Here we return the Elem proof object for the first element of the same type.
+-- However an Elem object does not necessarely need to refer to the first occurence. 
+-- This could lead to inconsistences in the proofs.
+elem : (S : Shape) -> (ty : Type) -> Maybe (Elem S ty) 
+elem Nil ty = nothing
+elem (Cons ty' S) ty with ty' =? ty
+elem (Cons .ty S) ty | just refl = just Top
+elem (Cons ty' S) ty | nothing with elem S ty
+elem (Cons ty' S) ty | nothing | just x = just (Pop x)
+elem (Cons ty' S) ty | nothing | nothing = nothing
 
 -- xs ⊆ ys i.e. ∃ zs : xs ≡  zs ++ ys
 data _⊆_ : Shape -> Shape -> Set where
@@ -117,11 +139,11 @@ lookup (Cons v S xs) (Pop p) = lookup xs p
 
 mutual
   data Δ : ∀ {S1 S2} -> S1 ⊆ S2 -> Heap S1 -> Heap S2 -> Set where
-    Same : ∀ {S} -> (H : Heap S) -> Δ Same H H
-    Allocate : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} (v : Value ty) ->
-               Δ s H1 H2 -> Δ (Grow s) H1 (Cons v S2 H2)
-    Replace : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} (e : Elem S2 ty) (v : Value ty) ->
-              Δ s H1 H2 -> Δ s H1 (replace H2 e v)  
+    Same      : ∀ {S} -> (H : Heap S) -> Δ Same H H
+    Allocate  : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} (v : Value ty) ->
+                   Δ s H1 H2 -> Δ (Grow s) H1 (Cons v S2 H2)
+    Replace   : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} (e : Elem S2 ty) (v : Value ty) ->
+                   Δ s H1 H2 -> Δ s H1 (replace H2 e v)  
 
   replace : ∀ {ty S} -> Heap S -> Elem S ty -> (v : Value ty) -> Heap S
   replace (Cons v S xs) Top v' = Cons v' S xs
