@@ -1,6 +1,7 @@
 module SmallStep where
 
 open import BoolNat
+open import Data.Nat renaming (ℕ to Nat) 
 open import Data.Sum
 open import Data.Product
 open import Data.Unit
@@ -20,17 +21,25 @@ data Step : forall {ty S1 S2} -> {H1 : Heap S1} -> {H2 : Heap S2} -> {s : S1 ⊆
  E-New        : ∀ {ty S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
                 Step δ t t' -> Step {Ref ty} δ (new t) (new t')
  E-NewVal     : ∀ {ty S} {H : Heap S} {v : Value ty} -> 
-                Step (Allocate v (Same H)) (new ⌜ v ⌝) (ref (Top {S}))
+                Step (Allocate v (Same H)) (new ⌜ v ⌝) (ref {!!})  -- Here we need to put the length of the Heap 
  E-Deref      : ∀ {ty S1 S2 t t'} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} ->
                 Step {Ref ty} δ t t' -> Step {ty} δ (! t) (! t')
- E-DerefVal   : forall {S S' H ty} {e : Elem S' ty} {isP : S' ⊆ S} {t : Term (Ref ty)} -> 
-                Step {ty} (Same H) (! t) (⌜ lookup H (weaken isP e) ⌝)
+ E-DerefVal   : forall {S S' H ty} {s : S ⊆ S'} {n : Nat} {t : Term (Ref ty)} -> 
+                Step {ty} (Same H) (! t) (⌜ lookup H n ⌝)
  E-AssLeft    : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {t1 t1' : Term (Ref ty)} {t2 : Term ty} ->
                 Step {Ref ty} δ t1 t1' ->  Step {ty} δ (t1 <- t2) (t1' <- t2)
  E-AssRight   : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {v : Term (Ref ty)} {t t' : Term ty} 
                 (isV : isValue v) -> Step δ t t' -> Step δ (v <- t) (v <- t')
- E-AssRed     : ∀ {ty S S'} {H : Heap S} {v : Value ty} {e : Elem S' ty} {isP : S' ⊆ S} ->
-                Step (Replace (weaken isP e) v (Same H)) ((ref e) <- ⌜ v ⌝) ⌜ v ⌝
+ E-AssRed     : ∀ {ty S S'} {H : Heap S} {v : Value ty} {isP : S' ⊆ S} {n : Nat} ->
+                Step (Replace n v (Same H)) ((ref n) <- ⌜ v ⌝) ⌜ v ⌝
+
+ 
+ -- Here we need to add all the "failing" rules such as 
+ E-If-Err     : ∀ {ty S} {H : Heap S} {t1 t2 : Term ty} -> Step (Same H) (if error then t1 else t2) error
+-- E-IsZero-Err
+-- E-AssLeft-Err
+-- E-AssRight-Err
+-- ...
 
 -- You don't need this proof anymore, it's directly encoded in the Step
 -- Proof that the shape only grows. Could be useful for proofs.
@@ -54,20 +63,23 @@ progress {S1} {S2} {s1} {H1} {H2} (iszero (succ t)) | inj₁ x = {!!} -- inj₂ 
 progress (iszero (if t then t₁ else t₂)) | inj₁ ()
 progress (iszero (! t)) | inj₁ ()
 progress (iszero (t <- t₁)) | inj₁ ()
+progress (iszero error) | inj₁ p  = {!!} 
 progress (iszero t) | inj₂ (proj₁ , proj₂) = inj₂ (iszero proj₁ , E-IsZero proj₂)
 progress (if t then t₁ else t₂) = {!!}
 progress {S1} {S2} {s1} {H1} {H2} {ty} (new t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
 progress (new t) | inj₁ x = inj₂ (ref {!!} , {!E-NewVal!})
 progress (new t) | inj₂ (proj₁ , proj₂) = inj₂ ((new proj₁) , (E-New proj₂))
 progress {S1} {S2} {s1} {H1} {H2} {ty} (! t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
+progress (! error) | inj₁ p = {!!}
 progress (! (if t then t₁ else t₂)) | inj₁ ()
 progress (! new t) | inj₁ ()
 progress (! (! t)) | inj₁ ()
 progress (! (t <- t₁)) | inj₁ ()
-progress {S1} {S2} {s1} {H1} {H2} (! ref x) | inj₁ unit = inj₂ (( ⌜ lookup H1 ((weaken {!!} x)) ⌝ ) , {!E-DerefVal!}) -- we cannot use E-DerefVal here for some reason. Why? (Mismatching Heaps/Shapes?)
+progress {S1} {S2} {s1} {H1} {H2} (! ref x) | inj₁ unit = inj₂ (( ⌜ lookup H1 {!!} ⌝ ) , {!E-DerefVal!}) -- we cannot use E-DerefVal here for some reason. Why? (Mismatching Heaps/Shapes?)
 progress (! t) | inj₂ (proj₁ , proj₂) = inj₂ (! proj₁ , E-Deref proj₂)
 progress (t <- t₁) = {!!}
 progress (ref e) = {!!}
+progress error = {!!}
 
 preservation : {S1 S2 : Shape} {s1 : S1 ⊆ S2 } {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s1 H1 H2} {ty : Type} {t : Term ty} {t' : Term ty} -> Step δ t t' -> ty ≡ ty
 preservation stp = refl
