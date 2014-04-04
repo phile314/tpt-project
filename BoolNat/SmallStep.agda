@@ -32,8 +32,8 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  --                Step {Ref ty} δ t1 t1' ->  Step {ty} δ (t1 <- t2) (t1' <- t2)
  -- E-AssRight   : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {v : Term (Ref ty)} {t t' : Term ty} 
  --                (isV : isValue v) -> Step δ t t' -> Step δ (v <- t) (v <- t')
- E-AssRed     : ∀ {ty} {v : Value ty} {n : Nat} {H : Heap (suc n)} {p : ty ≡ lookupTy (fromℕ n) H} ->
-                Step {H1 = H} {H2 = replace v (fromℕ n) H p} ((ref n) <- ⌜ v ⌝) ⌜ v ⌝
+ E-AssRed     : ∀ {ty} {v : Value ty} {n : Nat} {H : Heap n} {p : Replace H ty} ->
+                Step {H1 = H} {H2 = replace v H p} ((ref n) <- ⌜ v ⌝) ⌜ v ⌝
  -- The only step available when the replace cannot be executed
  E-AssFail    : ∀ {ty n m} ->  {v : Value ty} {H : Heap n} -> Step {H1 = H} {H2 = H} ((ref m) <- ⌜ v ⌝ ) error
 
