@@ -13,6 +13,7 @@ open import Data.Nat renaming (ℕ to Nat)
 open import Data.Unit
 open import Data.Empty
 open import Data.Maybe
+open import Data.Fin using (Fin)
 open import Relation.Binary.PropositionalEquality
 
 --------------------------------------------------------------------------------
@@ -32,53 +33,7 @@ Ref ty1 =? Ref ty2 with ty1 =? ty2
 Ref .ty2 =? Ref ty2 | just refl = just refl
 Ref ty1 =? Ref ty2 | nothing = nothing
 _ =? _ = nothing
-
---------------------------------------------------------------------------------
--- Shape
---------------------------------------------------------------------------------
-
--- TODO I think that at this point we could even completely avoid the Shape.
--- It does not guarantee any additional type-saefty, because lookups and replace
--- could still fail. Since values are intrinsically typed the Heap as a list of 
--- Values should be sufficient.
--- This kind of representation it's much more similar to C's heap.
-
-data Shape : Set where
-  Nil : Shape
-  Cons : Type -> Shape -> Shape
-
--- data Elem : Shape -> Type -> Set where
---   Top : forall {S ty} -> Elem (Cons ty S) ty
---   Pop : forall {S ty a} -> Elem S ty -> Elem (Cons a S) ty
-
--- We shoud not need this anymore
--- -- View function
--- -- WARNING : Here we return the Elem proof object for the first element of the same type.
--- -- However an Elem object does not necessarely need to refer to the first occurence. 
--- -- This could lead to inconsistences in the proofs.
--- elem : (S : Shape) -> (ty : Type) -> Maybe (Elem S ty) 
--- elem Nil ty = nothing
--- elem (Cons ty' S) ty with ty' =? ty
--- elem (Cons .ty S) ty | just refl = just Top
--- elem (Cons ty' S) ty | nothing with elem S ty
--- elem (Cons ty' S) ty | nothing | just x = just (Pop x)
--- elem (Cons ty' S) ty | nothing | nothing = nothing
-
--- xs ⊆ ys i.e. ∃ zs : xs ≡  zs ++ ys
-data _⊆_ : Shape -> Shape -> Set where
-  Same : ∀ {s} -> s ⊆ s
-  Grow : ∀ {s1 s2 ty} -> s1 ⊆ s2 -> s1 ⊆ (Cons ty s2)
  
--- -- If S' is a prefix of S an element of S' is also an element S
--- weaken : ∀ {ty S S'} -> S' ⊆ S -> Elem S' ty -> Elem S ty
--- weaken Same p = p
--- weaken (Grow isP) p = Pop (weaken isP p)
-
-trans⊆ : ∀ {S1 S2 S3} -> S1 ⊆ S2 -> S2 ⊆ S3 -> S1 ⊆ S3
-trans⊆ Same s2 = s2
-trans⊆ (Grow s1) Same = Grow s1
-trans⊆ (Grow s1) (Grow s2) = Grow (trans⊆ (Grow s1) s2)
-
 --------------------------------------------------------------------------------
 -- Terms and syntax and type rules.
 --------------------------------------------------------------------------------
@@ -136,59 +91,27 @@ isValue (_<-_ t t₁) = ⊥
 -- Heap
 --------------------------------------------------------------------------------
 
-data Heap : Shape -> Set where
-  Corrupted : ∀ {S} -> Heap S -- We could make this model the whole courrupted Heap or also just a cell
-  Nil : Heap Nil
-  Cons : forall {ty} -> (v : Value ty) -> (s : Shape) -> Heap s -> Heap (Cons ty s)
+-- Vector of values
+data Heap : Nat -> Set where
+  Nil : Heap 0
+  Cons : forall {ty n} -> (v : Value ty) -> Heap n -> Heap (1 + n)
 
 -- Partial lookup in the heap.
 -- If the index given is correct and the required type match with the stored value type, the value is returned.
 -- Otherwise verror is returned.
-lookup : forall {ty S} -> Heap S -> Nat -> Value ty
-lookup Corrupted n = verror
-lookup Nil n = verror
-lookup {ty'} (Cons {ty} v s H) zero with ty' =? ty
-lookup (Cons v s H) zero | just refl = v
-lookup (Cons v s H) zero | nothing = verror
-lookup (Cons v s H) (suc n) = lookup H n
+lookup : ∀ {ty n} -> Heap n -> (m : Nat) -> Value ty
+lookup Nil m = verror
+lookup {ty} (Cons {ty'} v H) zero with ty =? ty' 
+lookup (Cons v H) zero | just refl = v
+lookup (Cons v H) zero | nothing = verror
+lookup (Cons v H) (suc m) = lookup H m
 
---------------------------------------------------------------------------------
--- Delta
---------------------------------------------------------------------------------
+-- Safe lookup for type. Returns the type of the value at the given position
+lookupTy : {n : Nat} -> Fin n -> Heap n -> Type
+lookupTy Data.Fin.zero (Cons {ty} v H) = ty
+lookupTy (Data.Fin.suc fn) (Cons v H) = lookupTy fn H
 
-mutual
-  data Δ : ∀ {S1 S2} -> S1 ⊆ S2 -> Heap S1 -> Heap S2 -> Set where
-    Same      : ∀ {S} -> (H : Heap S) -> Δ Same H H
-    Allocate  : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} (v : Value ty) ->
-                   Δ s H1 H2 -> Δ (Grow s) H1 (Cons v S2 H2)
-    Replace   : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} -> (n : Nat) -> (v : Value ty) ->
-                   Δ s H1 H2 -> Δ s H1 (replace H2 n v)  
-
-  -- TODO : we could think about something different here, like explicitly modeling a courrupted heap.
-  -- If the index is invalid or the type of the new value does not match it stores verror at the given index.
-  -- Otherwise replaces the given value.
-  replace : ∀ {ty S} -> Heap S -> Nat -> (v : Value ty) -> Heap S
-  replace Nil n v = Corrupted
-  replace {ty} (Cons {ty'} v' s H) zero v with ty =? ty'
-  replace (Cons v' s H) zero v | just refl = Cons v s H
-  replace (Cons v' s H) zero v | nothing = Corrupted
-  replace (Cons v' s H) (suc n) v = Cons v' s (replace H n v)  -- This is with "corrupted cells" (at the moment is just simpler)
-  replace Courrupted n v = Courrupted
-
-  -- replace (Cons v S xs) Top v' = Cons v' S xs
-  -- replace (Cons v S xs) (Pop p) v' = Cons v S (replace xs p v')
-
-trans⊆Grow : ∀ {ty S1 S2 S3} (s12 : S1 ⊆ S2) -> (s23 : S2 ⊆ S3) -> trans⊆ s12 (Grow {ty = ty} s23) ≡ Grow (trans⊆ s12 s23)
-trans⊆Grow Same s23 = refl
-trans⊆Grow (Grow s12) s23 = refl 
-
--- Concatenates deltas 
-_<++>_ :  {S1 S2 S3 : Shape} {s12 : S1 ⊆ S2} {s23 : S2 ⊆ S3} {H1 : Heap S1} {H2 : Heap S2} {H3 : Heap S3} ->   
-          Δ s12 H1 H2 -> Δ s23 H2 H3 -> Δ (trans⊆ s12 s23) H1 H3
-_<++>_ {.S2} {S2} {S3} {.Same} {s2} {.H2} {H2} (Same .H2) δ2 = δ2
-Allocate {ty} {._} {S2} {s} {._} {H2} v δ1 <++> Same .(Cons v S2 H2) = Allocate v δ1
-Allocate v δ1 <++> Allocate v₁ δ2 = Allocate v₁ (Allocate v δ1 <++> δ2)
-Allocate v δ1 <++> Replace e v₁ δ2 = Replace e v₁ (Allocate v δ1 <++> δ2)
-Replace {ty} {._} {._} {._} {._} {H2} e v δ1 <++> Same .(replace H2 e v) = Replace e v (δ1 <++> Same H2)
-_<++>_  {S3 = Cons ty S3} {s12 = s12} {s23 = Grow s23} (Replace e v δ1) (Allocate v₁ δ2) rewrite trans⊆Grow {ty} s12 s23 = Allocate v₁ (Replace e v δ1 <++> δ2)
-Replace e v δ1 <++> Replace e₁ v₁ δ2 = Replace e₁ v₁ (Replace e v δ1 <++> δ2)
+-- Safe replace. Replaces the value at the given position with another value of the same type.
+replace : ∀ {ty n} -> Value ty -> (fn : Fin n) -> (H : Heap n) -> (ty ≡ lookupTy fn H) -> Heap n
+replace v Data.Fin.zero (Cons v' H) refl = Cons v H
+replace v (Data.Fin.suc fn) (Cons v' H) p = Cons v' (replace v fn H p)
