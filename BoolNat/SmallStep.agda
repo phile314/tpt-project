@@ -6,7 +6,7 @@ open import Data.Sum
 open import Data.Product
 open import Data.Unit
 open import Data.Fin
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding ([_])
 
 data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty -> Set where
  E-IfTrue     : ∀ {ty S} {H : Heap S} {t1 t2 : Term ty} -> Step {H1 = H} {H2 = H} (if true  then t1 else t2) t1
@@ -45,6 +45,22 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
 -- E-AssLeft-Err
 -- E-AssRight-Err
 -- ...
+
+-- Sequence of steps
+data Steps : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty -> Set where
+  [] : ∀ {ty n} {H : Heap n} {t : Term ty} -> Steps {H1 = H} {H2 = H} t t
+  _::_ : ∀ {ty n₁ n₂ n₃} {t₁ t₂ t₃ : Term ty} {H1 : Heap n₁} {H2 : Heap n₂} {H3 : Heap n₃} -> 
+         Step {H1 = H1} {H2 = H2} t₁ t₂ -> Steps {H1 = H2} {H2 = H3} t₂ t₃ ->
+         Steps {H1 = H1} {H2 = H3} t₁ t₃
+       
+_++_ : ∀ {ty n₁ n₂ n₃} {t₁ t₂ t₃ : Term ty} {H1 : Heap n₁} {H2 : Heap n₂} {H3 : Heap n₃} -> 
+         Steps {H1 = H1} {H2 = H2} t₁ t₂ -> Steps {H1 = H2} {H2 = H3} t₂ t₃ -> 
+         Steps {H1 = H1} {H2 = H3} t₁ t₃
+[] ++ ys = ys
+(x :: xs) ++ ys = x :: (xs ++ ys)
+
+[_] : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t1 t2 : Term ty} -> Step {H1 = H1} {H2 = H2} t1 t2 -> Steps {H1 = H1} {H2 = H2} t1 t2
+[ stp ] = stp :: []
 
 -- I think it will be lengthy but easy.
 -- Proof that the shape only grows. Could be useful for proofs.
