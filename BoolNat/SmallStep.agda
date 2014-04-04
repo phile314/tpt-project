@@ -2,11 +2,8 @@ module SmallStep where
 
 open import Base
 open import Data.Nat renaming (ℕ to Nat) 
-open import Data.Sum
-open import Data.Product
 open import Data.Unit
 open import Data.Fin
-open import Relation.Binary.PropositionalEquality hiding ([_])
 
 data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty -> Set where
  E-IfTrue     : ∀ {ty S} {H : Heap S} {t1 t2 : Term ty} -> Step {H1 = H} {H2 = H} (if true  then t1 else t2) t1
@@ -61,47 +58,4 @@ _++_ : ∀ {ty n₁ n₂ n₃} {t₁ t₂ t₃ : Term ty} {H1 : Heap n₁} {H2 :
 
 [_] : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t1 t2 : Term ty} -> Step {H1 = H1} {H2 = H2} t1 t2 -> Steps {H1 = H1} {H2 = H2} t1 t2
 [ stp ] = stp :: []
-
--- I think it will be lengthy but easy.
--- Proof that the shape only grows. Could be useful for proofs.
--- no-shrink :  ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} {t1 t2 : Term ty} {δ : Δ s H1 H2} 
---              -> Step δ t1 t2 -> S1 ⊆ S2
--- no-shrink {s = s} stp = s
-
-
--- Progress and preservation
---progress : forall {d} -> {ty : Type} -> (t : Term ty) -> ((isValue t) ⊎ (∃ (Step d t)))
--- progress : {S1 S2 : Shape} -> {s1 : S1 ⊆ S2 } {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s1 H1 H2} {ty : Type} -> (t : Term ty) -> ((isValue t) ⊎ (∃ (Step δ t)))
--- progress true = inj₁ unit
--- progress false = inj₁ unit
--- progress zero = inj₁ unit
--- progress {S1} {S2} {s1} {H1} {H2} {ty} (succ t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
--- progress (succ t) | inj₁ x = inj₁ x -- TODO shouldn't this be (succ t)?
--- progress (succ t) | inj₂ (proj₁ , proj₂) = inj₂ ((succ proj₁) , (E-Succ proj₂))
--- progress {S1} {S2} {s1} {H1} {H2} {ty} (iszero t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
--- progress (iszero zero) | inj₁ x = inj₂ (true , {!E-IsZeroZero !})
--- progress {S1} {S2} {s1} {H1} {H2} (iszero (succ t)) | inj₁ x = {!!} -- inj₂ (false , {!!})
--- progress (iszero (if t then t₁ else t₂)) | inj₁ ()
--- progress (iszero (! t)) | inj₁ ()
--- progress (iszero (t <- t₁)) | inj₁ ()
--- progress (iszero error) | inj₁ p  = {!!} 
--- progress (iszero t) | inj₂ (proj₁ , proj₂) = inj₂ (iszero proj₁ , E-IsZero proj₂)
--- progress (if t then t₁ else t₂) = {!!}
--- progress {S1} {S2} {s1} {H1} {H2} {ty} (new t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
--- progress (new t) | inj₁ x = inj₂ (ref {!!} , {!E-NewVal!})
--- progress (new t) | inj₂ (proj₁ , proj₂) = inj₂ ((new proj₁) , (E-New proj₂))
--- progress {S1} {S2} {s1} {H1} {H2} {ty} (! t) with progress {S1} {S2} {s1} {H1} {H2} {ty} t
--- progress (! error) | inj₁ p = {!!}
--- progress (! (if t then t₁ else t₂)) | inj₁ ()
--- progress (! new t) | inj₁ ()
--- progress (! (! t)) | inj₁ ()
--- progress (! (t <- t₁)) | inj₁ ()
--- progress {S1} {S2} {s1} {H1} {H2} (! ref x) | inj₁ unit = inj₂ (( ⌜ lookup H1 {!!} ⌝ ) , {!E-DerefVal!}) -- we cannot use E-DerefVal here for some reason. Why? (Mismatching Heaps/Shapes?)
--- progress (! t) | inj₂ (proj₁ , proj₂) = inj₂ (! proj₁ , E-Deref proj₂)
--- progress (t <- t₁) = {!!}
--- progress (ref e) = {!!}
--- progress error = {!!}
-
-preservation : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {t' : Term ty} -> Step {H1 = H1} {H2 = H2} t t' -> ty ≡ ty
-preservation stp = refl
 
