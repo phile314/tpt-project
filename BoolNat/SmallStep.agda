@@ -34,6 +34,9 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  --                (isV : isValue v) -> Step δ t t' -> Step δ (v <- t) (v <- t')
  E-AssRed     : ∀ {ty} {v : Value ty} {n : Nat} {H : Heap (suc n)} {p : ty ≡ lookupTy (fromℕ n) H} ->
                 Step {H1 = H} {H2 = replace v (fromℕ n) H p} ((ref n) <- ⌜ v ⌝) ⌜ v ⌝
+ -- The only step available when the replace cannot be executed
+ E-AssFail    : ∀ {ty n m} ->  {v : Value ty} {H : Heap n} -> Step {H1 = H} {H2 = H} ((ref m) <- ⌜ v ⌝ ) error
+
 
  
  -- Here we need to add all the "failing" rules such as 
