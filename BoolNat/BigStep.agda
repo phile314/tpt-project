@@ -1,7 +1,7 @@
 module BigStep where
 
 open import Data.Nat
-open import BoolNat
+open import Base
 
 
 -- TODO: there should be no isValue proofs in the big steps. Instead take another bigstep as parameter which reduces the argment to a value. (e.g. E-New)

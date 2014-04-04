@@ -1,6 +1,6 @@
 module Denotational where
 
-open import BoolNat
+open import Base
 open import Data.Nat
 open import Data.Unit
 open import Data.Maybe

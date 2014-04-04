@@ -1,6 +1,6 @@
 module SmallStep where
 
-open import BoolNat
+open import Base
 open import Data.Nat renaming (ℕ to Nat) 
 open import Data.Sum
 open import Data.Product
