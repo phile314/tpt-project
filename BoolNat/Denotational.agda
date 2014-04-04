@@ -22,6 +22,7 @@ open import Data.Maybe
 ⌞_⌟ (t <- t₁) ()
 ⌞_⌟ (ref x) v = vref x
 ⌞_⌟ error v = verror 
+⌞_⌟ (try t catch t') () 
 
 -- View function for isValue. 
 isValue? : ∀ {ty} -> (v : Value ty) -> isValue ⌜ v ⌝
@@ -34,36 +35,41 @@ isValue? verror = unit
 
 -- The result of an evaluation. 
 -- Since the evaluation affects the Heap (state), it needs to be returned as well.
-data State : Type -> Set where
-  _,_ : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} -> (v : Value ty) -> Δ s H1 H2 -> State ty
-
--- Feeds the resulting heap of the delta in the evaluation of the term 
-_~>_ : ∀ {ty S1 S2} {H1 : Heap S1} {H2 : Heap S2} {s : S1 ⊆ S2} -> Δ s H1 H2 -> Term ty -> State ty
+data Result : Type -> Set where
+  <_,_> : ∀ {n ty} -> Value ty -> Heap n -> Result ty
 
 -- Evaluation function.
 -- The Heap is a chained attribute, it is threaded through all the recursicve call.
-⟦_⟧ : ∀ {ty S} -> Term ty → Heap S -> State ty
-⟦ true ⟧ H = (vtrue , Same H)
-⟦ false ⟧ H = (vfalse , Same H)
-⟦ if c then t else e ⟧ H with ⟦ c ⟧ H
-⟦_⟧ (if c then t else e) H | (vtrue , δ)  = δ ~> t
-⟦_⟧ (if c then t else e) H | (vfalse , δ) = δ ~> e
-⟦_⟧ (if c then t else e) H | verror , x = verror , x
-⟦ zero ⟧ H = (vnat zero , Same H)
-⟦ succ t ⟧ H with ⟦ t ⟧ H 
-⟦_⟧ (succ t) H | (vnat n , δ) = (vnat (suc n) , δ )
-⟦_⟧ (succ t) H | verror , x = verror , x 
-⟦ iszero t ⟧ H with ⟦ t ⟧ H
-⟦_⟧ (iszero t) H | (vnat zero , δ) = (vtrue , δ) 
-⟦_⟧ (iszero t) H | (vnat (suc x) , δ) =  (vfalse , δ)  
-⟦_⟧ (iszero t) H | verror , x = verror , x 
-⟦_⟧ {Ref ty} (new t) H with ⟦ t ⟧ H
-⟦_⟧ {Ref ty} (new t) H | (_,_ {S2 = S2} v δ) = (vref {!!} , Allocate v δ)  -- Again the length of the Heap
+⟦_⟧ : ∀ {ty n} -> Term ty → Heap n -> Result ty
+⟦_⟧ true H = < vtrue , H >
+⟦_⟧ false H = < vfalse , H >
+⟦_⟧ error H = < verror , H >
+⟦_⟧ zero H = < (vnat 0) , H >
+⟦_⟧ (succ t) H with ⟦ t ⟧ H
+⟦_⟧ (succ t) H | < vnat x , H' > = < vnat (suc x) , H' >
+⟦_⟧ (succ t) H | < verror , H' > = < verror , H' > 
+⟦_⟧ (iszero t) H with ⟦ t ⟧ H
+⟦_⟧ (iszero t) H | < vnat zero , H' > = < vtrue , H' >
+⟦_⟧ (iszero t) H | < vnat (suc x) , H' > = < vfalse , H' >
+⟦_⟧ (iszero t) H | < verror , H' > = < verror , H' >
+⟦_⟧ (if t then t₁ else t₂) H with ⟦ t ⟧ H
+⟦_⟧ (if t then t₁ else t₂) H | < vtrue , H' > = ⟦ t₁ ⟧ H'
+⟦_⟧ (if t then t₁ else t₂) H | < vfalse , H' > = ⟦ t₂ ⟧ H'
+⟦_⟧ (if t then t₁ else t₂) H | < verror , H' > = < verror , H' >
+⟦_⟧ (new t) H with ⟦ t ⟧ H
+⟦_⟧ (new t) H | < verror , H' > = < verror , H' >
+⟦_⟧ (new t) H | < v , H' > = < (vref 0) , (Cons v H') >  -- Consistent with the current small step (cons instead of append)
 ⟦_⟧ (! t) H with ⟦ t ⟧ H
-⟦_⟧ (! t) H | _,_ {H2 = H2} (vref n) x = lookup H2 n , Same H2
-⟦_⟧ (! t) H | verror , x = verror , x 
-⟦ t <- t₁ ⟧ H = {!!} 
-⟦ ref e ⟧ H = (vref e , Same H)
-⟦ error ⟧ H = verror , Same H
-
-_~>_ {H2 = H2} δ t = ⟦ t ⟧ H2 
+⟦_⟧ (! t) H | < vref x , H' > = < (lookup x H') , H' >
+⟦_⟧ (! t) H | < verror , H' > = < verror , H' >
+⟦_⟧ (t <- t₁) H with ⟦ t ⟧ H
+⟦_⟧ (t <- t₁) H | < vref n , H₁ > with ⟦ t₁ ⟧ H₁
+⟦_⟧ (t <- t₁) H | < vref n , H₁ > | < verror , H₂ > = < verror , H₂ >
+⟦_⟧ {ty} (t <- t₁) H | < vref n , H₁ > | < v , H₂ > with replace? H₂ n ty
+⟦_⟧ (t <- t₁) H | < vref n , H₁ > | < v , H₂ > | just x = < v , H₂ >
+⟦_⟧ (t <- t₁) H | < vref n , H₁ > | < v , H₂ > | nothing = < verror , H₂ >
+⟦_⟧ (t <- t₁) H | < verror , H₁ > = < verror , H₁ >
+⟦_⟧ (ref x) H = < vref x , H >
+⟦_⟧ (try t catch t₁) H with ⟦ t ⟧ H
+⟦_⟧ (try t catch t₁) H | < verror , H' > = ⟦ t₁ ⟧ H'
+⟦_⟧ (try t catch t₁) H | < v , H' > = < v , H' >
