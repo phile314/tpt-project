@@ -23,7 +23,7 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-New        : ∀ {ty n m t t'} {H1 : Heap n} {H2 : Heap m} ->
                 Step {H1 = H1} {H2 = H2} t t' -> Step {Ref ty} {H1 = H1} {H2 = H2} (new t) (new t')
  E-NewVal     : ∀ {ty n} {H : Heap n} {v : Value ty} -> 
-                Step {H1 = H} {H2 = Cons v H} (new ⌜ v ⌝) (ref n) -- Note that since we Cons instead of append after every allocation references point to the wrong locations 
+                Step {H1 = H} {H2 = Cons v H} (new ⌜ v ⌝) (ref 0) -- Note that since we Cons instead of append after every allocation references point to the wrong locations 
  E-Deref      : ∀ {ty S1 S2 t t'} {H1 : Heap S1} {H2 : Heap S2} ->
                 Step {Ref ty} {H1 = H1} {H2 = H2} t t' -> Step{ty} {H1 = H1} {H2 = H2} (! t) (! t')
  E-DerefVal   : forall {ty n} {H : Heap n} {m : Nat} -> 
