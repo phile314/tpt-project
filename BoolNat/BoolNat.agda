@@ -53,7 +53,8 @@ data Term : Type -> Set where
  !_            : forall {ty} -> Term (Ref ty) -> Term ty
  _<-_          : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
  ref           : forall {ty} -> Nat -> Term (Ref ty)  -- References are indexes
-
+ try_catch_    : forall {ty} -> Term ty -> Term ty -> Term ty
+ -- raise         : forall {ty} Term ty -> Term ty -- This allows to return a value with the exception ( I don't know if we want it right now, maybe later)
 
 --------------------------------------------------------------------------------
 -- Values
@@ -77,6 +78,7 @@ isValue (if t then t₁ else t₂) = ⊥
 isValue (new t) = ⊥
 isValue (!_ t) = ⊥
 isValue (_<-_ t t₁) = ⊥
+isValue (try t catch t') = ⊥
 
 -- Maps a value back in the term world
 ⌜_⌝ : ∀ {ty} -> Value ty -> Term ty
