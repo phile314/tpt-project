@@ -101,12 +101,12 @@ data Heap : Nat -> Set where
 -- Partial lookup in the heap.
 -- If the index given is correct and the required type match with the stored value type, the value is returned.
 -- Otherwise verror is returned.
-lookup : ∀ {ty n} -> Heap n -> (m : Nat) -> Value ty
-lookup Nil m = verror
-lookup {ty} (Cons {ty'} v H) zero with ty =? ty' 
-lookup (Cons v H) zero | just refl = v
-lookup (Cons v H) zero | nothing = verror
-lookup (Cons v H) (suc m) = lookup H m
+lookup : ∀ {ty n} -> (m : Nat)  -> Heap n -> Value ty
+lookup m Nil = verror
+lookup {ty} zero (Cons {ty'} v H) with ty =? ty' 
+lookup zero (Cons v H)  | just refl = v
+lookup zero (Cons v H) | nothing = verror
+lookup (suc m) (Cons v H) = lookup m H
 
 -- Safe lookup for type. Returns the type of the value at the given position
 lookupTy : {n : Nat} -> Fin n -> Heap n -> Type
