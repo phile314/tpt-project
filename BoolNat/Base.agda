@@ -11,10 +11,12 @@ module Base where
 
 open import Data.Nat renaming (ℕ to Nat)
 open import Data.Unit
+open import Data.Product
 open import Data.Empty
 open import Data.Maybe
 open import Data.Fin using (Fin; fromℕ)
 open import Relation.Binary.PropositionalEquality
+open import Relation.Nullary.Core
 
 --------------------------------------------------------------------------------
 -- Types
@@ -66,6 +68,10 @@ data Value : Type -> Set where
   vref : ∀ {ty} -> Nat -> Value (Ref ty)
   verror : ∀ {ty} -> Value ty 
 
+isError : forall {ty} -> Term ty -> Set
+isError error = Unit
+isError _ = ⊥
+
 isValue : forall {ty} -> Term ty -> Set
 isValue true = Unit
 isValue false = Unit
@@ -79,6 +85,26 @@ isValue (new t) = ⊥
 isValue (!_ t) = ⊥
 isValue (_<-_ t t₁) = ⊥
 isValue (try t catch t') = ⊥
+
+isGoodValue : ∀ {ty} -> Term ty -> Set
+isGoodValue t = (isValue t) × (¬ isError t)
+
+
+-- Maps an already evaluated term in the value world (does not use ⟦ _ ⟧)
+⌞_,_⌟ : ∀ {ty} -> (t : Term ty) -> isValue t -> Value ty
+⌞_,_⌟ true v = vtrue
+⌞_,_⌟ false v = vfalse
+⌞_,_⌟ zero v = vnat zero
+⌞_,_⌟ (succ t) v = ⌞ t , v ⌟
+⌞_,_⌟ (iszero t) ()
+⌞_,_⌟ (if t then t₁ else t₂) ()
+⌞_,_⌟ (new t) ()
+⌞_,_⌟ (! t) ()
+⌞_,_⌟ (t <- t₁) ()
+⌞_,_⌟ (ref x) v = vref x
+⌞_,_⌟ error v = verror 
+⌞_,_⌟ (try t catch t') () 
+
 
 -- Maps a value back in the term world
 ⌜_⌝ : ∀ {ty} -> Value ty -> Term ty

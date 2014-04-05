@@ -8,21 +8,6 @@ open import Data.Maybe
 ------------------------------------------------------------------------
 -- Denotational semantics.
 
--- I don't think we need this anymore
--- Maps an already evaluated term in the value world (does not use ⟦ _ ⟧)
-⌞_⌟ : ∀ {ty} -> (t : Term ty) -> isValue t -> Value ty
-⌞_⌟ true v = vtrue
-⌞_⌟ false v = vfalse
-⌞_⌟ zero v = vnat zero
-⌞_⌟ (succ t) v = ⌞ t ⌟ v
-⌞_⌟ (iszero t) ()
-⌞_⌟ (if t then t₁ else t₂) ()
-⌞_⌟ (new t) ()
-⌞_⌟ (! t) ()
-⌞_⌟ (t <- t₁) ()
-⌞_⌟ (ref x) v = vref x
-⌞_⌟ error v = verror 
-⌞_⌟ (try t catch t') () 
 
 -- View function for isValue. 
 isValue? : ∀ {ty} -> (v : Value ty) -> isValue ⌜ v ⌝
