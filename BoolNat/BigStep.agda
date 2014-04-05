@@ -30,8 +30,9 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
               BStep {H1 = H1} {H2 = H2} t v ->
               BStep {H1 = H1} {H2 = Cons v H2} (new t) (vref 0)
 
-  E-Deref   : ∀ {ty n m} {H : Heap n} {v : Value ty} →
-              BStep {ty} {H1 = H} {H2 = H} (! (ref m)) (lookup m H)
+  E-Deref   : ∀ {ty n r} {H : Heap n} {t : Term (Ref ty)} ->
+              BStep {H1 = H} {H2 = H} t (vref r) ->
+              BStep {H1 = H} {H2 = H} (! t) (lookup r H)
 
   E-Assign  : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
               BStep {H1 = H1} {H2 = H2} t v → 
@@ -102,7 +103,7 @@ big-to-small (E-Succ bstp) = E-Succ* (big-to-small bstp)
 big-to-small (E-IfTrue bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfTrue :: big-to-small bstp₁)
 big-to-small (E-IfFalse bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfFalse :: big-to-small bstp₁)
 big-to-small {H1 = H1} {H2 = Cons _ H2} {v = vref 0} (E-New bstp) = E-New* {H1 = H1} {H2 = H2} (big-to-small bstp) ++ [ E-NewVal ]
-big-to-small E-Deref = E-DerefVal :: []
+big-to-small (E-Deref bstp) = {!!}
 big-to-small {H2 = ._} (E-Assign bstp) = (E-Assign* (big-to-small bstp)) ++ [ E-AssRed { H2 = {!!} } ] 
 
 -- -- A value term evaluates to itself.
@@ -126,8 +127,8 @@ prepend-step E-IfFalse bstp = E-IfFalse E-False bstp
 prepend-step (E-If stp) (E-IfTrue bstp bstp₁) = E-IfTrue (prepend-step stp bstp) bstp₁
 prepend-step (E-If stp) (E-IfFalse bstp bstp₁) = E-IfFalse (prepend-step stp bstp) bstp₁
 prepend-step (E-New stp) (E-New bstp) = E-New (prepend-step stp bstp)
-prepend-step E-NewVal E-Ref = {!!}  --- ?
-prepend-step (E-Deref stp) E-Deref = {!!}   --- ?
+prepend-step E-NewVal E-Ref = E-New (value-of-value _)
+prepend-step (E-Deref stp) (E-Deref bstp) = {!E-Deref (prepend-step sgtp bstp)!}
 prepend-step E-DerefVal bstp = {!!}
 prepend-step (E-AssLeft stp) bstp = {!!}
 prepend-step (E-AssRight isV stp) bstp = {!!}
