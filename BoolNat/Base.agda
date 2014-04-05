@@ -110,7 +110,9 @@ lookup (suc m) (Cons v H) = lookup m H
 
 -- Proof object that guarantees the safeness of replace.
 data Replace : ∀ {n} -> Heap n -> Type -> Set where
-  RepN : ∀ {n ty} {H : Heap n} -> (fn : Fin n) -> Replace H ty
+  -- TODO maybe the contstraint over the same type should be put back, otherwise you could construct your proof
+  -- yourself, without using replace? .
+  RepN : ∀ {n ty} {H : Heap n} -> (fn : Fin n) -> Replace H ty  
 
 -- View function for Replace
 replace? : ∀ {n} -> (H : Heap n) -> Nat -> (ty : Type) -> Maybe (Replace H ty)
