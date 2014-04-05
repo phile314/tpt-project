@@ -37,7 +37,6 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
               BStep {H1 = H1} {H2 = H2} t v → 
               BStep {H1 = H1} {H2 = proj₁ (try-replace {H = H2} v) } (ref m <- t) (proj₂ (try-replace {H = H2} v))
 
-
   E-Error : ∀ {ty n} {H : Heap n} -> BStep {ty} {H1 = H} {H2 = H} error verror
 
   E-Zero    : ∀ {n} {H : Heap n} -> BStep {H1 = H} {H2 = H} zero (vnat 0)
@@ -48,10 +47,6 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
 
   E-Ref     : ∀ {n m ty} {H : Heap n} -> BStep {Ref ty} {H1 = H} {H2 = H} (ref m) (vref m)
   
-
- -- E-AssRed     : ∀ {ty n r} {t : Term ty} {isV : isValue t} {H1 H2 : Heap n} ->
- --                Step {H1 = H1} {H2 = proj₁ (try-replace {H = H1} t isV)} ((ref r) <- t) (proj₂ (try-replace {H = H1} t isV))
-
 --   E-IsZeroZ : ∀ {S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {n : Term Natural} →
 
 --               BStep δ n          (vnat 0) →
@@ -122,7 +117,29 @@ value-of-value verror = E-Error
 -- -- Combining a single small step with a big step.
 prepend-step : forall {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3} {t1 t2 : Term ty} {v : Value ty} -> 
                Step {H1 = H1} {H2 = H2} t1 t2 -> BStep {H1 = H2} {H2 = H3} t2 v -> BStep {H1 = H1} {H2 = H3} t1 v
-prepend-step stp bstp = {!!}
+prepend-step (E-Succ stp) (E-Succ bstp) = E-Succ (prepend-step stp bstp)
+prepend-step E-IsZeroZero bstp = {!!}
+prepend-step (E-IsZeroSucc x) bstp = {!!}
+prepend-step (E-IsZero stp) bstp = {!!}
+prepend-step E-IfTrue bstp = E-IfTrue E-True bstp
+prepend-step E-IfFalse bstp = E-IfFalse E-False bstp
+prepend-step (E-If stp) (E-IfTrue bstp bstp₁) = E-IfTrue (prepend-step stp bstp) bstp₁
+prepend-step (E-If stp) (E-IfFalse bstp bstp₁) = E-IfFalse (prepend-step stp bstp) bstp₁
+prepend-step (E-New stp) (E-New bstp) = E-New (prepend-step stp bstp)
+prepend-step E-NewVal E-Ref = {!!}  --- ?
+prepend-step (E-Deref stp) E-Deref = {!!}   --- ?
+prepend-step E-DerefVal bstp = {!!}
+prepend-step (E-AssLeft stp) bstp = {!!}
+prepend-step (E-AssRight isV stp) bstp = {!!}
+prepend-step E-AssRed bstp = {!!}
+prepend-step (E-Try-Catch stp) bstp = {!!}
+prepend-step (E-Try-Catch-Suc x) bstp = {!!}
+prepend-step E-Try-Catch-Fail bstp = {!!}
+prepend-step E-Succ-Err bstp = {!!}
+prepend-step E-IsZero-Err bstp = {!!}
+prepend-step E-If-Err bstp = {!!}
+prepend-step E-Deref-Err bstp = {!!}
+prepend-step E-Assign-Err1 bstp = {!!}
 
 small-to-big : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} → 
                  Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝ -> BStep {H1 = H1} {H2 = H2} t v
