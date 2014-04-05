@@ -6,8 +6,9 @@ open import Base
 open import SmallStep
 open import BigStep
 open import Denotational
+open import Data.Unit using (unit)
 open import Data.Sum
-open import Data.Product using ( ∃ )
+open import Data.Product using ( ∃)
 open import Data.Nat 
 open import Relation.Binary.PropositionalEquality
 
@@ -17,11 +18,28 @@ no-shrink stp = {!!}
 
 deterministic : ∀ {ty n m1 m2} {H : Heap n} {H1 : Heap m1} {H2 : Heap m2} {t t1 t2 : Term ty} ->
                 Step {H1 = H} {H2 = H1} t t1 -> Step {H1 = H} {H2 = H2} t t2 -> t1 ≡ t2
-deterministic = {!!}
+deterministic s1 s2 = {!!}
 
 -- Progress and preservation
 progress : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> (t : Term ty) -> ((isValue t) ⊎ (∃ (Step {H1 = H1} {H2 = H2} t)))
-progress t = {!!} 
+progress true = inj₁ unit
+progress false = inj₁ unit
+progress error = inj₁ unit
+progress zero = inj₁ unit
+progress {.Natural} {_} {_} {H1} {H2} (succ t) with progress {_} {_} {_} {H1} {H2} t
+progress (succ t) | inj₁ x = inj₁ x
+progress (succ t) | inj₂ y = {!!}
+progress (iszero t) = {!!}
+progress (if t then t₁ else t₂) = {!!}
+progress (new t) = {!!}
+progress (! t) = {!!}
+progress (t <- t₁) with progress t | progress t₁
+progress (t <- t₁) | inj₁ x | inj₁ x₁ = inj₂ {!!}
+progress (t <- t₁) | inj₁ x | inj₂ y = {!!}
+progress (t <- t₁) | inj₂ y | inj₁ x = {!!}
+progress (t <- t₁) | inj₂ y | inj₂ y₁ = {!!}
+progress (ref x) = {!!}
+progress (try t catch t₁) = {!!} 
 
 preservation : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {t' : Term ty} -> Step {H1 = H1} {H2 = H2} t t' -> ty ≡ ty
 preservation stp = refl

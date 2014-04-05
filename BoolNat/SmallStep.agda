@@ -2,9 +2,16 @@ module SmallStep where
 
 open import Base
 open import Data.Nat renaming (ℕ to Nat) 
+open import Data.Maybe
 open import Data.Unit
+open import Data.Product
 open import Data.Fin
 open import Relation.Nullary.Core
+
+try-replace : ∀ {ty n} {H : Heap n} -> (t : Term ty) -> (isValue t) -> ((Heap n) × (Term ty))
+try-replace {ty} {n} {H} t isv with replace? H n ty
+try-replace {ty} {n} {H} t isv | just x = ( replace ⌞ t , isv ⌟ H x , t)
+try-replace {ty} {n} {H} t isv | nothing = H , error
 
 data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty -> Set where
  E-Succ       : ∀ {n m t t'} {H1 : Heap n} {H2 : Heap m} -> 
@@ -38,10 +45,15 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-AssRight   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {v : Term (Ref ty)} {t t' : Term ty}
                 (isV : isValue v) -> Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (v <- t) (v <- t')
 
- E-AssRed     : ∀ {ty} {t : Term ty} {isV : isValue t} {n : Nat} {H : Heap n} {p : Replace H ty} ->
-                Step {H1 = H} {H2 = replace ⌞ t , isV ⌟ H p} ((ref n) <- t) t
- -- The only step available when the replace cannot be executed (this is not deterministc yet!)
- E-AssFail    : ∀ {ty n m} {v : Term ty} {isV : isValue v} {H : Heap n} -> Step {H1 = H} {H2 = H} ((ref m) <- v ) error
+ E-AssRed     : ∀ {ty n} {t : Term ty} {isV : isValue t} {H1 H2 : Heap n} ->
+                (r : Replace H1 ty) -> Step {H1 = H1} {H2 = H2} ((ref n) <- t) t
+ E-Ass-Fail : ∀ {ty n} {t : Term ty} {isV : isValue t} {H1 : Heap n} ->
+                 (a : ¬ (Any (λ x → Unit) (replace? H1 n ty))) -> Step {H1 = H1} {H2 = H1} ((ref n) <- t) error
+
+--               (tr : try-replace {H = H1} t isV) ->
+--               Step {H1 = H1} {H2 = (proj₁ tr)} ((ref n) <- t) t
+-- The only step available when the replace cannot be executed (this is not deterministc yet!)
+-- E-AssFail    : ∀ {ty n m} {v : Term ty} {isV : isValue v} {H : Heap n} { ∄ () } -> Step {H1 = H} {H2 = H} ((ref m) <- v ) error
 
 
 
@@ -59,7 +71,7 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-If-Err     : ∀ {ty n} {H : Heap n} {t1 t2 : Term ty} -> Step {H1 = H} {H2 = H} (if error then t1 else t2) error
  E-Deref-Err  : ∀ {ty n} {H : Heap n} -> Step {H1 = H} {H2 = H} (!_ {ty} error) error
  E-Assign-Err1 : ∀ {ty n} {H : Heap n} {t : Term ty} -> Step {H1 = H} {H2 = H} (error <- t) error
- -- Errors can be stored in the heap
+ -- We dont need this rule because rrrors can be stored in the heap
 -- E-Assign-Err2 : ∀ {ty n} {H : Heap n} {t : Term (Ref ty)} -> Step {H1 = H} {H2 = H} (t <- error) error
  
 
