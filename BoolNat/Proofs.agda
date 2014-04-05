@@ -30,8 +30,31 @@ preservation stp = refl
 -- Termination
 --------------------------------------------------------------------------------
 
--- Still need to find a convinient way to express the Termination data type.
+-- With this formulation we cannot write the lemma prepend-steps.
+-- I don't know whether inlining it would work.
+-- I don't know if using another specific constructor would be better
 
+data ⊢_↓_ {n : ℕ} {ty : Type} (H : Heap n) (t : Term ty) : Set where
+  Halts : ∀ {m} (v : Value ty) -> (H2 : Heap m) -> Steps {H1 = H} {H2 = H2} t ⌜ v ⌝ -> ⊢ H ↓ t
+
+prepend-steps : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t1 t2 : Term ty} -> Steps {H1 = H1} {H2 = H2} t1 t2  -> ⊢ H2 ↓ t2 -> ⊢ H1 ↓ t1
+prepend-steps xs (Halts v H2 ys) = Halts v H2 (xs ++ ys)
+
+termination : ∀ {ty n} -> (H : Heap n) -> (t : Term ty) -> ⊢ H ↓ t  
+termination H true = Halts vtrue H []
+termination H false = Halts vfalse H []
+termination H error = Halts verror H []
+termination H zero = Halts (vnat zero) H []
+termination H (succ t) with termination H t
+termination H (succ t) | Halts (vnat x) H2 x₁ = Halts (vnat (suc x)) H2 {!E-Succ*!} -- E-Succ applied enough times
+termination H (succ t) | Halts verror H2 x = Halts verror H2 {!!}  -- Build explicitly list of steps using Succ-Err
+termination H (iszero t) = {!!}
+termination H (if t then t₁ else t₂) = {!!}
+termination H (new t) = {!!}
+termination H (! t) = {!!}
+termination H (t <- t₁) = {!!}
+termination H (ref x) = {!!}
+termination H (try t catch t₁) = {!!}
 
 --------------------------------------------------------------------------------
 -- Big step is Complete and Sound
