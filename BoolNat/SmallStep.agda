@@ -6,7 +6,7 @@ open import Data.Maybe
 open import Data.Unit
 open import Data.Product
 open import Data.Fin
-open import Relation.Nullary.Core
+open import Relation.Nullary
 
 try-replace : ∀ {ty n} {H : Heap n} -> Value ty -> ((Heap n) × (Value ty))
 try-replace {ty} {n} {H} v with replace? H n ty
@@ -43,7 +43,7 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-AssLeft    : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t1 t1' : Term (Ref ty)} {t2 : Term ty} ->
                 Step {H1 = H1} {H2 = H2} t1 t1' ->  Step {H1 = H1} {H2 = H2} (t1 <- t2) (t1' <- t2)
  E-AssRight   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {v : Term (Ref ty)} {t t' : Term ty}
-                (isV : isValue v) -> Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (v <- t) (v <- t')
+                (isV : isGoodValue v) -> Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (v <- t) (v <- t')
 
  E-AssRed     : ∀ {ty n r} {v : Value ty} {H1 H2 : Heap n} ->
                 Step {H1 = H1} {H2 = proj₁ (try-replace {H = H1} v)} ((ref r) <- ⌜ v ⌝) ⌜ (proj₂ (try-replace {H = H1} v)) ⌝
@@ -56,11 +56,11 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
                 Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (try t catch tc) (try t' catch tc)
  E-Try-Catch-Suc  : ∀ {ty n} {H : Heap n} {t tc : Term ty} ->
                     isGoodValue t -> Step {H1 = H} {H2 = H} (try t catch tc) t
- E-Try-Catch-Fail : ∀ {ty n} {H : Heap n} {tc : Term ty} ->
-                    Step {H1 = H} {H2 = H} (try error catch tc) tc
+ E-Try-Catch-Fail : ∀ {ty n} {H : Heap n} {t : Term ty} {tc : Term ty} -> (isE : isError t) ->
+                    Step {H1 = H} {H2 = H} (try t catch tc) tc
  
  -- Here we need to add all the "failing" rules such as 
- E-Succ-Err   : ∀ {n} {H : Heap n} -> Step {H1 = H} {H2 = H} (succ error) error
+ E-Succ-Err   : ∀ {n} {H : Heap n} -> Step {H1 = H} {H2 = H} (succ error) error  -- WARNING by definition succ error is as value!!!
  E-IsZero-Err : ∀ {n} {H : Heap n} -> Step {H1 = H} {H2 = H} (iszero error) error
  E-If-Err     : ∀ {ty n} {H : Heap n} {t1 t2 : Term ty} -> Step {H1 = H} {H2 = H} (if error then t1 else t2) error
  E-Deref-Err  : ∀ {ty n} {H : Heap n} -> Step {H1 = H} {H2 = H} (!_ {ty} error) error

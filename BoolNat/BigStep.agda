@@ -82,7 +82,7 @@ E-Assign* : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty} ->
             Steps {H1 = H1} {H2 = H2} t t' -> 
             Steps {H1 = H1} {H2 = H2} (ref r <- t) (ref r <- t') 
 E-Assign* [] = []
-E-Assign* (x :: stps) = E-AssRight unit x :: E-Assign* stps
+E-Assign* (x :: stps) = E-AssRight (unit , (λ x₁ → x₁)) x :: E-Assign* stps
 
 E-Succ* : ∀ {t t' n m} {H1 : Heap n} {H2 : Heap m} ->
           Steps {H1 = H1} {H2 = H2} t t' ->
@@ -135,7 +135,7 @@ prepend-step (E-AssRight isV stp) bstp = {!!}
 prepend-step E-AssRed bstp = {!!}
 prepend-step (E-Try-Catch stp) bstp = {!!}
 prepend-step (E-Try-Catch-Suc x) bstp = {!!}
-prepend-step E-Try-Catch-Fail bstp = {!!}
+prepend-step (E-Try-Catch-Fail isE) bstp = {!!}
 prepend-step E-Succ-Err bstp = {!!}
 prepend-step E-IsZero-Err bstp = {!!}
 prepend-step E-If-Err bstp = {!!}

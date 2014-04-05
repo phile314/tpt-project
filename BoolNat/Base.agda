@@ -115,6 +115,16 @@ isGoodValue t = (isValue t) × (¬ isError t)
 ⌜ vnat (suc n) ⌝ = succ ⌜ vnat n ⌝
 ⌜ vref x ⌝ = ref x
 
+-- View function for isValue. 
+isValue? : ∀ {ty} -> (v : Value ty) -> isValue ⌜ v ⌝
+isValue? vtrue = unit
+isValue? vfalse = unit
+isValue? (vnat zero) = unit
+isValue? (vnat (suc n)) = isValue? (vnat n) 
+isValue? (vref x) = unit
+isValue? verror = unit
+
+
 --------------------------------------------------------------------------------
 -- Heap
 --------------------------------------------------------------------------------
