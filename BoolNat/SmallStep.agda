@@ -8,10 +8,10 @@ open import Data.Product
 open import Data.Fin
 open import Relation.Nullary.Core
 
-try-replace : ∀ {ty n} {H : Heap n} -> (t : Term ty) -> (isValue t) -> ((Heap n) × (Term ty))
-try-replace {ty} {n} {H} t isv with replace? H n ty
-try-replace {ty} {n} {H} t isv | just x = ( replace ⌞ t , isv ⌟ H x , t)
-try-replace {ty} {n} {H} t isv | nothing = H , error
+try-replace : ∀ {ty n} {H : Heap n} -> Value ty -> ((Heap n) × (Value ty))
+try-replace {ty} {n} {H} v with replace? H n ty
+try-replace {ty} {n} {H} v | just x = ( replace v H x , v )
+try-replace {ty} {n} {H} v | nothing = H , verror
 
 data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty -> Set where
  E-Succ       : ∀ {n m t t'} {H1 : Heap n} {H2 : Heap m} -> 
@@ -33,8 +33,8 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
 
  E-New        : ∀ {ty n m t t'} {H1 : Heap n} {H2 : Heap m} ->
                 Step {H1 = H1} {H2 = H2} t t' -> Step {Ref ty} {H1 = H1} {H2 = H2} (new t) (new t')
- E-NewVal     : ∀ {ty n} {H : Heap n} {t : Term ty} -> (isV : isValue t) ->
-                Step {H1 = H} {H2 = Cons ⌞ t , isV ⌟ H} (new t) (ref 0) -- Note that since we Cons instead of append after every allocation references point to the wrong locations 
+ E-NewVal     : ∀ {ty n} {H : Heap n} {v : Value ty} ->
+                Step {H1 = H} {H2 = Cons v H} (new ⌜ v ⌝) (ref 0) -- Note that since we Cons instead of append after every allocation references point to the wrong locations 
  E-Deref      : ∀ {ty S1 S2 t t'} {H1 : Heap S1} {H2 : Heap S2} ->
                 Step {Ref ty} {H1 = H1} {H2 = H2} t t' -> Step{ty} {H1 = H1} {H2 = H2} (! t) (! t')
  E-DerefVal   : forall {ty n} {H : Heap n} {m : Nat} -> 
@@ -45,8 +45,8 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-AssRight   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {v : Term (Ref ty)} {t t' : Term ty}
                 (isV : isValue v) -> Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (v <- t) (v <- t')
 
- E-AssRed     : ∀ {ty n r} {t : Term ty} {isV : isValue t} {H1 H2 : Heap n} ->
-                Step {H1 = H1} {H2 = proj₁ (try-replace {H = H1} t isV)} ((ref r) <- t) (proj₂ (try-replace {H = H1} t isV))
+ E-AssRed     : ∀ {ty n r} {v : Value ty} {H1 H2 : Heap n} ->
+                Step {H1 = H1} {H2 = proj₁ (try-replace {H = H1} v)} ((ref r) <- ⌜ v ⌝) ⌜ (proj₂ (try-replace {H = H1} v)) ⌝
 
 
 
