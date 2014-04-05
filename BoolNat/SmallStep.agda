@@ -45,15 +45,9 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-AssRight   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {v : Term (Ref ty)} {t t' : Term ty}
                 (isV : isValue v) -> Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (v <- t) (v <- t')
 
- E-AssRed     : ∀ {ty n} {t : Term ty} {isV : isValue t} {H1 H2 : Heap n} ->
-                (r : Replace H1 ty) -> Step {H1 = H1} {H2 = H2} ((ref n) <- t) t
- E-Ass-Fail : ∀ {ty n} {t : Term ty} {isV : isValue t} {H1 : Heap n} ->
-                 (a : ¬ (Any (λ x → Unit) (replace? H1 n ty))) -> Step {H1 = H1} {H2 = H1} ((ref n) <- t) error
+ E-AssRed     : ∀ {ty n r} {t : Term ty} {isV : isValue t} {H1 H2 : Heap n} ->
+                Step {H1 = H1} {H2 = proj₁ (try-replace {H = H1} t isV)} ((ref r) <- t) (proj₂ (try-replace {H = H1} t isV))
 
---               (tr : try-replace {H = H1} t isV) ->
---               Step {H1 = H1} {H2 = (proj₁ tr)} ((ref n) <- t) t
--- The only step available when the replace cannot be executed (this is not deterministc yet!)
--- E-AssFail    : ∀ {ty n m} {v : Term ty} {isV : isValue v} {H : Heap n} { ∄ () } -> Step {H1 = H} {H2 = H} ((ref m) <- v ) error
 
 
 
