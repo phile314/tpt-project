@@ -90,8 +90,8 @@ E-Succ* : ∀ {t t' n m} {H1 : Heap n} {H2 : Heap m} ->
 E-Succ* [] = []
 E-Succ* (x :: stps) = E-Succ x :: E-Succ* stps
 
--- -- Lemmas used for small-to-big
--- -- Converstion from big- to small-step representations.
+-- Lemmas used for small-to-big
+-- Converstion from big- to small-step representations.
 big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
                BStep {H1 = H1} {H2 = H2} t v -> Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝
 big-to-small E-True = []
@@ -106,7 +106,7 @@ big-to-small {H1 = H1} {H2 = Cons _ H2} {v = vref 0} (E-New bstp) = E-New* {H1 =
 big-to-small (E-Deref bstp) = {!!}
 big-to-small {H2 = ._} (E-Assign bstp) = (E-Assign* (big-to-small bstp)) ++ [ E-AssRed { H2 = {!!} } ] 
 
--- -- A value term evaluates to itself.
+-- A value term evaluates to itself.
 value-of-value : forall {ty n} {H : Heap n} -> (v : Value ty) -> BStep {H1 = H} {H2 = H} ⌜ v ⌝ v
 value-of-value vtrue = E-True
 value-of-value vfalse = E-False
@@ -128,7 +128,7 @@ prepend-step (E-If stp) (E-IfTrue bstp bstp₁) = E-IfTrue (prepend-step stp bst
 prepend-step (E-If stp) (E-IfFalse bstp bstp₁) = E-IfFalse (prepend-step stp bstp) bstp₁
 prepend-step (E-New stp) (E-New bstp) = E-New (prepend-step stp bstp)
 prepend-step E-NewVal E-Ref = E-New (value-of-value _)
-prepend-step (E-Deref stp) (E-Deref bstp) = {!E-Deref (prepend-step sgtp bstp)!}
+prepend-step (E-Deref stp) (E-Deref bstp) = {!E-Deref (prepend-step stp bstp)!}
 prepend-step E-DerefVal bstp = {!!}
 prepend-step (E-AssLeft stp) bstp = {!!}
 prepend-step (E-AssRight isV stp) bstp = {!!}

@@ -20,7 +20,7 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
 
 
  E-IsZeroZero : ∀ {n} {H : Heap n} -> Step {H1 = H} {H2 = H} (iszero zero) true
- E-IsZeroSucc : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {t : Term Natural} -> isValue t -> Step {H1 = H1} {H2 = H2} (iszero (succ t)) false
+ E-IsZeroSucc : ∀ {n} {H : Heap n} {t : Term Natural} -> isValue t -> Step {H1 = H} {H2 = H} (iszero (succ t)) false
  E-IsZero     : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term Natural} ->
                 Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (iszero t) (iszero t')
 
@@ -54,10 +54,10 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
 
  E-Try-Catch  : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> {t t' tc : Term ty} ->
                 Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (try t catch tc) (try t' catch tc)
- E-Try-Catch-Suc  : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t tc : Term ty} ->
-                    isGoodValue t -> Step {H1 = H1} {H2 = H2} (try t catch tc) t
- E-Try-Catch-Fail : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {tc : Term ty} ->
-                    Step {H1 = H1} {H2 = H2} (try error catch tc) tc
+ E-Try-Catch-Suc  : ∀ {ty n} {H : Heap n} {t tc : Term ty} ->
+                    isGoodValue t -> Step {H1 = H} {H2 = H} (try t catch tc) t
+ E-Try-Catch-Fail : ∀ {ty n} {H : Heap n} {tc : Term ty} ->
+                    Step {H1 = H} {H2 = H} (try error catch tc) tc
  
  -- Here we need to add all the "failing" rules such as 
  E-Succ-Err   : ∀ {n} {H : Heap n} -> Step {H1 = H} {H2 = H} (succ error) error

@@ -8,13 +8,36 @@ open import BigStep
 open import Denotational
 open import Data.Unit using (unit)
 open import Data.Sum
-open import Data.Product using ( ∃)
+open import Data.Product using ( ∃ ; _,_)
 open import Data.Nat 
 open import Relation.Binary.PropositionalEquality
 
+
+
 -- Proof that the heap only grows.
-no-shrink :  ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t1 t2 : Term ty} -> Step {H1 = H1} {H2 = H2} t1 t2 -> n ≤ m
-no-shrink stp = {!!}
+no-shrink :  ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t1 t2 : Term ty} -> Step {H1 = H1} {H2 = H2} t1 t2 -> n ≤′ m
+no-shrink (E-Succ stp) = no-shrink stp
+no-shrink E-IsZeroZero = ≤′-refl
+no-shrink (E-IsZeroSucc x) = ≤′-refl
+no-shrink (E-IsZero stp) = no-shrink stp
+no-shrink E-IfTrue = ≤′-refl
+no-shrink E-IfFalse = ≤′-refl
+no-shrink (E-If stp) = no-shrink stp
+no-shrink (E-New stp) = no-shrink stp
+no-shrink E-NewVal = ≤′-step ≤′-refl
+no-shrink (E-Deref stp) = no-shrink stp
+no-shrink E-DerefVal = ≤′-refl
+no-shrink (E-AssLeft stp) = no-shrink stp
+no-shrink (E-AssRight isV stp) = no-shrink stp
+no-shrink E-AssRed = ≤′-refl
+no-shrink (E-Try-Catch stp) = no-shrink stp
+no-shrink (E-Try-Catch-Suc x) = ≤′-refl
+no-shrink E-Try-Catch-Fail = ≤′-refl
+no-shrink E-Succ-Err = ≤′-refl
+no-shrink E-IsZero-Err = ≤′-refl
+no-shrink E-If-Err = ≤′-refl
+no-shrink E-Deref-Err = ≤′-refl
+no-shrink E-Assign-Err1 = ≤′-refl
 
 deterministic : ∀ {ty n m1 m2} {H : Heap n} {H1 : Heap m1} {H2 : Heap m2} {t t1 t2 : Term ty} ->
                 Step {H1 = H} {H2 = H1} t t1 -> Step {H1 = H} {H2 = H2} t t2 -> t1 ≡ t2
