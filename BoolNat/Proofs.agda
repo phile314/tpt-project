@@ -275,6 +275,21 @@ if-err :  ∀ {ty n m} {t : Term Boolean} {H1 : Heap n} {H2 : Heap m} {t1 t2 : T
 if-err {t = t} {H1 = H1} p with ⟦ t ⟧ H1
 if-err {ty} {n} {m} {t} {H1} {H2} refl | .(< verror , H2 >) = refl
 
+new-≡ : ∀ {ty n m} {t : Term ty} {v : Value ty} {H1 : Heap n} {H2 : Heap m} ->
+        ⟦ t ⟧ H1 ≡ < v , H2 > -> ⟦ new t ⟧ H1 ≡ < vref 0 , Cons v H2 >
+new-≡ {t = t} {H1 = H1} p with ⟦ t ⟧ H1 
+new-≡ {ty} {n} {m} {t} {v} {H1} {H2} refl | .(< v , H2 >) = refl 
+
+!-≡ : ∀ {ty n m x} {t : Term (Ref ty)} {H1 : Heap n} {H2 : Heap m} ->
+        ⟦ t ⟧ H1 ≡ < vref x , H2 > -> ⟦ ! t ⟧ H1 ≡ < lookup x H2 , H2 >
+!-≡ {t = t} {H1 = H1} p with ⟦ t ⟧ H1
+!-≡ {ty} {n} {m} {x} {t} {H1} {H2} refl | .(< vref x , H2 >) = refl
+
+!-err-≡ : ∀ {ty n m} {t : Term (Ref ty)} {H1 : Heap n} {H2 : Heap m} ->
+        ⟦ t ⟧ H1 ≡ < verror , H2 > -> ⟦ ! t ⟧ H1 ≡ < verror , H2 >
+!-err-≡ {t = t} {H1 = H1} p with ⟦ t ⟧ H1
+!-err-≡ {ty} {n} {m} {t} {H1} {H2} refl | .(< verror , H2 >) = refl
+
 ⇓complete : ∀ {ty n} -> (H : Heap n) -> (t : Term ty) -> Complete t H
 ⇓complete H true = complete H vtrue refl E-True
 ⇓complete H false = complete H vfalse refl E-False
@@ -295,11 +310,20 @@ if-err {ty} {n} {m} {t} {H1} {H2} refl | .(< verror , H2 >) = refl
 ⇓complete H (if t then t₁ else t₂) | complete H2 vfalse p bstp | complete H3 v p₁ bstp₁ = complete H3 v (if-false {t = t} p p₁) (E-IfFalse bstp bstp₁)
 ⇓complete H (if t then t₁ else t₂) | complete H2 verror p bstp = complete H2 verror (if-err {t = t} p) (E-IfErr bstp)
 
-⇓complete H (new t) = {!!}
-⇓complete H (! t) = {!!}
+⇓complete H (new t) with ⇓complete H t
+⇓complete H (new t) | complete H2 v p bstp = complete (Cons v H2) (vref _) (new-≡ {t = t} p) (E-New bstp)
+⇓complete H (! t) with ⇓complete H t
+⇓complete H (! t) | complete H2 (vref x) p bstp = complete H2 (lookup x H2) (!-≡ {t = t} p) (E-Deref bstp)
+⇓complete H (! t) | complete H2 verror p bstp = complete H2 verror (!-err-≡ {t = t} p ) (E-DerefErr bstp)
 ⇓complete H (t <- t₁) = {!!}
-⇓complete H (ref x) = {!!}
-⇓complete H (try t catch t₁) = {!!}
+⇓complete H (ref x) = complete H (vref x) refl E-Ref
+⇓complete H (try t catch t₁) with ⇓complete H t
+⇓complete H (try t catch t₁) | complete H2 vtrue p bstp = complete H2 vtrue {!!} {!!}
+⇓complete H (try t catch t₁) | complete H2 vfalse p bstp = complete H2 vtrue {!!} {!!}
+⇓complete H (try t catch t₁) | complete H2 (vnat x) p bstp = complete H2 (vnat x) {!!} {!!}
+⇓complete H (try t catch t₁) | complete H2 (vref x) p bstp = complete H2 (vref x) {!!} {!!}
+⇓complete H (try t catch t₁) | complete H2 verror p bstp with ⇓complete H2 t
+⇓complete H (try t catch t₁) | complete H2 verror p₁ bstp₁ | complete H3 v p bstp = complete H3 v {!!} {!!} 
 
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >
@@ -314,8 +338,10 @@ if-err {ty} {n} {m} {t} {H1} {H2} refl | .(< verror , H2 >) = refl
 ⇓sound (if t then t1 else t2) .verror (E-IfErr bstp) | < verror , H2 > | refl = refl 
 ⇓sound {H1 = H1} (new t) (vref 0) (E-New bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp
 ⇓sound (new t) (vref zero) (E-New bstp) | < v , H2 > | refl = refl 
-⇓sound {ty} {.m} {m} {.H2} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.m} {r} {.H2} {t} bstp) with  ⟦ t ⟧ H2 | ⇓sound t (vref r) bstp
-⇓sound {ty} {.m} {m} {.H2} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.m} {r} {.H2} {t} bstp) | .(< vref r , H2 >) | refl = refl
+⇓sound {ty} {n} {m} {H1} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.n} {.m} {r} {.H1} {.H2} {t} bstp) with  ⟦ t ⟧ H1 | ⇓sound t (vref r) bstp
+⇓sound {ty} {n} {m} {H1} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.n} {.m} {r} {.H1} {.H2} {t} bstp) | .(< vref r , H2 >) | refl = refl
+⇓sound {ty} {n} {m} {H1} {H2} (! t) .verror (E-DerefErr bstp) with  ⟦ t ⟧ H1 | ⇓sound t verror bstp
+⇓sound {ty} {n} {m} {H1} {H2} (! t) .verror (E-DerefErr bstp) | .(< verror , H2 >) | refl = refl 
 ⇓sound {H1 = H1} (ref m <- t) ._ (E-Assign  bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp 
 ⇓sound {ty} (ref m <- t) ._ (E-Assign bstp) | (< v , H2 >) | refl = {!!} -- E-AssRed comes here and makes things horrible
 ⇓sound .error .verror E-Error = refl
