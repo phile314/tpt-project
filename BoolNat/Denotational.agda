@@ -11,7 +11,14 @@ open import Data.Maybe
 -- The result of an evaluation. 
 -- Since the evaluation affects the Heap (state), it needs to be returned as well.
 data Result : Type -> Set where
-  <_,_> : ∀ {n ty} -> Value ty -> Heap n -> Result ty
+  <_,_> : ∀ {ty n} -> Value ty -> Heap n -> Result ty
+
+value : ∀ {ty} -> Result ty -> Value ty
+value < v , H > = v
+
+-- This definition is not accepted
+-- heap : ∀ {ty} -> Result ty -> Heap ?
+-- heap < v , H > = H
 
 -- Evaluation function.
 -- The Heap is a chained attribute, it is threaded through all the recursicve call.
@@ -32,7 +39,7 @@ data Result : Type -> Set where
 ⟦_⟧ (if t then t₁ else t₂) H | < vfalse , H' > = ⟦ t₂ ⟧ H'
 ⟦_⟧ (if t then t₁ else t₂) H | < verror , H' > = < verror , H' >
 ⟦_⟧ (new t) H with ⟦ t ⟧ H
-⟦_⟧ (new t) H | < verror , H' > = < verror , H' >
+-- We allow also error to be stored in the heap
 ⟦_⟧ (new t) H | < v , H' > = < (vref 0) , (Cons v H') >  -- Consistent with the current small step (cons instead of append)
 ⟦_⟧ (! t) H with ⟦ t ⟧ H
 ⟦_⟧ (! t) H | < vref x , H' > = < (lookup x H') , H' >
