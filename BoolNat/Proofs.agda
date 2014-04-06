@@ -10,7 +10,7 @@ open import Data.Unit using (unit)
 open import Data.Sum
 open import Data.Product using ( ∃ ; _,_)
 open import Data.Nat 
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding ( [_] )
 open import Relation.Nullary
 open import Data.Empty renaming (⊥-elim to contradiction)
 
@@ -169,13 +169,24 @@ termination H true = Halts vtrue H []
 termination H false = Halts vfalse H []
 termination H error = Halts verror H []
 termination H (num n) = Halts (vnat n) H []
-termination H (iszero t) = {!!}
-termination H (if t then t₁ else t₂) = {!!}
+termination H (iszero t) with termination H t
+termination H (iszero t) | Halts (vnat zero) H2 xs = Halts vtrue H2 ((E-IsZero* xs) ++ [ E-IsZeroZero ])
+termination H (iszero t) | Halts (vnat (suc x)) H2 xs = Halts vfalse H2 ((E-IsZero* xs) ++ [ E-IsZeroSucc ])
+termination H (iszero t) | Halts verror H2 xs = Halts verror H2 ((E-IsZero* xs) ++ [ E-IsZero-Err ])
+termination H (if t then t₁ else t₂) with termination H t
+termination H (if t then t₁ else t₂) | Halts vtrue H2 xs = prepend-steps (E-If* xs ++ [ E-IfTrue ]) (termination H2 t₁)
+termination H (if t then t₁ else t₂) | Halts vfalse H2 xs = prepend-steps ((E-If* xs) ++ [ E-IfFalse ]) (termination H2 t₂)
+termination H (if t then t₁ else t₂) | Halts verror H2 xs = Halts verror H2 ((E-If* xs) ++ [ E-If-Err ])
 termination H (new t) = {!!}
 termination H (! t) = {!!}
 termination H (t <- t₁) = {!!}
 termination H (ref x) = {!!}
-termination H (try t catch t₁) = {!!}
+termination H (try t catch t₁) with termination H t
+termination H (try t catch t₁) | Halts verror H2 xs = prepend-steps (E-Try* xs ++ [ (E-Try-Catch-Fail unit) ]) (termination H2 t₁)
+termination H (try t catch t₁) | Halts vtrue H2 xs = Halts vtrue H2 ((E-Try* xs) ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
+termination H (try t catch t₁) | Halts vfalse H2 xs = Halts vfalse H2 (E-Try* xs ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
+termination H (try t catch t₁) | Halts (vnat x) H2 xs = Halts (vnat x) H2 (E-Try* xs ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
+termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-Try* xs ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
 
 --------------------------------------------------------------------------------
 -- Big step is Complete and Sound

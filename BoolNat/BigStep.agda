@@ -83,6 +83,18 @@ E-Assign* : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty} ->
 E-Assign* [] = []
 E-Assign* (x :: stps) = E-AssRight (unit , (λ x₁ → x₁)) x :: E-Assign* stps
 
+E-IsZero* : ∀ {t t' n m} {H1 : Heap n} {H2 : Heap m} ->
+            Steps {H1 = H1} {H2 = H2} t t' ->
+            Steps {H1 = H1} {H2 = H2} (iszero t) (iszero t')
+E-IsZero* [] = []
+E-IsZero* (x :: stps) = E-IsZero x :: E-IsZero* stps
+
+E-Try* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' t2 : Term ty} ->
+            Steps {H1 = H1} {H2 = H2} t t' ->
+            Steps {H1 = H1} {H2 = H2} (try t catch t2 ) (try t' catch t2)
+E-Try* [] = []
+E-Try* (x :: stps) = E-Try-Catch x :: E-Try* stps
+
 -- Lemmas used for small-to-big
 -- Converstion from big- to small-step representations.
 big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
