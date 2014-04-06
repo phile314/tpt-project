@@ -239,4 +239,20 @@ termination H (try t catch t₁) = {!!}
 
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >
-⇓sound = {!!}
+⇓sound .true .vtrue E-True = refl
+⇓sound .false .vfalse E-False = refl
+⇓sound {H1 = H1} (if t then t1 else t2) v (E-IfTrue bstp bstp₁) with ⟦ t ⟧ H1 | ⇓sound t vtrue bstp
+⇓sound (if t then t1 else t2) v (E-IfTrue bstp bstp₁) | < vtrue , H2 > | refl = ⇓sound t1 v bstp₁
+⇓sound {H1 = H1} (if t then t1 else t2) v (E-IfFalse bstp bstp₁) with ⟦ t ⟧ H1 | ⇓sound t vfalse bstp 
+⇓sound (if t then t1 else t2) v (E-IfFalse bstp bstp₁) | < vfalse , H2 > | refl = ⇓sound t2 v bstp₁
+⇓sound {H1 = H1} (new t) (vref 0) (E-New bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp
+⇓sound (new t) (vref zero) (E-New bstp) | < v , H2 > | refl = refl 
+⇓sound {ty} {.m} {m} {.H2} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.m} {r} {.H2} {t} bstp) with  ⟦ t ⟧ H2 | ⇓sound t (vref r) bstp
+⇓sound {ty} {.m} {m} {.H2} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.m} {r} {.H2} {t} bstp) | .(< vref r , H2 >) | refl = refl
+⇓sound {H1 = H1} (ref m <- t) ._ (E-Assign  bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp 
+⇓sound {ty} (ref m <- t) ._ (E-Assign bstp) | (< v , H2 >) | refl = {!!} -- E-AssRed comes here and makes things horrible
+⇓sound .error .verror E-Error = refl
+⇓sound .zero .(vnat 0) E-Zero = refl
+⇓sound {H1 = H1} (succ t) (vnat (suc vn)) (E-Succ bstp) with ⟦ t ⟧ H1 | ⇓sound t (vnat vn) bstp
+⇓sound {.Natural} (succ t) (vnat (suc vn)) (E-Succ bstp) | (< vnat .vn , H2 >) | refl = refl
+⇓sound (ref .m₁) (vref m₁) E-Ref = refl
