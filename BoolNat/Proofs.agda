@@ -93,8 +93,8 @@ deterministic (E-If ()) E-IfFalse
 deterministic (E-If s1) (E-If s2) rewrite deterministic s1 s2 = refl
 deterministic (E-If ()) E-If-Err
 deterministic (E-New s1) (E-New s2) rewrite deterministic s1 s2 = refl
-deterministic (E-New s1) (E-NewVal isV) = contradiction (term2NF _ isV _ s1)
-deterministic (E-NewVal isV) (E-New s2) = contradiction (term2NF _ isV _ s2)
+deterministic (E-New s1) (E-NewVal refl) = contradiction (value2NF _ _ s1)
+deterministic (E-NewVal refl) (E-New s2) = contradiction (value2NF _ _ s2)
 deterministic (E-NewVal isV) (E-NewVal isV₁) = refl
 deterministic (E-Deref s1) (E-Deref s2) rewrite deterministic s1 s2 = refl
 deterministic (E-Deref ()) E-DerefVal

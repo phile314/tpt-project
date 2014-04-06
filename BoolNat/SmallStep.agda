@@ -7,6 +7,8 @@ open import Data.Unit
 open import Data.Product
 open import Data.Fin
 open import Relation.Nullary
+open import Relation.Binary.PropositionalEquality hiding ( [_] )
+
 
 try-replace : ∀ {ty n} {H : Heap n} -> Value ty -> ((Heap n) × (Value ty))
 try-replace {ty} {n} {H} v with replace? H n ty
@@ -29,8 +31,8 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
 
  E-New        : ∀ {ty n m t t'} {H1 : Heap n} {H2 : Heap m} ->
                 Step {H1 = H1} {H2 = H2} t t' -> Step {Ref ty} {H1 = H1} {H2 = H2} (new t) (new t')
- E-NewVal     : ∀ {ty n} {H : Heap n} {t : Term ty} (isV : isValue t) ->
-                Step {H1 = H} {H2 = Cons ⌞ t , isV ⌟ H} (new t) (ref 0) -- Note that since we Cons instead of append after every allocation references point to the wrong locations 
+ E-NewVal     : ∀ {ty n} {H : Heap n} {v : Value ty} {t : Term ty} -> (eq : ⌜ v ⌝ ≡ t) ->
+                Step {H1 = H} {H2 = Cons v H} (new t) (ref 0) -- Note that since we Cons instead of append after every allocation references point to the wrong locations 
  E-Deref      : ∀ {ty S1 S2 t t'} {H1 : Heap S1} {H2 : Heap S2} ->
                 Step {Ref ty} {H1 = H1} {H2 = H2} t t' -> Step{ty} {H1 = H1} {H2 = H2} (! t) (! t')
  E-DerefVal   : forall {ty n} {H : Heap n} {m : Nat} -> 

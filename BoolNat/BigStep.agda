@@ -6,6 +6,9 @@ open import Data.Unit
 open import Base
 open import SmallStep
 
+open import Relation.Binary.PropositionalEquality hiding ( [_] ) -- remove
+
+
 -- TODO: there should be no isValue proofs in the big steps. Instead take another bigstep as parameter which reduces the argment to a value. (e.g. E-New)
 
 data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty → Set where
@@ -91,7 +94,7 @@ big-to-small E-Num = []
 big-to-small E-Ref = []
 big-to-small (E-IfTrue bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfTrue :: big-to-small bstp₁)
 big-to-small (E-IfFalse bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfFalse :: big-to-small bstp₁)
-big-to-small {H1 = H1} {H2 = Cons _ H2} {v = vref 0} (E-New bstp) = E-New* {H1 = H1} {H2 = H2} (big-to-small bstp) ++ [ E-NewVal ]
+big-to-small {H1 = H1} {H2 = Cons v H2} (E-New bstp) = (E-New* (big-to-small bstp)) ++ [ E-NewVal refl ]
 big-to-small (E-Deref bstp) = {!!}
 big-to-small {H2 = ._} (E-Assign bstp) = (E-Assign* (big-to-small bstp)) ++ [ E-AssRed { H2 = {!!} } ] 
 
@@ -114,7 +117,7 @@ prepend-step E-IfFalse bstp = E-IfFalse E-False bstp
 prepend-step (E-If stp) (E-IfTrue bstp bstp₁) = E-IfTrue (prepend-step stp bstp) bstp₁
 prepend-step (E-If stp) (E-IfFalse bstp bstp₁) = E-IfFalse (prepend-step stp bstp) bstp₁
 prepend-step (E-New stp) (E-New bstp) = E-New (prepend-step stp bstp)
-prepend-step E-NewVal E-Ref = E-New (value-of-value _)
+prepend-step (E-NewVal refl) E-Ref = E-New (value-of-value _)
 prepend-step (E-Deref stp) (E-Deref bstp) = {!E-Deref (prepend-step stp bstp)!}
 prepend-step E-DerefVal bstp = {!!}
 prepend-step (E-AssLeft stp) bstp = {!!}
