@@ -256,10 +256,50 @@ termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-T
 ⇓complete' (try t catch t₁) v p | < verror , x₁ > = {!!}
 ⇓complete' (try t catch t₁) v p | < v' , x₁ > = {!!}
 
-⇓complete : ∀ {ty n} {H1 : Heap n} (t : Term ty) -> BStep {H1 = H1} {H2 = {!!}} t (value (⟦ t ⟧ H1)) 
-⇓complete = {!!}
+data Complete : ∀ {ty n} -> Term ty -> Heap n -> Set where
+  complete : ∀ {ty n m} {t : Term ty} {H1 : Heap n} -> (H2 : Heap m) -> (v : Value ty) -> 
+             (p : ⟦ t ⟧ H1 ≡ < v , H2 >) -> (bstp : BStep {H1 = H1} {H2 = H2} t v) -> Complete t H1
 
+if-true : ∀ {ty n m o} {t : Term Boolean} {v : Value ty} {H1 : Heap n} {H2 : Heap m} {H3 : Heap o} {t1 t2 : Term ty} -> 
+            ⟦ t ⟧ H1 ≡ < vtrue , H2 > -> ⟦ t1 ⟧ H2 ≡ < v , H3 > -> ⟦ if t then t1 else t2 ⟧ H1 ≡ < v , H3 >
+if-true {t = t} {H1 = H1} p q with ⟦ t ⟧ H1
+if-true {ty} {n} {m} {o} {t} {v} {H1} {H2} refl q | .(< vtrue , H2 >) = q
 
+if-false : ∀ {ty n m o} {t : Term Boolean} {v : Value ty} {H1 : Heap n} {H2 : Heap m} {H3 : Heap o} {t1 t2 : Term ty} -> 
+            ⟦ t ⟧ H1 ≡ < vfalse , H2 > -> ⟦ t2 ⟧ H2 ≡ < v , H3 > -> ⟦ if t then t1 else t2 ⟧ H1 ≡ < v , H3 >
+if-false {t = t} {H1 = H1} p q with ⟦ t ⟧ H1
+if-false {ty} {n} {m} {o} {t} {v} {H1} {H2} refl q | .(< vfalse , H2 >) = q
+
+if-err :  ∀ {ty n m} {t : Term Boolean} {H1 : Heap n} {H2 : Heap m} {t1 t2 : Term ty} -> 
+            ⟦ t ⟧ H1 ≡ < verror , H2 > -> ⟦ if t then t1 else t2 ⟧ H1 ≡ < verror , H2 >
+if-err {t = t} {H1 = H1} p with ⟦ t ⟧ H1
+if-err {ty} {n} {m} {t} {H1} {H2} refl | .(< verror , H2 >) = refl
+
+⇓complete : ∀ {ty n} -> (H : Heap n) -> (t : Term ty) -> Complete t H
+⇓complete H true = complete H vtrue refl E-True
+⇓complete H false = complete H vfalse refl E-False
+⇓complete H error = complete H verror refl E-Error
+⇓complete H (num x) = complete H (vnat x) refl E-Num
+⇓complete H (iszero t) with ⇓complete H t
+⇓complete H (iszero t) | complete H2 (vnat x) p bstp = {!!}
+⇓complete H (iszero t) | complete H2 verror p bstp = {!!}
+⇓complete H (if t then t₁ else t₂) with ⇓complete H t
+⇓complete H (if t then t₁ else t₂) | complete H2 vtrue p bstp with ⇓complete H2 t₁
+⇓complete H (if t then t₁ else t₂) | complete H2 vtrue p bstp₁ | complete H3 v p₁ bstp = complete H3 v (if-true {t = t} p p₁) (E-IfTrue bstp₁ bstp)
+
+-- Why In my goal ⟦ t ⟧ H is not reduced ? I had to write a lemma just for that. The same goes for the other if-cases.
+-- ⇓complete H (if t then t₁ else t₂) | complete H2 vtrue p bstp₁ | complete H3 v p₁ bstp with ⟦ t ⟧ H
+-- ⇓complete H (if t then t₁ else t₂) | complete H2 vtrue refl bstp₁ | complete H3 v p₁ bstp | .(< vtrue , H2 >) = {!!} -- complete H3 v {!!} (E-IfTrue bstp₁ bstp)
+
+⇓complete H (if t then t₁ else t₂) | complete H2 vfalse p bstp with ⇓complete H2 t₂
+⇓complete H (if t then t₁ else t₂) | complete H2 vfalse p bstp | complete H3 v p₁ bstp₁ = complete H3 v (if-false {t = t} p p₁) (E-IfFalse bstp bstp₁)
+⇓complete H (if t then t₁ else t₂) | complete H2 verror p bstp = complete H2 verror (if-err {t = t} p) (E-IfErr bstp)
+
+⇓complete H (new t) = {!!}
+⇓complete H (! t) = {!!}
+⇓complete H (t <- t₁) = {!!}
+⇓complete H (ref x) = {!!}
+⇓complete H (try t catch t₁) = {!!}
 
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >
@@ -270,6 +310,8 @@ termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-T
 ⇓sound (if t then t1 else t2) v (E-IfTrue bstp bstp₁) | < vtrue , H2 > | refl = ⇓sound t1 v bstp₁
 ⇓sound {H1 = H1} (if t then t1 else t2) v (E-IfFalse bstp bstp₁) with ⟦ t ⟧ H1 | ⇓sound t vfalse bstp 
 ⇓sound (if t then t1 else t2) v (E-IfFalse bstp bstp₁) | < vfalse , H2 > | refl = ⇓sound t2 v bstp₁
+⇓sound {H1 = H1} (if t then t1 else t2) .verror (E-IfErr bstp) with ⟦ t ⟧ H1 | ⇓sound t verror bstp
+⇓sound (if t then t1 else t2) .verror (E-IfErr bstp) | < verror , H2 > | refl = refl 
 ⇓sound {H1 = H1} (new t) (vref 0) (E-New bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp
 ⇓sound (new t) (vref zero) (E-New bstp) | < v , H2 > | refl = refl 
 ⇓sound {ty} {.m} {m} {.H2} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.m} {r} {.H2} {t} bstp) with  ⟦ t ⟧ H2 | ⇓sound t (vref r) bstp

@@ -29,6 +29,11 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
               BStep {H1 = H2} {H2 = H3} t2 v     →
               BStep {H1 = H1} {H2 = H3} (if t then t1 else t2) v
 
+  E-IfErr    : ∀ {ty} {n1 n2} {H1 : Heap n1} {H2 : Heap n2}
+                 {t : Term Boolean} {t1 t2 : Term ty} →
+              BStep {H1 = H1} {H2 = H2} t  verror → 
+              BStep {H1 = H1} {H2 = H2} (if t then t1 else t2) verror
+
   E-New     : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} →
               BStep {H1 = H1} {H2 = H2} t v ->
               BStep {H1 = H1} {H2 = Cons v H2} (new t) (vref 0)
@@ -112,6 +117,7 @@ big-to-small E-Num = []
 big-to-small E-Ref = []
 big-to-small (E-IfTrue bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfTrue :: big-to-small bstp₁)
 big-to-small (E-IfFalse bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfFalse :: big-to-small bstp₁)
+big-to-small (E-IfErr bstp) = E-If* (big-to-small bstp) ++ [ E-If-Err ]
 big-to-small {H1 = H1} {H2 = Cons v H2} (E-New bstp) = (E-New* (big-to-small bstp)) ++ [ E-NewVal refl ]
 big-to-small (E-Deref bstp) = {!!}
 big-to-small {H2 = ._} (E-Assign bstp) = (E-Assign* (big-to-small bstp)) ++ [ E-AssRed { H2 = {!!} } ] 
@@ -134,6 +140,7 @@ prepend-step E-IfTrue bstp = E-IfTrue E-True bstp
 prepend-step E-IfFalse bstp = E-IfFalse E-False bstp
 prepend-step (E-If stp) (E-IfTrue bstp bstp₁) = E-IfTrue (prepend-step stp bstp) bstp₁
 prepend-step (E-If stp) (E-IfFalse bstp bstp₁) = E-IfFalse (prepend-step stp bstp) bstp₁
+prepend-step (E-If stp) (E-IfErr bstp) = E-IfErr (prepend-step stp bstp)
 prepend-step (E-New stp) (E-New bstp) = E-New (prepend-step stp bstp)
 prepend-step (E-NewVal refl) E-Ref = E-New (value-of-value _)
 prepend-step (E-Deref stp) (E-Deref bstp) = {!E-Deref (prepend-step stp bstp)!}
