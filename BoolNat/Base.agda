@@ -44,8 +44,7 @@ data Term : Type -> Set where
  true          : Term Boolean
  false         : Term Boolean
  error         : ∀ {ty} -> Term ty 
- zero          : Term Natural
- succ          : Term Natural -> Term Natural
+ num           : Nat -> Term Natural
  iszero        : Term Natural -> Term Boolean
  if_then_else_ : forall {ty} -> (cond  : Term Boolean)
                              -> (tcase : Term ty)
@@ -75,10 +74,9 @@ isError _ = ⊥
 isValue : forall {ty} -> Term ty -> Set
 isValue true = Unit
 isValue false = Unit
-isValue zero = Unit
 isValue error = Unit
+isValue (num _) = Unit
 isValue (ref _) = Unit
-isValue (succ t) = isValue t
 isValue (iszero t) = ⊥
 isValue (if t then t₁ else t₂) = ⊥
 isValue (new t) = ⊥
@@ -94,8 +92,7 @@ isGoodValue t = (isValue t) × (¬ isError t)
 ⌞_,_⌟ : ∀ {ty} -> (t : Term ty) -> isValue t -> Value ty
 ⌞_,_⌟ true v = vtrue
 ⌞_,_⌟ false v = vfalse
-⌞_,_⌟ zero v = vnat zero
-⌞_,_⌟ (succ t) v = ⌞ t , v ⌟
+⌞_,_⌟ (num n) v = vnat n
 ⌞_,_⌟ (iszero t) ()
 ⌞_,_⌟ (if t then t₁ else t₂) ()
 ⌞_,_⌟ (new t) ()
@@ -111,9 +108,8 @@ isGoodValue t = (isValue t) × (¬ isError t)
 ⌜ vtrue ⌝ = true
 ⌜ vfalse ⌝ = false
 ⌜ verror ⌝ = error
-⌜ vnat zero ⌝ = zero
-⌜ vnat (suc n) ⌝ = succ ⌜ vnat n ⌝
 ⌜ vref x ⌝ = ref x
+⌜ vnat n ⌝ = num n
 
 -- View function for isValue. 
 isValue? : ∀ {ty} -> (v : Value ty) -> isValue ⌜ v ⌝

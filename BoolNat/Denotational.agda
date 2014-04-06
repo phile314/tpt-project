@@ -26,10 +26,7 @@ value < v , H > = v
 ⟦_⟧ true H = < vtrue , H >
 ⟦_⟧ false H = < vfalse , H >
 ⟦_⟧ error H = < verror , H >
-⟦_⟧ zero H = < (vnat 0) , H >
-⟦_⟧ (succ t) H with ⟦ t ⟧ H
-⟦_⟧ (succ t) H | < vnat x , H' > = < vnat (suc x) , H' >
-⟦_⟧ (succ t) H | < verror , H' > = < verror , H' > 
+⟦_⟧ (num n) H = < (vnat n) , H >
 ⟦_⟧ (iszero t) H with ⟦ t ⟧ H
 ⟦_⟧ (iszero t) H | < vnat zero , H' > = < vtrue , H' >
 ⟦_⟧ (iszero t) H | < vnat (suc x) , H' > = < vfalse , H' >

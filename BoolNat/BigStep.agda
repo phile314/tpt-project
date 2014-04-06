@@ -40,11 +40,7 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
 
   E-Error : ∀ {ty n} {H : Heap n} -> BStep {ty} {H1 = H} {H2 = H} error verror
 
-  E-Zero    : ∀ {n} {H : Heap n} -> BStep {H1 = H} {H2 = H} zero (vnat 0)
-
-  E-Succ    : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {n : Term Natural} {vn : ℕ} → 
-              BStep {H1 = H1} {H2 = H2} n        (vnat vn) →
-              BStep {H1 = H1} {H2 = H2} (succ n) (vnat (1 + vn))
+  E-Num    : ∀ {n m} {H : Heap n} -> BStep {H1 = H} {H2 = H} (num m) (vnat m)
 
   E-Ref     : ∀ {n m ty} {H : Heap n} -> BStep {Ref ty} {H1 = H} {H2 = H} (ref m) (vref m)
   
@@ -84,12 +80,6 @@ E-Assign* : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty} ->
 E-Assign* [] = []
 E-Assign* (x :: stps) = E-AssRight (unit , (λ x₁ → x₁)) x :: E-Assign* stps
 
-E-Succ* : ∀ {t t' n m} {H1 : Heap n} {H2 : Heap m} ->
-          Steps {H1 = H1} {H2 = H2} t t' ->
-          Steps {H1 = H1} {H2 = H2} (succ t) (succ t')
-E-Succ* [] = []
-E-Succ* (x :: stps) = E-Succ x :: E-Succ* stps
-
 -- Lemmas used for small-to-big
 -- Converstion from big- to small-step representations.
 big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
@@ -97,9 +87,8 @@ big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Va
 big-to-small E-True = []
 big-to-small E-False = []
 big-to-small E-Error = []
-big-to-small E-Zero = []
+big-to-small E-Num = []
 big-to-small E-Ref = []
-big-to-small (E-Succ bstp) = E-Succ* (big-to-small bstp)
 big-to-small (E-IfTrue bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfTrue :: big-to-small bstp₁)
 big-to-small (E-IfFalse bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfFalse :: big-to-small bstp₁)
 big-to-small {H1 = H1} {H2 = Cons _ H2} {v = vref 0} (E-New bstp) = E-New* {H1 = H1} {H2 = H2} (big-to-small bstp) ++ [ E-NewVal ]
@@ -110,17 +99,15 @@ big-to-small {H2 = ._} (E-Assign bstp) = (E-Assign* (big-to-small bstp)) ++ [ E-
 value-of-value : forall {ty n} {H : Heap n} -> (v : Value ty) -> BStep {H1 = H} {H2 = H} ⌜ v ⌝ v
 value-of-value vtrue = E-True
 value-of-value vfalse = E-False
-value-of-value (vnat zero) = E-Zero
-value-of-value (vnat (suc x)) = E-Succ (value-of-value (vnat x))
+value-of-value (vnat n) = E-Num
 value-of-value (vref x) = E-Ref
 value-of-value verror = E-Error
 
--- -- Combining a single small step with a big step.
+-- Combining a single small step with a big step.
 prepend-step : forall {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3} {t1 t2 : Term ty} {v : Value ty} -> 
                Step {H1 = H1} {H2 = H2} t1 t2 -> BStep {H1 = H2} {H2 = H3} t2 v -> BStep {H1 = H1} {H2 = H3} t1 v
-prepend-step (E-Succ stp) (E-Succ bstp) = E-Succ (prepend-step stp bstp)
 prepend-step E-IsZeroZero bstp = {!!}
-prepend-step (E-IsZeroSucc x) bstp = {!!}
+prepend-step E-IsZeroSucc bstp = {!!}
 prepend-step (E-IsZero stp) bstp = {!!}
 prepend-step E-IfTrue bstp = E-IfTrue E-True bstp
 prepend-step E-IfFalse bstp = E-IfFalse E-False bstp
@@ -136,7 +123,6 @@ prepend-step E-AssRed bstp = {!!}
 prepend-step (E-Try-Catch stp) bstp = {!!}
 prepend-step (E-Try-Catch-Suc x) bstp = {!!}
 prepend-step (E-Try-Catch-Fail isE) bstp = {!!}
-prepend-step E-Succ-Err bstp = {!!}
 prepend-step E-IsZero-Err bstp = {!!}
 prepend-step E-If-Err bstp = {!!}
 prepend-step E-Deref-Err bstp = {!!}
