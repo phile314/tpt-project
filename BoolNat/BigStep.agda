@@ -52,14 +52,13 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
 
   E-Ref     : ∀ {n m ty} {H : Heap n} -> BStep {Ref ty} {H1 = H} {H2 = H} (ref m) (vref m)
   
---   E-IsZeroZ : ∀ {S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {n : Term Natural} →
+  E-IsZeroZ : ∀ {n1 n2} {H1 : Heap n1} {H2 : Heap n2} {x : Term Natural} →
+              BStep {H1 = H1} {H2 = H2} x          (vnat 0) →
+              BStep {H1 = H1} {H2 = H2} (iszero x) vtrue
 
---               BStep δ n          (vnat 0) →
---               BStep δ (iszero n) vtrue
-
---   E-IsZeroS : ∀ {S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} {n : Term Natural} {n' : ℕ} →
---               BStep δ n          (vnat (suc n')) →
---               BStep δ (iszero n) vfalse
+  E-IsZeroS : ∀ {n1 n2} {H1 : Heap n1} {H2 : Heap n2} {x : Term Natural} {x' : ℕ} →
+              BStep {H1 = H1} {H2 = H2} x          (vnat (suc x')) →
+              BStep {H1 = H1} {H2 = H2} (iszero x) vfalse
 
 -- -- TODO here we need to add all the failing big steps
 --   E-Err     : ∀ {ty S1 S2} {s : S1 ⊆ S2} {H1 : Heap S1} {H2 : Heap S2} {δ : Δ s H1 H2} -> BStep {ty} δ error verror
@@ -121,6 +120,8 @@ big-to-small (E-IfErr bstp) = E-If* (big-to-small bstp) ++ [ E-If-Err ]
 big-to-small {H1 = H1} {H2 = Cons v H2} (E-New bstp) = (E-New* (big-to-small bstp)) ++ [ E-NewVal refl ]
 big-to-small (E-Deref bstp) = {!!}
 big-to-small {H2 = ._} (E-Assign bstp) = (E-Assign* (big-to-small bstp)) ++ [ E-AssRed { H2 = {!!} } ] 
+big-to-small (E-IsZeroZ bstp) = E-IsZero* (big-to-small bstp) ++ [ E-IsZeroZero ]
+big-to-small (E-IsZeroS bstp) = E-IsZero* (big-to-small bstp) ++ [ E-IsZeroSucc ]
 
 -- A value term evaluates to itself.
 value-of-value : forall {ty n} {H : Heap n} -> (v : Value ty) -> BStep {H1 = H} {H2 = H} ⌜ v ⌝ v
@@ -133,9 +134,10 @@ value-of-value verror = E-Error
 -- Combining a single small step with a big step.
 prepend-step : forall {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3} {t1 t2 : Term ty} {v : Value ty} -> 
                Step {H1 = H1} {H2 = H2} t1 t2 -> BStep {H1 = H2} {H2 = H3} t2 v -> BStep {H1 = H1} {H2 = H3} t1 v
-prepend-step E-IsZeroZero bstp = {!!}
-prepend-step E-IsZeroSucc bstp = {!!}
-prepend-step (E-IsZero stp) bstp = {!!}
+prepend-step E-IsZeroZero E-True = E-IsZeroZ E-Num
+prepend-step E-IsZeroSucc E-False = E-IsZeroS E-Num
+prepend-step (E-IsZero stp) (E-IsZeroZ bstp) = E-IsZeroZ (prepend-step stp bstp)
+prepend-step (E-IsZero stp) (E-IsZeroS bstp) = E-IsZeroS (prepend-step stp bstp)
 prepend-step E-IfTrue bstp = E-IfTrue E-True bstp
 prepend-step E-IfFalse bstp = E-IfFalse E-False bstp
 prepend-step (E-If stp) (E-IfTrue bstp bstp₁) = E-IfTrue (prepend-step stp bstp) bstp₁
