@@ -177,10 +177,13 @@ termination H (if t then t₁ else t₂) with termination H t
 termination H (if t then t₁ else t₂) | Halts vtrue H2 xs = prepend-steps (E-If* xs ++ [ E-IfTrue ]) (termination H2 t₁)
 termination H (if t then t₁ else t₂) | Halts vfalse H2 xs = prepend-steps ((E-If* xs) ++ [ E-IfFalse ]) (termination H2 t₂)
 termination H (if t then t₁ else t₂) | Halts verror H2 xs = Halts verror H2 ((E-If* xs) ++ [ E-If-Err ])
-termination H (new t) = {!!}
-termination H (! t) = {!!}
+termination H (new t) with termination H t
+termination H (new t) | Halts v H2 xs = Halts (vref _) (Cons v H2) ((E-New* xs) ++ [ E-NewVal refl ])
+termination H (! t) with termination H t
+termination H (! t) | Halts (vref x) H2 xs = Halts (lookup x H2) H2 ((E-Deref* xs) ++ [ E-DerefVal ])
+termination H (! t) | Halts verror H2 xs = Halts verror H2 ((E-Deref* xs) ++ [ E-Deref-Err ])
 termination H (t <- t₁) = {!!}
-termination H (ref x) = {!!}
+termination H (ref x) = Halts (vref x) H []
 termination H (try t catch t₁) with termination H t
 termination H (try t catch t₁) | Halts verror H2 xs = prepend-steps (E-Try* xs ++ [ (E-Try-Catch-Fail unit) ]) (termination H2 t₁)
 termination H (try t catch t₁) | Halts vtrue H2 xs = Halts vtrue H2 ((E-Try* xs) ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])

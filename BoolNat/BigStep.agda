@@ -95,6 +95,12 @@ E-Try* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' t2 : Term ty} ->
 E-Try* [] = []
 E-Try* (x :: stps) = E-Try-Catch x :: E-Try* stps
 
+E-Deref* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term (Ref ty)} ->
+            Steps {H1 = H1} {H2 = H2} t t' ->
+            Steps {H1 = H1} {H2 = H2} (! t) (! t')
+E-Deref* [] = []
+E-Deref* (x :: stps) = E-Deref x :: E-Deref* stps
+
 -- Lemmas used for small-to-big
 -- Converstion from big- to small-step representations.
 big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
