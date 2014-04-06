@@ -23,7 +23,7 @@ no-shrink E-IfTrue = ≤′-refl
 no-shrink E-IfFalse = ≤′-refl
 no-shrink (E-If stp) = no-shrink stp
 no-shrink (E-New stp) = no-shrink stp
-no-shrink E-NewVal = ≤′-step ≤′-refl
+no-shrink (E-NewVal isV) = ≤′-step ≤′-refl
 no-shrink (E-Deref stp) = no-shrink stp
 no-shrink E-DerefVal = ≤′-refl
 no-shrink (E-AssLeft stp) = no-shrink stp
@@ -93,8 +93,9 @@ deterministic (E-If ()) E-IfFalse
 deterministic (E-If s1) (E-If s2) rewrite deterministic s1 s2 = refl
 deterministic (E-If ()) E-If-Err
 deterministic (E-New s1) (E-New s2) rewrite deterministic s1 s2 = refl
-deterministic (E-New s1) E-NewVal = contradiction (value2NF _ _ s1)
-deterministic E-NewVal s2 = {!!} -- Very Problematic
+deterministic (E-New s1) (E-NewVal isV) = contradiction (term2NF _ isV _ s1)
+deterministic (E-NewVal isV) (E-New s2) = contradiction (term2NF _ isV _ s2)
+deterministic (E-NewVal isV) (E-NewVal isV₁) = refl
 deterministic (E-Deref s1) (E-Deref s2) rewrite deterministic s1 s2 = refl
 deterministic (E-Deref ()) E-DerefVal
 deterministic (E-Deref ()) E-Deref-Err
