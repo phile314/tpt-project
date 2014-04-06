@@ -129,23 +129,48 @@ deterministic E-Assign-Err1 (E-AssLeft ())
 deterministic E-Assign-Err1 (E-AssRight (isV , notE) stp) = contradiction (notE unit)
 deterministic E-Assign-Err1 E-Assign-Err1 = refl
 
+-- A term is a redex if it can be reduced further
+data Redex : ∀ {ty n} -> Term ty -> Heap n -> Set where
+  Red : ∀ {ty n m} -> {H1 : Heap n} {t : Term ty} -> (H2 : Heap m) -> (t' : Term ty) ->
+        Step {H1 = H1} {H2 = H2} t t' -> Redex t H1
+
+-- Proof object that a term is a value
+data Is-value : {ty : Type} -> Term ty → Set where
+  is-value : {ty : Type} -> (v : Value ty) → Is-value ⌜ v ⌝
+
+
 -- Progress and preservation
-progress : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> (t : Term ty) -> ((isValue t) ⊎ (∃ (Step {H1 = H1} {H2 = H2} t)))
-progress true = inj₁ unit
-progress false = inj₁ unit
-progress error = inj₁ unit
-progress (num n) = inj₁ unit
-progress (iszero t) = {!!}
-progress (if t then t₁ else t₂) = {!!}
-progress (new t) = {!!}
-progress (! t) = {!!}
-progress (t <- t₁) with progress t | progress t₁
-progress (t <- t₁) | inj₁ x | inj₁ x₁ = inj₂ {!!}
-progress (t <- t₁) | inj₁ x | inj₂ y = {!!}
-progress (t <- t₁) | inj₂ y | inj₁ x = {!!}
-progress (t <- t₁) | inj₂ y | inj₂ y₁ = {!!}
-progress (ref x) = {!!}
-progress (try t catch t₁) = {!!} 
+progress : ∀ {ty n} (H1 : Heap n) -> (t : Term ty) -> ((Is-value t) ⊎ Redex t H1)
+progress H1 true = inj₁ (is-value vtrue)
+progress H1 false = inj₁ (is-value vfalse)
+progress H1 error = inj₁ (is-value verror)
+progress H1 (num x) = inj₁ (is-value (vnat x))
+progress H1 (iszero t) with progress H1 t
+progress H1 (iszero .(num 0)) | inj₁ (is-value (vnat zero)) = inj₂ (Red H1 true E-IsZeroZero)
+progress H1 (iszero .(num (suc x))) | inj₁ (is-value (vnat (suc x))) = inj₂ (Red H1 false E-IsZeroSucc)
+progress H1 (iszero .error) | inj₁ (is-value verror) = inj₂ (Red H1 error E-IsZero-Err)
+progress H1 (iszero t) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (iszero t') (E-IsZero x))
+progress H1 (if t then t₁ else t₂) with progress H1 t
+progress H1 (if .true then t₁ else t₂) | inj₁ (is-value vtrue) = inj₂ (Red H1 t₁ E-IfTrue)
+progress H1 (if .false then t₁ else t₂) | inj₁ (is-value vfalse) = inj₂ (Red H1 t₂ E-IfFalse)
+progress H1 (if .error then t₁ else t₂) | inj₁ (is-value verror) = inj₂ (Red H1 error E-If-Err)
+progress H1 (if t then t₁ else t₂) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (if t' then t₁ else t₂) (E-If x))
+progress H1 (new t) with progress H1 t
+progress H1 (new .(⌜ v ⌝)) | inj₁ (is-value v) = inj₂ (Red (Cons v H1) (ref zero) (E-NewVal refl))
+progress H1 (new t) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (new t') (E-New x))
+progress H1 (! t) with progress H1 t 
+progress H1 (! .(ref x)) | inj₁ (is-value (vref x)) = inj₂ (Red H1 ⌜ lookup x H1 ⌝ E-DerefVal)
+progress H1 (! .error) | inj₁ (is-value verror) = inj₂ (Red H1 error E-Deref-Err)
+progress H1 (! t) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (! t') (E-Deref x))
+progress H1 (t <- t₁) = {!!}
+progress H1 (ref x) = inj₁ (is-value (vref x))
+progress H1 (try t catch t₁) with progress H1 t
+progress H1 (try .error catch t₁) | inj₁ (is-value verror) = inj₂ (Red H1 t₁ (E-Try-Catch-Fail unit))
+progress H1 (try .true catch t₁) | inj₁ (is-value vtrue) = inj₂ (Red H1 true (E-Try-Catch-Suc (unit , (λ x → x))))
+progress H1 (try .false catch t₁) | inj₁ (is-value vfalse) = inj₂ (Red H1 false (E-Try-Catch-Suc (unit , (λ x → x))))
+progress H1 (try .(num x) catch t₁) | inj₁ (is-value (vnat x)) = inj₂ (Red H1 (num x) (E-Try-Catch-Suc (unit , (λ x₁ → x₁))))
+progress H1 (try .(ref x) catch t₁) | inj₁ (is-value (vref x)) = inj₂ (Red H1 (ref x) (E-Try-Catch-Suc (unit , (λ x₁ → x₁))))
+progress H1 (try t catch t₁) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (try t' catch t₁) (E-Try-Catch x))
 
 preservation : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {t' : Term ty} -> Step {H1 = H1} {H2 = H2} t t' -> ty ≡ ty
 preservation stp = refl
