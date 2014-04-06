@@ -38,9 +38,13 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
               BStep {H1 = H1} {H2 = H2} t v ->
               BStep {H1 = H1} {H2 = Cons v H2} (new t) (vref 0)
 
-  E-Deref   : ∀ {ty n r} {H : Heap n} {t : Term (Ref ty)} ->
-              BStep {H1 = H} {H2 = H} t (vref r) ->
-              BStep {H1 = H} {H2 = H} (! t) (lookup r H)
+  E-Deref   : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t : Term (Ref ty)} ->
+              BStep {H1 = H1} {H2 = H2} t (vref r) ->
+              BStep {H1 = H1} {H2 = H2} (! t) (lookup r H2)
+
+  E-DerefErr : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term (Ref ty)} ->
+              BStep {H1 = H1} {H2 = H2} t verror ->
+              BStep {H1 = H1} {H2 = H2} (! t) verror
 
   E-Assign  : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
               BStep {H1 = H1} {H2 = H2} t v → 
@@ -118,7 +122,8 @@ big-to-small (E-IfTrue bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfTrue ::
 big-to-small (E-IfFalse bstp bstp₁) = E-If* (big-to-small bstp) ++ (E-IfFalse :: big-to-small bstp₁)
 big-to-small (E-IfErr bstp) = E-If* (big-to-small bstp) ++ [ E-If-Err ]
 big-to-small {H1 = H1} {H2 = Cons v H2} (E-New bstp) = (E-New* (big-to-small bstp)) ++ [ E-NewVal refl ]
-big-to-small (E-Deref bstp) = {!!}
+big-to-small (E-Deref bstp) = (E-Deref* (big-to-small bstp)) ++ [ E-DerefVal ]
+big-to-small (E-DerefErr bstp) = (E-Deref* (big-to-small bstp)) ++ [ E-Deref-Err ]
 big-to-small {H2 = ._} (E-Assign bstp) = (E-Assign* (big-to-small bstp)) ++ [ E-AssRed { H2 = {!!} } ] 
 big-to-small (E-IsZeroZ bstp) = E-IsZero* (big-to-small bstp) ++ [ E-IsZeroZero ]
 big-to-small (E-IsZeroS bstp) = E-IsZero* (big-to-small bstp) ++ [ E-IsZeroSucc ]
@@ -145,7 +150,8 @@ prepend-step (E-If stp) (E-IfFalse bstp bstp₁) = E-IfFalse (prepend-step stp b
 prepend-step (E-If stp) (E-IfErr bstp) = E-IfErr (prepend-step stp bstp)
 prepend-step (E-New stp) (E-New bstp) = E-New (prepend-step stp bstp)
 prepend-step (E-NewVal refl) E-Ref = E-New (value-of-value _)
-prepend-step (E-Deref stp) (E-Deref bstp) = {!E-Deref (prepend-step stp bstp)!}
+prepend-step (E-Deref stp) (E-Deref bstp) = E-Deref (prepend-step stp bstp)
+prepend-step (E-Deref stp) (E-DerefErr bstp) = E-DerefErr (prepend-step stp bstp)
 prepend-step E-DerefVal bstp = {!!}
 prepend-step (E-AssLeft stp) bstp = {!!}
 prepend-step (E-AssRight isV stp) bstp = {!!}
