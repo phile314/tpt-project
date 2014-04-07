@@ -1,18 +1,28 @@
--- until Thursday
+until at latest before Thursday TPT
 
-PH  Split types into Basic/Ref types
-PH  Restrict Heap to basic types
-MV  Use Maybe for denotational semantics
-OP  Adapt BigStep and check if they still work
+OP BigStep add missing steps, complete big <-> small conversions, update soundness proof
+PH The replace view function should take a natural number as index, update big <-> small (and proofs?) conversions accordingly
+MV Rename NotReplace -> neg(Elem), Replace -> Elem
+PH Add Elem definitions
 
+OP Splitting the proofs into smaller files
 
--- try as far as we get, as time permits
-MV  Evaluation function
-PH  progress + preservation proof with SmallStep
+   Add sequencing to the language
+MV Add Hoare Triples
+MV Use let in the complete type
 
 ==========================
 DONE:
 ==========================
+-- until Thursday
+OP  Adapt BigStep and check if they still work
+
+PH  Split types into Basic/Ref types
+PH  Restrict Heap to basic types
+MV  Use Maybe for denotational semantics
+-- try as far as we get, as time permits
+MV  Evaluation function
+PH  progress + preservation proof with SmallStep
 PH  Index terms by one Shape
 MV  Convert Heap to value data type
 MV  Move common functions to a utility module
