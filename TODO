@@ -1,8 +1,6 @@
 until at latest before Thursday TPT
 
 OP BigStep add missing steps, complete big <-> small conversions, update soundness proof
-PH The replace view function should take a natural number as index, update big <-> small (and proofs?) conversions accordingly
-PH Add Elem definitions
 
 OP Splitting the proofs into smaller files
 
@@ -12,6 +10,8 @@ MV Add Hoare Triples
 ==========================
 DONE:
 ==========================
+PH The replace view function should take a natural number as index, update big <-> small (and proofs?) conversions accordingly
+PH Add Elem definitions
 -- until Thursday
 OP  Adapt BigStep and check if they still work
 
