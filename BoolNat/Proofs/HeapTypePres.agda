@@ -42,7 +42,7 @@ h-pres H1 H2 (E-Deref s) = h-pres H1 H2 s
 h-pres .H2 H2 E-DerefVal = eq=>TypePres H2
 h-pres H1 H2 (E-AssLeft s) = h-pres H1 H2 s
 h-pres H1 H2 (E-AssRight isV s) = h-pres H1 H2 s
-h-pres H1 .(replace H1 rep v) (E-AssRed-Suc {ty} {m} {r} {.H1} {H2} {t'} {v} eq rep) = h-pres-replace rep
+h-pres H1 .(replace H1 rep v) (E-AssRed-Suc {ty} {m} {r} {.H1} {H2} {t'} {v} isV eq rep) = h-pres-replace rep
 h-pres .H2 H2 (E-AssRed-Fail notRep) = eq=>TypePres H2
 h-pres H1 H2 (E-Try-Catch s) = h-pres H1 H2 s
 h-pres .H2 H2 (E-Try-Catch-Suc x) = eq=>TypePres H2

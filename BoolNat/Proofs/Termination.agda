@@ -49,7 +49,7 @@ termination H (! t) | Halts verror H2 xs = Halts verror H2 ((E-Deref* xs) ++ [ E
 termination H (t <- t₁) with termination H t
 termination H (t <- t₁) | Halts (vref x) H2 xs with termination H2 t₁
 termination {ty} {n} H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x with elem? H3 x₁ ty
-termination H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x₂ | inj₁ x = Halts v (replace H3 x v) ((E-AssignL* xs) ++ ((E-Assign* x₂) ++ [ (E-AssRed-Suc {_} {_} {_} {_} {H3} {_} {_} {isValue? v} refl x) ]))
+termination H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x₂ | inj₁ x = Halts v (replace H3 x v) ((E-AssignL* xs) ++ ((E-Assign* x₂) ++ [ (E-AssRed-Suc {_} {_} {_} {_} {H3} (isValue? v) refl x) ]))
 termination {ty} H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x | inj₂ y = Halts verror H3 ((E-AssignL* xs) ++ ((E-Assign* x) ++ [ (E-AssRed-Fail {ty} {_} {x₁} {_} {isValue? v} {H3} y) ]))
 termination H (t <- t₁) | Halts verror H2 xs = Halts verror H2 (E-AssignL* xs ++ [ E-Assign-Err1 ])
 termination H (ref x) = Halts (vref x) H []
