@@ -43,8 +43,11 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-AssRight   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {v : Term (Ref ty)} {t t' : Term ty}
                 (isV : isGoodValue v) -> Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (v <- t) (v <- t')
 
- E-AssRed     : ∀ {ty n r} {v : Value ty} {H1 H2 : Heap n} ->
-                Step {H1 = H1} {H2 = proj₁ (try-replace {H = H1} v)} ((ref r) <- ⌜ v ⌝) ⌜ (proj₂ (try-replace {H = H1} v)) ⌝
+ E-AssRed-Suc : ∀ {ty n r} {H1 H2 : Heap n} {t : Term ty} {v : Value ty} {isV : isValue t} -> 
+                 (eq : ⌜ v ⌝ ≡ t) -> (rep : Elem H1 ty) -> Step {H1 = H1} {H2 = replace v H1 rep } ((ref r) <- t) t
+
+ E-AssRed-Fail : ∀ {ty n r} {t : Term ty} {isV : isValue t} {H1 : Heap n} -> (notRep : ¬ (Elem H1 ty)) -> 
+                Step {H1 = H1} {H2 = H1} ((ref r) <- t) error
 
 
 
