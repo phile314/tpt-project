@@ -10,15 +10,12 @@ open import Data.Maybe
 
 -- The result of an evaluation. 
 -- Since the evaluation affects the Heap (state), it needs to be returned as well.
-data Result : Type -> Set where
-  <_,_> : ∀ {ty n} -> Value ty -> Heap n -> Result ty
-
-value : ∀ {ty} -> Result ty -> Value ty
-value < v , H > = v
-
--- This definition is not accepted
--- heap : ∀ {ty} -> Result ty -> Heap ?
--- heap < v , H > = H
+record Result (ty : Type) : Set where
+  constructor <_,_>
+  field 
+    { n } : ℕ
+    value : Value ty
+    heap  :  Heap n
 
 -- Evaluation function.
 -- The Heap is a chained attribute, it is threaded through all the recursicve call.

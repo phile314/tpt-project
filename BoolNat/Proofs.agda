@@ -58,7 +58,7 @@ term2NF (try t catch t₁) () t' stp
 value2NF : ∀ {ty} -> (v : Value ty) -> NF ⌜ v ⌝
 value2NF vtrue t ()
 value2NF vfalse t ()
-value2NF (vnat x) t ()  -- Here stp should be an absurd pattern
+value2NF (vnat x) t ()
 value2NF (vref x) t ()
 value2NF verror t ()
 
@@ -230,75 +230,36 @@ termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-T
 -- Big step is Complete and Sound
 --------------------------------------------------------------------------------
 
-data Complete : ∀ {ty n} -> Term ty -> Heap n -> Set where
-  complete : ∀ {ty n m} {t : Term ty} {H1 : Heap n} -> (H2 : Heap m) -> (v : Value ty) -> 
-             (p : ⟦ t ⟧ H1 ≡ < v , H2 >) -> (bstp : BStep {H1 = H1} {H2 = H2} t v) -> Complete t H1
-
-if-true : ∀ {ty n m o} {t : Term Boolean} {v : Value ty} {H1 : Heap n} {H2 : Heap m} {H3 : Heap o} {t1 t2 : Term ty} -> 
-            ⟦ t ⟧ H1 ≡ < vtrue , H2 > -> ⟦ t1 ⟧ H2 ≡ < v , H3 > -> ⟦ if t then t1 else t2 ⟧ H1 ≡ < v , H3 >
-if-true {t = t} {H1 = H1} p q with ⟦ t ⟧ H1
-if-true {ty} {n} {m} {o} {t} {v} {H1} {H2} refl q | .(< vtrue , H2 >) = q
-
-if-false : ∀ {ty n m o} {t : Term Boolean} {v : Value ty} {H1 : Heap n} {H2 : Heap m} {H3 : Heap o} {t1 t2 : Term ty} -> 
-            ⟦ t ⟧ H1 ≡ < vfalse , H2 > -> ⟦ t2 ⟧ H2 ≡ < v , H3 > -> ⟦ if t then t1 else t2 ⟧ H1 ≡ < v , H3 >
-if-false {t = t} {H1 = H1} p q with ⟦ t ⟧ H1
-if-false {ty} {n} {m} {o} {t} {v} {H1} {H2} refl q | .(< vfalse , H2 >) = q
-
-if-err :  ∀ {ty n m} {t : Term Boolean} {H1 : Heap n} {H2 : Heap m} {t1 t2 : Term ty} -> 
-            ⟦ t ⟧ H1 ≡ < verror , H2 > -> ⟦ if t then t1 else t2 ⟧ H1 ≡ < verror , H2 >
-if-err {t = t} {H1 = H1} p with ⟦ t ⟧ H1
-if-err {ty} {n} {m} {t} {H1} {H2} refl | .(< verror , H2 >) = refl
-
-new-≡ : ∀ {ty n m} {t : Term ty} {v : Value ty} {H1 : Heap n} {H2 : Heap m} ->
-        ⟦ t ⟧ H1 ≡ < v , H2 > -> ⟦ new t ⟧ H1 ≡ < vref 0 , Cons v H2 >
-new-≡ {t = t} {H1 = H1} p with ⟦ t ⟧ H1 
-new-≡ {ty} {n} {m} {t} {v} {H1} {H2} refl | .(< v , H2 >) = refl 
-
-!-≡ : ∀ {ty n m x} {t : Term (Ref ty)} {H1 : Heap n} {H2 : Heap m} ->
-        ⟦ t ⟧ H1 ≡ < vref x , H2 > -> ⟦ ! t ⟧ H1 ≡ < lookup x H2 , H2 >
-!-≡ {t = t} {H1 = H1} p with ⟦ t ⟧ H1
-!-≡ {ty} {n} {m} {x} {t} {H1} {H2} refl | .(< vref x , H2 >) = refl
-
-!-err-≡ : ∀ {ty n m} {t : Term (Ref ty)} {H1 : Heap n} {H2 : Heap m} ->
-        ⟦ t ⟧ H1 ≡ < verror , H2 > -> ⟦ ! t ⟧ H1 ≡ < verror , H2 >
-!-err-≡ {t = t} {H1 = H1} p with ⟦ t ⟧ H1
-!-err-≡ {ty} {n} {m} {t} {H1} {H2} refl | .(< verror , H2 >) = refl
-
-⇓complete : ∀ {ty n} -> (H : Heap n) -> (t : Term ty) -> Complete t H
-⇓complete H true = complete H vtrue refl E-True
-⇓complete H false = complete H vfalse refl E-False
-⇓complete H error = complete H verror refl E-Error
-⇓complete H (num x) = complete H (vnat x) refl E-Num
-⇓complete H (iszero t) with ⇓complete H t
-⇓complete H (iszero t) | complete H2 (vnat x) p bstp = {!!}
-⇓complete H (iszero t) | complete H2 verror p bstp = {!!}
-⇓complete H (if t then t₁ else t₂) with ⇓complete H t
-⇓complete H (if t then t₁ else t₂) | complete H2 vtrue p bstp with ⇓complete H2 t₁
-⇓complete H (if t then t₁ else t₂) | complete H2 vtrue p bstp₁ | complete H3 v p₁ bstp = complete H3 v (if-true {t = t} p p₁) (E-IfTrue bstp₁ bstp)
-
--- Why In my goal ⟦ t ⟧ H is not reduced ? I had to write a lemma just for that. The same goes for the other if-cases.
--- ⇓complete H (if t then t₁ else t₂) | complete H2 vtrue p bstp₁ | complete H3 v p₁ bstp with ⟦ t ⟧ H
--- ⇓complete H (if t then t₁ else t₂) | complete H2 vtrue refl bstp₁ | complete H3 v p₁ bstp | .(< vtrue , H2 >) = {!!} -- complete H3 v {!!} (E-IfTrue bstp₁ bstp)
-
-⇓complete H (if t then t₁ else t₂) | complete H2 vfalse p bstp with ⇓complete H2 t₂
-⇓complete H (if t then t₁ else t₂) | complete H2 vfalse p bstp | complete H3 v p₁ bstp₁ = complete H3 v (if-false {t = t} p p₁) (E-IfFalse bstp bstp₁)
-⇓complete H (if t then t₁ else t₂) | complete H2 verror p bstp = complete H2 verror (if-err {t = t} p) (E-IfErr bstp)
-
-⇓complete H (new t) with ⇓complete H t
-⇓complete H (new t) | complete H2 v p bstp = complete (Cons v H2) (vref _) (new-≡ {t = t} p) (E-New bstp)
-⇓complete H (! t) with ⇓complete H t
-⇓complete H (! t) | complete H2 (vref x) p bstp = complete H2 (lookup x H2) (!-≡ {t = t} p) (E-Deref bstp)
-⇓complete H (! t) | complete H2 verror p bstp = complete H2 verror (!-err-≡ {t = t} p ) (E-DerefErr bstp)
-⇓complete H (t <- t₁) = {!!}
-⇓complete H (ref x) = complete H (vref x) refl E-Ref
-⇓complete H (try t catch t₁) with ⇓complete H t
-⇓complete H (try t catch t₁) | complete H2 vtrue p bstp = complete H2 vtrue {!!} {!!}
-⇓complete H (try t catch t₁) | complete H2 vfalse p bstp = complete H2 vtrue {!!} {!!}
-⇓complete H (try t catch t₁) | complete H2 (vnat x) p bstp = complete H2 (vnat x) {!!} {!!}
-⇓complete H (try t catch t₁) | complete H2 (vref x) p bstp = complete H2 (vref x) {!!} {!!}
-⇓complete H (try t catch t₁) | complete H2 verror p bstp with ⇓complete H2 t
-⇓complete H (try t catch t₁) | complete H2 verror p₁ bstp₁ | complete H3 v p bstp = complete H3 v {!!} {!!} 
-
+⇓complete : ∀ {ty n} -> (t : Term ty) -> (H1 : Heap n) -> 
+              let < v , H2 > = ⟦ t ⟧ H1 in BStep {H1 = H1} {H2 = H2} t v 
+⇓complete true H = E-True
+⇓complete false H = E-False
+⇓complete error H = E-Error
+⇓complete (num x) H = E-Num
+⇓complete (iszero t) H with ⟦ t ⟧ H | ⇓complete t H
+⇓complete (iszero t) H | < vnat zero , heap > | bstp = E-IsZeroZ bstp
+⇓complete (iszero t) H | < vnat (suc x) , heap > | bstp = E-IsZeroS bstp
+⇓complete (iszero t) H | < verror , heap > | bstp = {!!}
+⇓complete (if t then t₁ else t₂) H with ⟦ t ⟧ H | ⇓complete t H
+⇓complete (if t then t₁ else t₂) H | < vtrue , heap > | bstp = E-IfTrue bstp (⇓complete t₁ heap)
+⇓complete (if t then t₁ else t₂) H | < vfalse , heap > | bstp = E-IfFalse bstp (⇓complete t₂ heap)
+⇓complete (if t then t₁ else t₂) H | < verror , heap > | bstp = E-IfErr bstp
+⇓complete (new t) H with ⟦ t ⟧ H | ⇓complete t H 
+⇓complete (new t) H | < value , heap > | bstp = E-New bstp
+⇓complete (! t) H with ⟦ t ⟧ H | ⇓complete t H
+⇓complete (! t) H | < vref x , heap > | bstp = E-Deref bstp
+⇓complete (! t) H | < verror , heap > | bstp = E-DerefErr bstp
+⇓complete (t <- t₁) H with ⟦ t ⟧ H | ⇓complete t H
+⇓complete (t <- t₁) H | < vref x , H' > | bstp with ⟦ t₁ ⟧ H' | ⇓complete t₁ H'
+⇓complete (t <- t₁) H | < vref x , H' > | bstp | < value , heap > | bstep₁ = {!!}
+⇓complete (t <- t₁) H | < verror , heap > | bstp = {!!}
+⇓complete (ref x) H = E-Ref
+⇓complete (try t catch t₁) H with ⟦ t ⟧ H | ⇓complete t H  
+⇓complete (try t catch t₁) H | < vtrue , heap > | bstp = {!!}
+⇓complete (try t catch t₁) H | < vfalse , heap > | bstp = {!!}
+⇓complete (try t catch t₁) H | < vnat x , heap > | bstp = {!!}
+⇓complete (try t catch t₁) H | < vref x , heap > | bstp = {!!}
+⇓complete (try t catch t₁) H | < verror , heap > | bstp = {!!}
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >
 ⇓sound .true .vtrue E-True = refl
