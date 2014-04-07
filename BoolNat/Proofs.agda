@@ -172,7 +172,12 @@ progress H1 (! t) with progress H1 t
 progress H1 (! .(ref x)) | inj₁ (is-value (vref x)) = inj₂ (Red H1 ⌜ lookup x H1 ⌝ E-DerefVal)
 progress H1 (! .error) | inj₁ (is-value verror) = inj₂ (Red H1 error E-Deref-Err)
 progress H1 (! t) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (! t') (E-Deref x))
-progress H1 (t <- t₁) = {!!}
+progress H1 (t <- t₁) with progress H1 t
+progress H1 (.(⌜ v ⌝) <- t₁) | inj₁ (is-value v) with progress H1 t₁
+progress H1 (.(⌜ v₁ ⌝) <- .(⌜ v ⌝)) | inj₁ (is-value v₁) | inj₁ (is-value v) = {!!} -- Here we need to use elem?
+progress H1 (.(⌜ vref x₁ ⌝) <- t₁) | inj₁ (is-value (vref x₁)) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (ref x₁ <- t') (E-AssRight (unit , (λ x₂ → x₂)) x))
+progress H1 (.(⌜ verror ⌝) <- t₁) | inj₁ (is-value verror) | inj₂ (Red H2 t' x) = inj₂ (Red H1 error E-Assign-Err1)
+progress H1 (t <- t₁) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (t' <- t₁) (E-AssLeft x))
 progress H1 (ref x) = inj₁ (is-value (vref x))
 progress H1 (try t catch t₁) with progress H1 t
 progress H1 (try .error catch t₁) | inj₁ (is-value verror) = inj₂ (Red H1 t₁ (E-Try-Catch-Fail unit))
