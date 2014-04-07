@@ -18,7 +18,6 @@ open import Data.Maybe
 open import Data.Fin using (Fin; fromℕ; toℕ)
 open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary
-open import Relation.Nullary.Core
 
 --------------------------------------------------------------------------------
 -- Types

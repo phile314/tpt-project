@@ -4,6 +4,8 @@ open import Data.Nat
 open import Data.Product
 open import Data.Unit
 open import Data.Sum
+open import Data.Empty
+open import Relation.Nullary
 open import Base
 open import SmallStep
 
@@ -13,6 +15,14 @@ try-replace : ∀ {ty n} {H : Heap n} -> ℕ -> Value ty -> ((Heap n) × (Value 
 try-replace {ty} {n} {H} i v with elem? H i ty
 try-replace {_} {_} {H} i v | inj₁ x = replace H x v , v
 try-replace {_} {_} {H} i v | inj₂ y = H , verror
+
+replace-result : ∀ {n H fn ty} -> Value ty -> ((Elem {n} H fn ty) ⊎ (¬ (Elem {n} H fn ty))) -> Value ty
+replace-result v (inj₁ x) = v
+replace-result v (inj₂ y) = verror
+
+replace-heap : ∀ {n H fn ty} -> Value ty -> ((Elem {n} H fn ty) ⊎ (¬ (Elem {n} H fn ty))) -> Heap n
+replace-heap {_} {H} v (inj₁ x) = replace H x v
+replace-heap {_} {H} v (inj₂ y) = H
 
 
 -- TODO: there should be no isValue proofs in the big steps. Instead take another bigstep as parameter which reduces the argment to a value. (e.g. E-New)
@@ -54,7 +64,8 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
 
   E-Assign  : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
               BStep {H1 = H1} {H2 = H2} t v → 
-              BStep {H1 = H1} {H2 = proj₁ (try-replace {H = H2} m v) } (ref m <- t) (proj₂ (try-replace {H = H2} m v))
+              let e = elem? H2 m ty in
+              BStep {ty} {n} {m} {H1 = H1} {H2 = replace-heap v e } (ref m <- t) (replace-result v e)
 
   E-Error : ∀ {ty n} {H : Heap n} -> BStep {ty} {H1 = H} {H2 = H} error verror
 
