@@ -28,7 +28,8 @@ no-shrink (E-Deref stp) = no-shrink stp
 no-shrink E-DerefVal = ≤′-refl
 no-shrink (E-AssLeft stp) = no-shrink stp
 no-shrink (E-AssRight isV stp) = no-shrink stp
-no-shrink E-AssRed = ≤′-refl
+no-shrink (E-AssRed-Suc eq rep) = ≤′-refl
+no-shrink (E-AssRed-Fail nr) = ≤′-refl
 no-shrink (E-Try-Catch stp) = no-shrink stp
 no-shrink (E-Try-Catch-Suc x) = ≤′-refl
 no-shrink (E-Try-Catch-Fail isE) = ≤′-refl
@@ -103,13 +104,22 @@ deterministic E-DerefVal (E-Deref ())
 deterministic E-DerefVal E-DerefVal = refl
 deterministic (E-AssLeft s1) (E-AssLeft s2) rewrite deterministic s1 s2 = refl
 deterministic (E-AssLeft s1) (E-AssRight (isV , notE) s2) = contradiction (term2NF _ isV _ s1)
-deterministic (E-AssLeft ()) E-AssRed
-deterministic (E-AssLeft ()) E-Assign-Err1
+deterministic (E-AssLeft s1) (E-AssRed-Suc eq rep) = contradiction (value2NF _ _ s1)
+deterministic (E-AssLeft s1) (E-AssRed-Fail nr) = contradiction (value2NF _ _ s1)
+deterministic (E-AssLeft s1) E-Assign-Err1 = contradiction (value2NF _ _ s1)
 deterministic (E-AssRight (isV , notE) s1) (E-AssLeft s2) = contradiction (term2NF _ isV _ s2)
 deterministic (E-AssRight isV s1) (E-AssRight isV₁ s2) rewrite deterministic s1 s2 = refl
-deterministic (E-AssRight isV s1) (E-AssRed {v = v}) = contradiction (value2NF v _ s1) -- Probably we should define E-AssRed differently
-deterministic (E-AssRight (isV , notE) s1) E-Assign-Err1 = contradiction (notE unit) 
-deterministic E-AssRed s2 = {!!} -- Probably we should define E-AssRed differently
+deterministic (E-AssRight (isV , isE) s1) (E-AssRed-Suc refl rep) = contradiction (value2NF _ _ s1)
+deterministic (E-AssRight isV' s1) (E-AssRed-Fail {isV = isV} nr) = contradiction (term2NF _ isV _ s1)
+deterministic (E-AssRight (isV , notE) s1) E-Assign-Err1 = contradiction (notE unit)
+deterministic (E-AssRed-Suc eq rep) (E-AssLeft s2) = contradiction (term2NF _ unit _ s2)
+deterministic (E-AssRed-Suc {isV = isV} refl rep) (E-AssRight (isV₁ , notE) s2) = contradiction (term2NF _ isV _ s2)
+deterministic (E-AssRed-Suc eq rep) (E-AssRed-Suc eq₁ rep₁) = refl
+deterministic (E-AssRed-Suc eq rep) (E-AssRed-Fail notRep) = contradiction (notRep rep)
+deterministic (E-AssRed-Fail notRep) (E-AssLeft s2) = contradiction (value2NF _ _ s2)
+deterministic (E-AssRed-Fail {isV = isV} notRep) (E-AssRight isV₁ s2) = contradiction (term2NF _ isV _ s2)
+deterministic (E-AssRed-Fail notRep) (E-AssRed-Suc eq rep) = contradiction (notRep rep)
+deterministic (E-AssRed-Fail notRep) (E-AssRed-Fail notRep₁) = refl
 deterministic (E-Try-Catch s1) (E-Try-Catch s2) rewrite deterministic s1 s2 = refl
 deterministic (E-Try-Catch s1) (E-Try-Catch-Suc (isV , proj₂)) = contradiction (term2NF _ isV _ s1)
 deterministic (E-Try-Catch s1) (E-Try-Catch-Fail isE) = contradiction (term2NF _ (isError2isValue _ isE) _ s1)
@@ -220,42 +230,6 @@ termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-T
 -- Big step is Complete and Sound
 --------------------------------------------------------------------------------
 
--- Not completely sure if the definitions are correct and if they will work out
-
-⇓complete' : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) ->
-             ⟦ t ⟧ H1 ≡ < v , H2 > -> BStep {H1 = H1} {H2 = H2} t v
-⇓complete' true vtrue refl = E-True
-⇓complete' false .vfalse refl = E-False
-⇓complete' (num n) .(vnat n) refl = E-Num
-⇓complete' error .verror refl = E-Error
-⇓complete' {H1 = H1} (iszero t) v p with ⟦ t ⟧ H1 
-⇓complete' {.Boolean} {n} {m} {H1} {H2} (iszero t) .vtrue refl | < vnat zero , .H2 > = {!!}
-⇓complete' {.Boolean} {n} {m} {H1} {H2} (iszero t) .vfalse refl | < vnat (suc x) , .H2 > = {!!}
-⇓complete' {.Boolean} {n} {m} {H1} {H2} (iszero t) .verror refl | < verror , .H2 > = {!!}
-⇓complete' {H1 = H1} (if t then t₁ else t₂) v p with ⟦ t ⟧ H1
-⇓complete' (if t then t₁ else t₂) v p | < vtrue , H1' > with ⟦ t₁ ⟧ H1'
-⇓complete' {ty} {n₁} {m} {H1} {H2} (if t then t₁ else t₂) v refl | < vtrue , H1' > | < .v , .H2 > = E-IfTrue {H1 = H1} {H2 = H2} (⇓complete' t vtrue {!!}) (⇓complete' t₁ v {!!})
-⇓complete' {H1 = H1} (if t then t₁ else t₂) v p | < vfalse , H1' > with ⟦ t₂ ⟧ H1'
-⇓complete' {ty} {n₁} {m} {H1} {H2} (if t then t₁ else t₂) v refl | < vfalse , H1' > | < .v , .H2 > = E-IfFalse {H1 = H1} {H2 = H2} (⇓complete' t vfalse {!!})  (⇓complete' t₂ v {!!}) 
-⇓complete' (if t then t₁ else t₂) v p | < verror , H1' > = {!!}
-⇓complete' {H1 = H1} (new t) v p with ⟦ t ⟧ H1
-⇓complete' (new t) .(vref 0) refl | < v , H1' > = E-New (⇓complete' t v {!!})
-⇓complete' {H1 = H1} (! t) v p with ⟦ t ⟧ H1
-⇓complete' {ty} {n} {m} {H1} {H2} (! t) .(lookup x H2) refl | < vref x , .H2 > = {!E-Deref ? !} -- The E-Deref rule requires the two heaps to be the same, but in general they are the same. This problems comes down to an inconvenient formulation (we don't want to specify the second heap 
-⇓complete' {ty} {n} {m} {H1} {H2} (! t) .verror refl | < verror , .H2 > = {!!}
-⇓complete' {H1 = H1} (t <- t₁) v p with ⟦ t ⟧ H1
-⇓complete' (t <- t₁) v p | < vref n , H1' > with ⟦ t₁ ⟧ H1'
-⇓complete' (t <- t₁) v p | < vref n₃ , H1' > | < vtrue , H2' > = {!!}  -- AssRed is to complicated
-⇓complete' (t <- t₁) v p | < vref n₃ , H1' > | < vfalse , H2' > = {!!}
-⇓complete' (t <- t₁) v p | < vref n₃ , H1' > | < vnat x , H2' > = {!!}
-⇓complete' (t <- t₁) v p | < vref n₃ , H1' > | < vref x , H2' > = {!!}
-⇓complete' (t <- t₁) v p | < vref n₃ , H1' > | < verror , H2' > = {!!}
-⇓complete' {ty} {n} {m} {H1} {H2} (t <- t₁) .verror refl | < verror , .H2 > = {!!}
-⇓complete' (ref x) .(vref x) refl = E-Ref
-⇓complete' {H1 = H1} (try t catch t₁) v p with ⟦ t ⟧ H1
-⇓complete' (try t catch t₁) v p | < verror , x₁ > = {!!}
-⇓complete' (try t catch t₁) v p | < v' , x₁ > = {!!}
-
 data Complete : ∀ {ty n} -> Term ty -> Heap n -> Set where
   complete : ∀ {ty n m} {t : Term ty} {H1 : Heap n} -> (H2 : Heap m) -> (v : Value ty) -> 
              (p : ⟦ t ⟧ H1 ≡ < v , H2 >) -> (bstp : BStep {H1 = H1} {H2 = H2} t v) -> Complete t H1
@@ -330,6 +304,10 @@ new-≡ {ty} {n} {m} {t} {v} {H1} {H2} refl | .(< v , H2 >) = refl
 ⇓sound .true .vtrue E-True = refl
 ⇓sound .false .vfalse E-False = refl
 ⇓sound (num n) (vnat .n) E-Num = refl
+⇓sound {H1 = H1} (iszero t) .vtrue (E-IsZeroZ bstp) with ⟦ t ⟧ H1 | ⇓sound t (vnat zero) bstp
+⇓sound (iszero t) .vtrue (E-IsZeroZ bstp) | (< vnat 0 , H2 >) | refl = refl
+⇓sound {H1 = H1} (iszero t) .vfalse (E-IsZeroS {n = n} bstp) with ⟦ t ⟧ H1 | ⇓sound t (vnat (suc n)) bstp
+⇓sound (iszero t) .vfalse (E-IsZeroS bstp) | (< vnat (suc n₁) , H2 >) | refl = refl
 ⇓sound {H1 = H1} (if t then t1 else t2) v (E-IfTrue bstp bstp₁) with ⟦ t ⟧ H1 | ⇓sound t vtrue bstp
 ⇓sound (if t then t1 else t2) v (E-IfTrue bstp bstp₁) | < vtrue , H2 > | refl = ⇓sound t1 v bstp₁
 ⇓sound {H1 = H1} (if t then t1 else t2) v (E-IfFalse bstp bstp₁) with ⟦ t ⟧ H1 | ⇓sound t vfalse bstp 

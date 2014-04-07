@@ -139,23 +139,27 @@ lookup zero (Cons v H)  | just refl = v
 lookup zero (Cons v H) | nothing = verror
 lookup (suc m) (Cons v H) = lookup m H
 
+-- Safe lookup for type. Returns the type of the value at the given position
+lookupTy : {n : Nat} -> Fin n -> Heap n -> Type
+lookupTy Data.Fin.zero (Cons {ty} v H) = ty
+lookupTy (Data.Fin.suc fn) (Cons v H) = lookupTy fn H
+
+
 -- Proof object that guarantees the safeness of replace.
-data Replace : ∀ {n} -> Heap n -> Type -> Set where
-  -- TODO maybe the contstraint over the same type should be put back, otherwise you could construct your proof
-  -- yourself, without using replace? .
-  RepN : ∀ {n ty} {H : Heap n} -> (fn : Fin n) -> Replace H ty  
+data Elem : ∀ {n} -> Heap n -> Type -> Set where
+  RepN : ∀ {n ty} {H : Heap n} -> (fn : Fin n) -> lookupTy fn H ≡ ty -> Elem H ty  
 
 -- View function for Replace
-replace? : ∀ {n} -> (H : Heap n) -> Nat -> (ty : Type) -> Maybe (Replace H ty)
+replace? : ∀ {n} -> (H : Heap n) -> Nat -> (ty : Type) -> Maybe (Elem H ty)
 replace? Nil m ty = nothing
 replace? (Cons {ty'} v H) zero ty with ty =? ty'
-replace? (Cons {ty} v H) zero .ty | just refl = just (RepN Data.Fin.zero)
+replace? (Cons {ty} v H) zero .ty | just refl = just (RepN Data.Fin.zero refl)
 replace? (Cons v H) zero ty₁ | nothing = nothing  -- The type of a cell cannot change
 replace? (Cons v H) (suc m) ty with replace? H m ty
-replace? (Cons v H) (suc m) ty | just (RepN fn) = just (RepN (Data.Fin.suc fn))
+replace? (Cons v H) (suc m) ty | just (RepN fn p) = just (RepN (Data.Fin.suc fn) p)
 replace? (Cons v H) (suc m) ty | nothing = nothing
 
 -- Safe replace. Replaces the value at the given position with another value of the same type.
-replace : ∀ {ty n} -> Value ty -> (H : Heap n) -> Replace H ty -> Heap n
-replace v (Cons v₁ H) (RepN Data.Fin.zero) = Cons v H
-replace v (Cons v₁ H) (RepN (Data.Fin.suc fn)) = Cons v₁ (replace v H (RepN fn))
+replace : ∀ {ty n} -> Value ty -> (H : Heap n) -> Elem H ty -> Heap n
+replace v (Cons v₁ H) (RepN Data.Fin.zero p) = Cons v H
+replace v (Cons v₁ H) (RepN (Data.Fin.suc fn) p) = Cons v₁ (replace v H (RepN fn p))
