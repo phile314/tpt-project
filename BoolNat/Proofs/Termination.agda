@@ -6,13 +6,14 @@ open import Base
 open import SmallStep
 open import BigStep
 open import Denotational
-open import Data.Unit using (unit)
+open import Data.Unit
 open import Data.Sum
-open import Data.Product using ( ∃ ; _,_)
+open import Data.Product
 open import Data.Nat 
 open import Relation.Binary.PropositionalEquality hiding ( [_] )
 open import Relation.Nullary
 open import Data.Empty
+
 
 --------------------------------------------------------------------------------
 -- Termination
@@ -21,6 +22,13 @@ open import Data.Empty
 -- With this formulation we cannot write the lemma prepend-steps.
 -- I don't know whether inlining it would work.
 -- I don't know if using another specific constructor would be better
+
+val-err? : ∀ {ty} (v : Value ty) -> (isValue ⌜ v ⌝ × ((isError ⌜ v ⌝) ⊎ (¬ isError ⌜ v ⌝)))
+val-err? vtrue = unit , (inj₂ (λ x → x))
+val-err? vfalse = unit , inj₂ (λ x → x)
+val-err? (vnat x) = unit , inj₂ (λ x₁ → x₁)
+val-err? (vref x) = unit , inj₂ (λ x₁ → x₁)
+val-err? verror = unit , inj₁ unit
 
 data ⊢_↓_ {n : ℕ} {ty : Type} (H : Heap n) (t : Term ty) : Set where
   Halts : ∀ {m} (v : Value ty) -> (H2 : Heap m) -> Steps {H1 = H} {H2 = H2} t ⌜ v ⌝ -> ⊢ H ↓ t
@@ -59,3 +67,14 @@ termination H (try t catch t₁) | Halts vtrue H2 xs = Halts vtrue H2 ((E-Try* x
 termination H (try t catch t₁) | Halts vfalse H2 xs = Halts vfalse H2 (E-Try* xs ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
 termination H (try t catch t₁) | Halts (vnat x) H2 xs = Halts (vnat x) H2 (E-Try* xs ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
 termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-Try* xs ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
+termination H (t1 >> t2) with termination H t1
+termination H (t1 >> t2) | Halts verror H2 x = Halts verror H2 ((E-Seq1* x) ++ [ E-Seq-Err ])
+termination H (t1 >> t2) | Halts v H2 x with termination H2 t2
+termination H (t1 >> t2) | Halts v₁ H2 x₁ | Halts v H3 x = Halts {!!} {!!} ((E-Seq1* x₁) ++ ({!!} ++ {!!}))
+-- termination H (t1 >> t2) | Halts v H2 x with val-err? v
+-- termination H (t1 >> t2) | Halts vtrue H2 x₁ | proj₁ , inj₁ x = {!!}
+-- termination H (t1 >> t2) | Halts vfalse H2 x₁ | proj₁ , inj₁ x = {!!}
+-- termination H (t1 >> t2) | Halts (vnat x) H2 x₂ | proj₁ , inj₁ x₁ = {!!}
+-- termination H (t1 >> t2) | Halts (vref x) H2 x₂ | proj₁ , inj₁ x₁ = {!!}
+-- termination H (t1 >> t2) | Halts verror H2 x₁ | proj₁ , inj₁ x = {!!} -- Halts verror H2 (E-Seq1* x₁ ++ [ {!x!} ])
+-- termination H (t1 >> t2) | Halts v H2 x | proj₁ , inj₂ y = {!!}

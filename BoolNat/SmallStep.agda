@@ -45,7 +45,12 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
                 Step {H1 = H1} {H2 = H1} ((ref r) <- t) error
 
 
+ E-Seq1         : ∀ {ty1 ty2 n m} {H1 : Heap n} {H2 : Heap m} {t1 t1' : Term ty1} {t2 : Term ty2} -> Step {H1 = H1} {H2 = H2} t1 t1' ->
+                  Step {H1 = H1} {H2 = H2} (t1 >> t2) (t1' >> t2)
 
+ E-SeqVal       : ∀ {ty1 ty2 n} {H : Heap n} {t1 : Term ty1} {t2 : Term ty2} -> (isGoodValue t1) ->
+                  Step {H1 = H} {H2 = H} (t1 >> t2) t2
+ E-Seq-Err      : ∀ {ty1 ty2 n} {H : Heap n} {t2 : Term ty2} -> Step {H1 = H} {H2 = H} ((error {ty1}) >> t2) (error {ty2})
 
 
  E-Try-Catch  : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> {t t' tc : Term ty} ->

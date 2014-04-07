@@ -56,7 +56,8 @@ data Term : Type -> Set where
  _<-_          : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
  ref           : forall {ty} -> ℕ -> Term (Ref ty)  -- References are indexes
  try_catch_    : forall {ty} -> Term ty -> Term ty -> Term ty
- -- raise         : forall {ty} Term ty -> Term ty -- This allows to return a value with the exception ( I don't know if we want it right now, maybe later)
+-- raise         : forall {ty} Term ty -> Term ty -- This allows to return a value with the exception ( I don't know if we want it right now, maybe later)
+ _>>_           : ∀ {ty1 ty2} -> Term ty1 -> Term ty2 -> Term ty2 -- sequencing
 
 --------------------------------------------------------------------------------
 -- Values
@@ -84,6 +85,7 @@ isValue (new t) = ⊥
 isValue (!_ t) = ⊥
 isValue (_<-_ t t₁) = ⊥
 isValue (try t catch t') = ⊥
+isValue (_ >> _) = ⊥
 
 isGoodValue : ∀ {ty} -> Term ty -> Set
 isGoodValue t = (isValue t) × (¬ isError t)
@@ -101,7 +103,8 @@ isGoodValue t = (isValue t) × (¬ isError t)
 ⌞_,_⌟ (t <- t₁) ()
 ⌞_,_⌟ (ref x) v = vref x
 ⌞_,_⌟ error v = verror 
-⌞_,_⌟ (try t catch t') () 
+⌞ try t catch t' , () ⌟
+⌞ t >> t' , () ⌟
 
 
 -- Maps a value back in the term world

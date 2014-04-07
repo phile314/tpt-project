@@ -37,6 +37,9 @@ no-shrink E-IsZero-Err = ≤′-refl
 no-shrink E-If-Err = ≤′-refl
 no-shrink E-Deref-Err = ≤′-refl
 no-shrink E-Assign-Err1 = ≤′-refl
+no-shrink (E-Seq1 stp) = no-shrink stp
+no-shrink (E-SeqVal isV) = ≤′-refl
+no-shrink E-Seq-Err = ≤′-refl
 
 -- A term is considered a normal form whenever it is not reducible.
 NF : {ty : Type} -> Term ty → Set
@@ -54,6 +57,7 @@ term2NF (! t) () t' stp
 term2NF (t <- t₁) () t' stp
 term2NF (ref x) isV t' ()
 term2NF (try t catch t₁) () t' stp
+term2NF (t1 >> t2) () t' stp
 
 value2NF : ∀ {ty} -> (v : Value ty) -> NF ⌜ v ⌝
 value2NF vtrue t ()
@@ -74,6 +78,7 @@ isError2isValue (! t) ()
 isError2isValue (t <- t₁) ()
 isError2isValue (ref x) ()
 isError2isValue (try t catch t₁) ()
+isError2isValue (t1 >> t2) ()
 
 deterministic : ∀ {ty n m1 m2} {H : Heap n} {H1 : Heap m1} {H2 : Heap m2} {t t1 t2 : Term ty} ->
                 Step {H1 = H} {H2 = H1} t t1 -> Step {H1 = H} {H2 = H2} t t2 -> t1 ≡ t2
@@ -138,6 +143,15 @@ deterministic E-Deref-Err E-Deref-Err = refl
 deterministic E-Assign-Err1 (E-AssLeft ())
 deterministic E-Assign-Err1 (E-AssRight (isV , notE) stp) = contradiction (notE unit)
 deterministic E-Assign-Err1 E-Assign-Err1 = refl
+deterministic (E-Seq1 s) (E-Seq1 s2) rewrite deterministic s s2 = refl
+deterministic (E-Seq1 s) (E-SeqVal x) = contradiction (term2NF _ (Data.Product.proj₁ x) _ s)
+deterministic (E-Seq1 ()) E-Seq-Err
+deterministic (E-SeqVal s) (E-Seq1 s2) = contradiction (term2NF _ (Data.Product.proj₁ s) _ s2)
+deterministic (E-SeqVal s) (E-SeqVal x) = refl
+deterministic (E-SeqVal (unit , proj₂)) E-Seq-Err = contradiction (proj₂ unit)
+deterministic E-Seq-Err (E-Seq1 ())
+deterministic E-Seq-Err (E-SeqVal (proj₁ , proj₂)) = contradiction (proj₂ unit)
+deterministic E-Seq-Err E-Seq-Err = refl
 
 
 --------------------------------------------------------------------------------
@@ -174,6 +188,7 @@ deterministic E-Assign-Err1 E-Assign-Err1 = refl
 ⇓complete (try t catch t₁) H | < vnat x , heap > | bstp = {!!}
 ⇓complete (try t catch t₁) H | < vref x , heap > | bstp = {!!}
 ⇓complete (try t catch t₁) H | < verror , heap > | bstp = {!!}
+⇓complete (t1 >> t2) H = {!!}
 
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >

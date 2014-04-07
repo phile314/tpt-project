@@ -51,3 +51,6 @@ h-pres .H2 H2 E-IsZero-Err = eq=>TypePres H2
 h-pres .H2 H2 E-If-Err = eq=>TypePres H2
 h-pres .H2 H2 E-Deref-Err = eq=>TypePres H2
 h-pres .H2 H2 E-Assign-Err1 = eq=>TypePres H2
+h-pres H1 H2 (E-Seq1 stp) = h-pres H1 H2 stp
+h-pres .H2 H2 (E-SeqVal isV) = eq=>TypePres H2
+h-pres .H2 H2 (E-Seq-Err) = eq=>TypePres H2

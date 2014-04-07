@@ -66,6 +66,9 @@ progress H1 (try .false catch t₁) | inj₁ (is-value vfalse) = inj₂ (Red H1 
 progress H1 (try .(num x) catch t₁) | inj₁ (is-value (vnat x)) = inj₂ (Red H1 (num x) (E-Try-Catch-Suc (unit , (λ x₁ → x₁))))
 progress H1 (try .(ref x) catch t₁) | inj₁ (is-value (vref x)) = inj₂ (Red H1 (ref x) (E-Try-Catch-Suc (unit , (λ x₁ → x₁))))
 progress H1 (try t catch t₁) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (try t' catch t₁) (E-Try-Catch x))
+progress H1 (t1 >> t2) with progress H1 t1
+progress H1 (t1 >> t2) | inj₁ x = {!!}
+progress H1 (t1 >> t2) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (t' >> t2) (E-Seq1 x))
 
 preservation : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {t' : Term ty} -> Step {H1 = H1} {H2 = H2} t t' -> ty ≡ ty
 preservation stp = refl
