@@ -222,7 +222,10 @@ termination H (new t) | Halts v H2 xs = Halts (vref _) (Cons v H2) ((E-New* xs) 
 termination H (! t) with termination H t
 termination H (! t) | Halts (vref x) H2 xs = Halts (lookup x H2) H2 ((E-Deref* xs) ++ [ E-DerefVal ])
 termination H (! t) | Halts verror H2 xs = Halts verror H2 ((E-Deref* xs) ++ [ E-Deref-Err ])
-termination H (t <- t₁) = {!!}
+termination H (t <- t₁) with termination H t
+termination H (t <- t₁) | Halts (vref x) H2 xs with termination H2 t₁
+termination H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x = {!!} -- Here case analyses using use? 
+termination H (t <- t₁) | Halts verror H2 xs = Halts verror H2 (E-AssignL* xs ++ [ E-Assign-Err1 ])
 termination H (ref x) = Halts (vref x) H []
 termination H (try t catch t₁) with termination H t
 termination H (try t catch t₁) | Halts verror H2 xs = prepend-steps (E-Try* xs ++ [ (E-Try-Catch-Fail unit) ]) (termination H2 t₁)
@@ -265,6 +268,7 @@ termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-T
 ⇓complete (try t catch t₁) H | < vnat x , heap > | bstp = {!!}
 ⇓complete (try t catch t₁) H | < vref x , heap > | bstp = {!!}
 ⇓complete (try t catch t₁) H | < verror , heap > | bstp = {!!}
+
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >
 ⇓sound .true .vtrue E-True = refl
@@ -282,10 +286,10 @@ termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-T
 ⇓sound (if t then t1 else t2) .verror (E-IfErr bstp) | < verror , H2 > | refl = refl 
 ⇓sound {H1 = H1} (new t) (vref 0) (E-New bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp
 ⇓sound (new t) (vref zero) (E-New bstp) | < v , H2 > | refl = refl 
-⇓sound {ty} {n} {m} {H1} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.n} {.m} {r} {.H1} {.H2} {t} bstp) with  ⟦ t ⟧ H1 | ⇓sound t (vref r) bstp
-⇓sound {ty} {n} {m} {H1} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.n} {.m} {r} {.H1} {.H2} {t} bstp) | .(< vref r , H2 >) | refl = refl
-⇓sound {ty} {n} {m} {H1} {H2} (! t) .verror (E-DerefErr bstp) with  ⟦ t ⟧ H1 | ⇓sound t verror bstp
-⇓sound {ty} {n} {m} {H1} {H2} (! t) .verror (E-DerefErr bstp) | .(< verror , H2 >) | refl = refl 
+⇓sound {H1 = H1} {H2 = H2} .(! t) .(lookup r H2) (E-Deref {r = r} {t = t} bstp) with  ⟦ t ⟧ H1 | ⇓sound t (vref r) bstp
+⇓sound .(! t) .(lookup r H2) (E-Deref {t = t} bstp) | < vref r , H2 > | refl = refl
+⇓sound {H1 = H1} (! t) .verror (E-DerefErr bstp) with  ⟦ t ⟧ H1 | ⇓sound t verror bstp
+⇓sound {H1 = H1} (! t) .verror (E-DerefErr bstp) | < verror , H2 > | refl = refl 
 ⇓sound {H1 = H1} (ref m <- t) ._ (E-Assign  bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp 
 ⇓sound {ty} (ref m <- t) ._ (E-Assign bstp) | (< v , H2 >) | refl = {!!} -- E-AssRed comes here and makes things horrible
 ⇓sound .error .verror E-Error = refl

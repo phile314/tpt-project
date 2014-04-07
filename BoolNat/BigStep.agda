@@ -91,6 +91,12 @@ E-Assign* : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty} ->
 E-Assign* [] = []
 E-Assign* (x :: stps) = E-AssRight (unit , (λ x₁ → x₁)) x :: E-Assign* stps
 
+E-AssignL* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term (Ref ty)} {t2 : Term ty} ->
+            Steps {H1 = H1} {H2 = H2} t t' -> 
+            Steps {H1 = H1} {H2 = H2} (t <- t2) (t' <- t2) 
+E-AssignL* [] = []
+E-AssignL* (x :: xs) = E-AssLeft x :: E-AssignL* xs
+
 E-IsZero* : ∀ {t t' n m} {H1 : Heap n} {H2 : Heap m} ->
             Steps {H1 = H1} {H2 = H2} t t' ->
             Steps {H1 = H1} {H2 = H2} (iszero t) (iszero t')
