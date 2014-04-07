@@ -3,10 +3,16 @@ module BigStep where
 open import Data.Nat
 open import Data.Product
 open import Data.Unit
+open import Data.Sum
 open import Base
 open import SmallStep
 
 open import Relation.Binary.PropositionalEquality hiding ( [_] ) -- remove
+
+try-replace : ∀ {ty n} {H : Heap n} -> ℕ -> Value ty -> ((Heap n) × (Value ty))
+try-replace {ty} {n} {H} i v with elem? H i ty
+try-replace {_} {_} {H} i v | inj₁ x = replace H x v , v
+try-replace {_} {_} {H} i v | inj₂ y = H , verror
 
 
 -- TODO: there should be no isValue proofs in the big steps. Instead take another bigstep as parameter which reduces the argment to a value. (e.g. E-New)
@@ -48,7 +54,7 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
 
   E-Assign  : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
               BStep {H1 = H1} {H2 = H2} t v → 
-              BStep {H1 = H1} {H2 = proj₁ (try-replace {H = H2} v) } (ref m <- t) (proj₂ (try-replace {H = H2} v))
+              BStep {H1 = H1} {H2 = proj₁ (try-replace {H = H2} m v) } (ref m <- t) (proj₂ (try-replace {H = H2} m v))
 
   E-Error : ∀ {ty n} {H : Heap n} -> BStep {ty} {H1 = H} {H2 = H} error verror
 

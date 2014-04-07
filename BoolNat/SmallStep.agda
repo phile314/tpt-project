@@ -10,11 +10,6 @@ open import Relation.Nullary
 open import Relation.Binary.PropositionalEquality hiding ( [_] )
 
 
-try-replace : ∀ {ty n} {H : Heap n} -> Value ty -> ((Heap n) × (Value ty))
-try-replace {ty} {n} {H} v with replace? H n ty
-try-replace {ty} {n} {H} v | just x = ( replace v H x , v )
-try-replace {ty} {n} {H} v | nothing = H , verror
-
 data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty -> Set where
 
  E-IsZeroZero : ∀ {n} {H : Heap n} -> Step {H1 = H} {H2 = H} (iszero (num 0)) true
@@ -44,9 +39,9 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
                 (isV : isGoodValue v) -> Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (v <- t) (v <- t')
 
  E-AssRed-Suc : ∀ {ty n r} {H1 H2 : Heap n} {t : Term ty} {v : Value ty} {isV : isValue t} -> 
-                 (eq : ⌜ v ⌝ ≡ t) -> (rep : Elem H1 ty) -> Step {H1 = H1} {H2 = replace v H1 rep } ((ref r) <- t) t
+                 (eq : ⌜ v ⌝ ≡ t) -> (rep : Elem H1 r ty) -> Step {H1 = H1} {H2 = replace H1 rep v } ((ref r) <- t) t
 
- E-AssRed-Fail : ∀ {ty n r} {t : Term ty} {isV : isValue t} {H1 : Heap n} -> (notRep : ¬ (Elem H1 ty)) -> 
+ E-AssRed-Fail : ∀ {ty n r} {t : Term ty} {isV : isValue t} {H1 : Heap n} -> (notRep : ¬ (Elem H1 r ty)) -> 
                 Step {H1 = H1} {H2 = H1} ((ref r) <- t) error
 
 
