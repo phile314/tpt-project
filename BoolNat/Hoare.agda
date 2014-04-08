@@ -7,11 +7,8 @@ open import Data.Product
 open import Data.Unit
 open import Data.Empty renaming (⊥-elim to contradiction)
 open import Data.Bool renaming ( _∧_ to _and_  ; _∨_ to _or_ )
-open import Data.Nat hiding (pred)
 open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
-open import Relation.Binary.PropositionalEquality 
-open ≡-Reasoning
 
 --------------------------------------------------------------------------------
 -- Predicates and combinators
@@ -42,10 +39,9 @@ p ∨ q = \ H -> (p H) or (q H)
 
 -- Implies
 _⇒_ : Predicate -> Predicate -> Predicate
--- This is true in classical logic, but then I get inconsistences. 
--- Is it because of the limitations of agda logic? 
 p ⇒ q = \ H -> (not (p H)) or (q H) 
--- p ⇒ q = \ H -> T (p H) ->  
+
+-- A direct encoding is more convinient. I wonder whether I would get the same with the derived operators.
 
 -- Derived operators : 
 
@@ -85,21 +81,6 @@ trivial = λ {ty} {t} {n} {m} {H1} {H2} {v} _ _ → tt
 -- impossible : ∀ {ty} {t : Term ty} -> < True > t < False > 
 -- impossible = {!!}
 
---------------------------------------------------------------------------------
--- Predicate logic theorems
---------------------------------------------------------------------------------
--- Theorems must be lifted in T, because functions require Set arguments (kind *)
--- Pattern matching on the predicates is equivalent to analyzing the truth table
--- thus proofs are easy
-
--- Especially when few variables are involved it's easier to use the truth table 
--- rather then theorems / symbolic evaluation 
-
-pair : ∀ P Q -> T ( P and Q ) -> T P × T Q
-pair true true tpq = tt , tt
-pair true false ()
-pair false true ()
-pair false false ()
 
 --------------------------------------------------------------------------------
 -- Theorems
@@ -108,13 +89,16 @@ pair false false ()
 -- If the post condition is valid (⊧ Q) then for any precondition P and any program S
 -- the hoare triple < P > S < Q > holds.
 postTrue : ∀ {ty} {P Q : Predicate} {S : Term ty} -> ⊧ Q -> < P > S < Q >
-postTrue validQ = λ {n} {m} {H1} {H2} {v} _ _ → validQ
+postTrue validQ = λ _ _ → validQ
 
 -- I don't know whether there is something from the standard library for this.
 lemma : ∀ {p} -> T p -> T (not p) -> ⊥
 lemma {true} p₁ p₂ = p₂
 lemma {false} p₁ p₂ = p₁
 
+-- If the precondition is always false in any state ( ⊧ (¬ P) ) then any program S and any post condition Q
+-- form a valid hoare triple < P > S < Q > . The point is that Hoare triples have the premises that the precondition
+-- holds. If this is not the case I do not have any obligation.
 preFalse : ∀ {ty} {P Q : Predicate} {S : Term ty} ->  ⊧ (¬ P) -> < P > S < Q >
 preFalse invalidP bstp P = contradiction (lemma P invalidP)
 
