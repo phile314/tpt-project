@@ -73,6 +73,11 @@ isError : forall {ty} -> Term ty -> Set
 isError error = Unit
 isError _ = ⊥
 
+-- Equivalent on the value level
+isVError : ∀ {ty} -> Value ty -> Set
+isVError verror = Unit
+isVError _ = ⊥
+
 isValue : forall {ty} -> Term ty -> Set
 isValue true = Unit
 isValue false = Unit

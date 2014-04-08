@@ -215,3 +215,16 @@ deterministic E-Seq-Err E-Seq-Err = refl
 ⇓sound {ty} (ref m <- t) ._ (E-Assign bstp) | (< v , H2 >) | refl = {!!} -- E-AssRed comes here and makes things horrible
 ⇓sound .error .verror E-Error = refl
 ⇓sound (ref .m₁) (vref m₁) E-Ref = refl
+⇓sound {H1 = H1} (t1 >> t2) v (E-Seq isG stp1 stp2) with ⟦ t1 ⟧ H1 | ⇓sound t1 _ stp1
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vtrue , H2 > | refl with ⟦ t2 ⟧ H2 | ⇓sound t2 _ stp2
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vtrue , H3 > | refl | < .v , H2 > | refl = refl
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vfalse , H2 > | refl with  ⟦ t2 ⟧ H2 | ⇓sound t2 _ stp2
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vfalse , H2 > | refl | < .v , H3 > | refl = refl
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vnat x , H2 > | refl with ⟦ t2 ⟧ H2 | ⇓sound t2 _ stp2
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vnat x , H2 > | refl | < .v , H3 > | refl = refl
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vref x , H2 > | refl with ⟦ t2 ⟧ H2 | ⇓sound t2 _ stp2
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vref x , H2 > | refl | < .v , H3 > | refl = refl
+⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < verror , H2 > | refl = contradiction (notE unit)
+⇓sound {H1 = H1} (t1 >> t2) .verror (E-Seq-Err bstp) with ⟦ t1 ⟧ H1 | ⇓sound t1 verror bstp
+⇓sound (t1 >> t2) .verror (E-Seq-Err bstp) | < verror , H2 > | refl = refl
+

@@ -68,8 +68,13 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
               BStep {ty} {n} {m} {H1 = H1} {H2 = replace-heap v e } (ref m <- t) (replace-result v e)
 
   -- TODO sequencing ( I think try-catch is also missing)
-  -- E-Seq     : ∀ {ty1 ty2 n m} {H1 : Heap n} {H2 : Heap m} {t1 : Term ty1} {v1 : Value ty1}
-  --               {t2 : Term ty2} {v2 : Value ty2}
+  E-Seq     : ∀ {ty1 ty2 n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3} {t1 : Term ty1} {v1 : Value ty1}
+                {t2 : Term ty2} {v2 : Value ty2} -> ¬ (isVError v1) ->
+              BStep {H1 = H1} {H2 = H2} t1 v1 -> BStep {H1 = H2} {H2 = H3} t2 v2 -> BStep {H1 = H1} {H2 = H3} (t1 >> t2) v2
+
+  E-Seq-Err  : ∀ {ty1 ty2 n1 n2} {H1 : Heap n1} {H2 : Heap n2}{t1 : Term ty1} {t2 : Term ty2} -> 
+                BStep {H1 = H1} {H2 = H2} t1 verror -> BStep {H1 = H1} {H2 = H2} (t1 >> t2) verror
+
 
   E-Error : ∀ {ty n} {H : Heap n} -> BStep {ty} {H1 = H} {H2 = H} error verror
 
