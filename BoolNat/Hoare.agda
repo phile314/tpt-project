@@ -195,3 +195,11 @@ hoare-if triple-c triple-not-c (E-IfErr bstp) = {!!}
 -- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} {v} (E-IfTrue bstp bstp₁) TP | D.< .v , .H2 > | refl = triple-c bstp₁ {!!}
 -- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} {v} (E-IfFalse bstp bstp₁) TP | D.< .v , .H2 > | refl = triple-not-c bstp₁ {!!}
 -- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} (E-IfErr bstp) TP | D.< .verror , .H2 > | refl = {!!}
+
+-- Sequence rule for hoare triples
+-- I think that this rule does not cope with "errors" and "exceptions" (which are expressed with if-then-else).
+-- Probably we should restrict somehow the rule to non failing statements.
+hoare-seq : ∀ {ty ty'} {P Q R : Predicate} {S1 : Term ty} {S2 : Term ty'} ->
+            < P > S1 < Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
+hoare-seq pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
+hoare-seq pS1q qS2r (E-Seq-Err bstp) TP = qS2r {!!} (pS1q bstp TP) 
