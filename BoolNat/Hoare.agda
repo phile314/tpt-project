@@ -81,6 +81,11 @@ isEmpty (Cons v H) = false
 <_>_<_> {ty} P S Q = ∀ {n m} -> {H1 : Heap n} {H2 : Heap m} {v : Value ty} ->
                      BStep {H1 = H1} {H2 = H2} S v -> T (P H1) -> T (Q H2)
 
+-- Side effect free hoare triple
+<_>*_<_> : ∀ {ty} -> Predicate -> Term ty -> Predicate -> Set
+<_>*_<_> {ty} P S Q = ∀ {n} -> {H : Heap n} {v : Value ty} ->
+                     BStep {H1 = H} {H2 = H} S v -> T (P H) -> T (Q H)
+
 
 -- Examples
 trivial : ∀ {ty} {t : Term ty} -> < True > t < True >
@@ -196,6 +201,10 @@ pack {false} {false} () ()
 --     < IsEmpty ∧ ! ( new true ) > skip < IsEmpty >
 --     < IsEmpty ^ ¬ ! ( new true ) > skip > < IsEmpty >
 -- The first triple is invalid, but still is synatctically valid.
+-- The possibility of change in the heap is built in the evaluation (in the big steps definition)
+-- thus even defining specific hoare triple (<_>*_<_>) does not solve the problem. 
+
+
 
 -- With this lemma I want to show that if an expression is big-step evaluated the heap does not change.
 -- However I don't know how to type this lemma: ≡ does not work because the two heaps are different types
@@ -209,14 +218,35 @@ pack {false} {false} () ()
 --              let D.< v , H2 > = ⟦ t ⟧ H1 in H1 ≡ H2
 -- expr-lemma = {!!}
 
+hoare-if-expr : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
+                < P ∧ (lift c) >* S1 < Q > -> < P ∧ (¬ (lift c)) >* S2 < Q > -> < P > if c then S1 else S2 < Q >
+hoare-if-expr {c = c} triple-c triple-not-c {H1 = H1} (E-IfTrue {H3 = H3} bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
+hoare-if-expr triple-c triple-not-c {H1 = H1} (E-IfTrue {H1 = .H1} {H2 = .H2} {H3 = H3} bstp bstp₁) TP | D.< vtrue , H2 > | refl = triple-c {!bstp₁!} (pack {!TP!} (lift-true bstp))
+hoare-if-expr triple-c triple-not-c (E-IfFalse bstp bstp₁) TP = {!!}
+hoare-if-expr triple-c triple-not-c (E-IfErr bstp) TP = {!!}
 
-hoare-if-expr : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {isE : isExpr c} {S1 S2 : Term ty} ->
-                < P ∧ (lift c) > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
-hoare-if-expr = {!!}
+
+
+-- Here I get the same problem.
+-- The problem lies in the BigStep rules for the If construct that modify the Heap. Even if you restrict the input terms
+-- the big step fix two different heaps.
+-- Maybe it is reasonable to require the heap not to change when evaluating conditions for if (and similarly for isZero)
 
 -- Provide a different if-rule :
 -- Require :  ⊧ (P ∧ C ⇒ A) , ⊧ (P ∧ ¬ C ⇒ B) , < A > S1 < Q > ,  < B > S2 < Q >
 -- I think this is what you would get if you would first evaluate c and then sequence it with the if (considering only the value)
+
+hoare-if' : ∀ {ty} {P Q B1 B2 : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
+            ⊧ ( (P ∧ (lift c)) ⇒ B1 ) -> < B1 > S1 < Q > -> ⊧ ( (P ∧ (¬ (lift c))) ⇒ B2) -> < B2 > S2 < Q > ->
+            < P > if c then S1 else S2 < Q >
+-- hoare-if' {c = c} pb1 s1q pb2 s2q {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _ bstp 
+hoare-if' {_} {P} {Q} {B1} {B2} {c} pb1 s1q pb2 s2q {H1 = H1} (E-IfTrue bstp bstp₁) TP with split (not ((P H1) and (lift c H1)) ) (B1 H1) pb1 
+hoare-if' pb1 s1q pb2 s2q (E-IfTrue H4 bstp₁) TP | inj₁ ( TPCH1 , TB1H1) = s1q bstp₁ {!TB1H1!} -- Different heaps
+hoare-if' pb1 s1q pb2 s2q (E-IfTrue H4 bstp₁) TP | inj₂ (inj₁ x) = {!!}
+hoare-if' pb1 s1q pb2 s2q (E-IfTrue H4 bstp₁) TP | inj₂ (inj₂ y) = {!!} -- s1q bstp₁ {!pb1!}
+hoare-if' pb1 s1q pb2 s2q (E-IfFalse bstp bstp₁) TP = {!!}
+hoare-if' pb1 s1q pb2 s2q (E-IfErr bstp) TP = {!!}
+
 
 -- hoare-if : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
 --            < P ∧ (lift c) > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
@@ -234,7 +264,7 @@ hoare-if triple-c triple-not-c (E-IfErr bstp) = {!!}
 -- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} (E-IfErr bstp) TP | D.< .verror , .H2 > | refl = {!!}
 
 -- Sequence rule for hoare triples
--- I think that this rule does not cope with "errors" and "exceptions" (which are expressed with if-then-else).
+-- I think that this rule does not cope with "errors" and "exceptions" (which are expressed with if-then-else in GCL).
 hoare-seq : ∀ {ty ty'} {P Q R : Predicate} {S1 : Term ty} {S2 : Term ty'} ->
             < P > S1 < Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
 hoare-seq pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
