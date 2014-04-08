@@ -3,6 +3,7 @@ module Hoare where
 open import Base hiding ( true ; false )
 open import BigStep
 open import Denotational as D
+open import Data.Nat
 open import Data.Sum
 open import Data.Product
 open import Data.Unit
@@ -11,6 +12,7 @@ open import Data.Bool hiding ( if_then_else_ ) renaming ( _∧_ to _and_  ; _∨
 open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
 open import Relation.Binary.PropositionalEquality
+
 --------------------------------------------------------------------------------
 -- Predicates and combinators
 --------------------------------------------------------------------------------
@@ -69,7 +71,7 @@ isEmpty : Predicate
 isEmpty Nil = true
 isEmpty (Cons v H) = false
 
---------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Hoare triples
 --------------------------------------------------------------------------------
 
@@ -88,6 +90,31 @@ trivial = λ {ty} {t} {n} {m} {H1} {H2} {v} _ _ → tt
 -- impossible : ∀ {ty} {t : Term ty} -> < True > t < False > 
 -- impossible = {!!}
 
+-- An expression is a particular kind of term which does not affect the state (Heap)
+
+isExpr : ∀ {ty} -> Term ty -> Set
+isExpr Base.true = ⊤
+isExpr Base.false = ⊤
+isExpr error = ⊤
+isExpr (num x) = ⊤
+isExpr (iszero t) = isExpr t
+isExpr (if t then t₁ else t₂) = (isExpr t × isExpr t₁ × isExpr t₂) 
+isExpr (new t) = ⊥
+isExpr (! t) = isExpr t
+isExpr (t <- t₁) = ⊥
+isExpr (ref x) = ⊤
+isExpr (try t catch t₁) = (isExpr t) × (isExpr t₁)
+isExpr (t >> t₁) = (isExpr t) × (isExpr t₁) 
+
+-- examples
+const-exprs : isExpr (Base.true)
+const-exprs = tt
+
+if-expr : isExpr (if Base.false then (num 1) else error)
+if-expr = tt , tt , tt
+
+-- non-expr : isExpr (! new Base.true)
+-- non-expr = {!!}
 
 --------------------------------------------------------------------------------
 -- Theorems
@@ -170,8 +197,22 @@ pack {false} {false} () ()
 --     < IsEmpty ^ ¬ ! ( new true ) > skip > < IsEmpty >
 -- The first triple is invalid, but still is synatctically valid.
 
--- To make this work we can restrict the conditions c not to affect the Heap
--- (return false in the heap if the heap has changed).
+-- With this lemma I want to show that if an expression is big-step evaluated the heap does not change.
+-- However I don't know how to type this lemma: ≡ does not work because the two heaps are different types
+-- because n m are different. 
+-- expr-lemma : ∀ {ty n m} -> {t : Term ty} {v : Value ty} {H1 : Heap m} {H2 : Heap n} (isE : isExpr t) ->
+--              BStep {H1 = H1} {H2 = H2} t v -> H1 ≡ H2
+-- expr-lemma = {!!}
+
+-- Here I get the same error
+-- expr-lemma : ∀ {ty n m} -> {t : Term ty} {H1 : Heap m} -> (isE : isExpr t) ->
+--              let D.< v , H2 > = ⟦ t ⟧ H1 in H1 ≡ H2
+-- expr-lemma = {!!}
+
+
+hoare-if-expr : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {isE : isExpr c} {S1 S2 : Term ty} ->
+                < P ∧ (lift c) > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
+hoare-if-expr = {!!}
 
 -- Provide a different if-rule :
 -- Require :  ⊧ (P ∧ C ⇒ A) , ⊧ (P ∧ ¬ C ⇒ B) , < A > S1 < Q > ,  < B > S2 < Q >
@@ -181,10 +222,6 @@ pack {false} {false} () ()
 --            < P ∧ (lift c) > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
 hoare-if : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
            < (\ H -> P H and lift c H )  > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
-
--- hoare-if {P = P} {c = c} triple-c triple-not-c {H1 = H1} {H2 = H2} (E-IfTrue {H1 = .H1} {H2 = H1'} {H3 = .H2} bstp bstp₁) TP = triple-c {H1 = H1'} {H2 = H2} bstp₁ (pack {!TP!} {!!} ) -- (lift-true {H1 = H1} {H2 = H1'} bstp))
--- hoare-if triple-c triple-not-c (E-IfFalse bstp bstp₁) TP = {!!}
--- hoare-if triple-c triple-not-c (E-IfErr bstp) TP = {!!} 
 
 hoare-if {c = c} triple-c triple-not-c {H1 = H1} (E-IfTrue {H3 = H3} bstp bstp₁) with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
 hoare-if triple-c triple-not-c {H1 = H1} (E-IfTrue {H3 = H3} bstp bstp₁) | D.< vtrue , H2 > | refl =  λ TP → triple-c {H1 = H2} {H2 = H3} bstp₁ (pack {!TP!} (lift-true bstp))
