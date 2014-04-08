@@ -2,12 +2,16 @@ module Hoare where
 
 open import Base hiding ( true ; false )
 open import BigStep
+open import Data.Sum
+open import Data.Product
 open import Data.Unit
 open import Data.Empty renaming (⊥-elim to contradiction)
-open import Data.Bool hiding ( _∨_ ) renaming ( _∧_ to _&&_ )
+open import Data.Bool renaming ( _∧_ to _and_  ; _∨_ to _or_ )
 open import Data.Nat hiding (pred)
 open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
+open import Relation.Binary.PropositionalEquality 
+open ≡-Reasoning
 
 --------------------------------------------------------------------------------
 -- Predicates and combinators
@@ -30,17 +34,28 @@ False = const false
 
 -- Conjunction
 _∧_ : Predicate -> Predicate -> Predicate
-p ∧ q = λ H -> p H && q H
+p ∧ q = λ H -> p H and q H
 
--- Derived operators : 
-
--- Disjunction
+-- Direct interpretation
 _∨_ : Predicate -> Predicate -> Predicate
-p ∨ q = ¬ ((¬ p) ∧ (¬ q))
+p ∨ q = \ H -> (p H) or (q H) 
 
 -- Implies
 _⇒_ : Predicate -> Predicate -> Predicate
-p ⇒ q = (¬ p) ∨ q
+-- This is true in classical logic, but then I get inconsistences. 
+-- Is it because of the limitations of agda logic? 
+p ⇒ q = \ H -> (not (p H)) or (q H) 
+-- p ⇒ q = \ H -> T (p H) ->  
+
+-- Derived operators : 
+
+-- -- Disjunction
+-- _∨_ : Predicate -> Predicate -> Predicate
+-- p ∨ q = ¬ ((¬ p) ∧ (¬ q))
+
+-- -- Implies
+-- _⇒_ : Predicate -> Predicate -> Predicate
+-- p ⇒ q = (¬ p) ∨ q
 
 -- Valid 
 ⊧_ : Predicate -> Set
@@ -71,6 +86,22 @@ trivial = λ {ty} {t} {n} {m} {H1} {H2} {v} _ _ → tt
 -- impossible = {!!}
 
 --------------------------------------------------------------------------------
+-- Predicate logic theorems
+--------------------------------------------------------------------------------
+-- Theorems must be lifted in T, because functions require Set arguments (kind *)
+-- Pattern matching on the predicates is equivalent to analyzing the truth table
+-- thus proofs are easy
+
+-- Especially when few variables are involved it's easier to use the truth table 
+-- rather then theorems / symbolic evaluation 
+
+pair : ∀ P Q -> T ( P and Q ) -> T P × T Q
+pair true true tpq = tt , tt
+pair true false ()
+pair false true ()
+pair false false ()
+
+--------------------------------------------------------------------------------
 -- Theorems
 --------------------------------------------------------------------------------
 
@@ -86,3 +117,18 @@ lemma {false} p₁ p₂ = p₁
 
 preFalse : ∀ {ty} {P Q : Predicate} {S : Term ty} ->  ⊧ (¬ P) -> < P > S < Q >
 preFalse invalidP bstp P = contradiction (lemma P invalidP)
+
+xor : ∀ p q -> T (p or q) -> (T p × T q) ⊎ ( T p ⊎ T q)
+xor true true tpq = inj₁ (tt , tt)
+xor true false tpq = inj₂ (inj₁ tt)
+xor false true tpq = inj₂ (inj₂ tt)
+xor false false () 
+
+-- Precondition strengthening 
+preStrength : ∀ {ty} {P P' Q : Predicate} {S : Term ty} ->
+              ⊧ (P ⇒ P') -> < P' > S < Q > -> < P > S < Q >
+preStrength {P = P} {P' = P'} p2p' triple {n} {m} {H1} with xor (not (P H1)) (P' H1) p2p'
+preStrength p2p' triple | inj₁ (TP , TP') = λ bstp _ → triple bstp TP'
+preStrength p2p' triple | inj₂ (inj₁ notTP) = λ bstp TP → contradiction (lemma TP notTP)
+preStrength p2p' triple | inj₂ (inj₂ TP') = λ bstp _ → triple bstp TP'
+
