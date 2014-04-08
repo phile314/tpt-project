@@ -50,3 +50,6 @@ record Result (ty : Type) : Set where
 ⟦_⟧ (try t catch t₁) H with ⟦ t ⟧ H
 ⟦_⟧ (try t catch t₁) H | < verror , H' > = ⟦ t₁ ⟧ H'
 ⟦_⟧ (try t catch t₁) H | < v , H' > = < v , H' >
+⟦_⟧ (t >> t₁) H with ⟦ t ⟧ H
+⟦_⟧ (t >> t₁) H | < verror , H' > = < verror , H' >
+⟦_⟧ (t >> t₁) H | < v , H' > = ⟦ t₁ ⟧ H'

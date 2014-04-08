@@ -28,7 +28,7 @@ no-shrink (E-Deref stp) = no-shrink stp
 no-shrink E-DerefVal = ≤′-refl
 no-shrink (E-AssLeft stp) = no-shrink stp
 no-shrink (E-AssRight isV stp) = no-shrink stp
-no-shrink (E-AssRed-Suc eq rep) = ≤′-refl
+no-shrink (E-AssRed-Suc isV eq rep) = ≤′-refl
 no-shrink (E-AssRed-Fail nr) = ≤′-refl
 no-shrink (E-Try-Catch stp) = no-shrink stp
 no-shrink (E-Try-Catch-Suc x) = ≤′-refl
@@ -37,6 +37,9 @@ no-shrink E-IsZero-Err = ≤′-refl
 no-shrink E-If-Err = ≤′-refl
 no-shrink E-Deref-Err = ≤′-refl
 no-shrink E-Assign-Err1 = ≤′-refl
+no-shrink (E-Seq1 stp) = no-shrink stp
+no-shrink (E-SeqVal isV) = ≤′-refl
+no-shrink E-Seq-Err = ≤′-refl
 
 -- A term is considered a normal form whenever it is not reducible.
 NF : {ty : Type} -> Term ty → Set
@@ -54,6 +57,7 @@ term2NF (! t) () t' stp
 term2NF (t <- t₁) () t' stp
 term2NF (ref x) isV t' ()
 term2NF (try t catch t₁) () t' stp
+term2NF (t1 >> t2) () t' stp
 
 value2NF : ∀ {ty} -> (v : Value ty) -> NF ⌜ v ⌝
 value2NF vtrue t ()
@@ -74,6 +78,7 @@ isError2isValue (! t) ()
 isError2isValue (t <- t₁) ()
 isError2isValue (ref x) ()
 isError2isValue (try t catch t₁) ()
+isError2isValue (t1 >> t2) ()
 
 deterministic : ∀ {ty n m1 m2} {H : Heap n} {H1 : Heap m1} {H2 : Heap m2} {t t1 t2 : Term ty} ->
                 Step {H1 = H} {H2 = H1} t t1 -> Step {H1 = H} {H2 = H2} t t2 -> t1 ≡ t2
@@ -104,21 +109,21 @@ deterministic E-DerefVal (E-Deref ())
 deterministic E-DerefVal E-DerefVal = refl
 deterministic (E-AssLeft s1) (E-AssLeft s2) rewrite deterministic s1 s2 = refl
 deterministic (E-AssLeft s1) (E-AssRight (isV , notE) s2) = contradiction (term2NF _ isV _ s1)
-deterministic (E-AssLeft s1) (E-AssRed-Suc eq rep) = contradiction (value2NF _ _ s1)
+deterministic (E-AssLeft s1) (E-AssRed-Suc isV eq rep) = contradiction (value2NF _ _ s1)
 deterministic (E-AssLeft s1) (E-AssRed-Fail nr) = contradiction (value2NF _ _ s1)
 deterministic (E-AssLeft s1) E-Assign-Err1 = contradiction (value2NF _ _ s1)
 deterministic (E-AssRight (isV , notE) s1) (E-AssLeft s2) = contradiction (term2NF _ isV _ s2)
 deterministic (E-AssRight isV s1) (E-AssRight isV₁ s2) rewrite deterministic s1 s2 = refl
-deterministic (E-AssRight (isV , isE) s1) (E-AssRed-Suc refl rep) = contradiction (value2NF _ _ s1)
+deterministic (E-AssRight (isV , isE) s1) (E-AssRed-Suc _ refl rep) = contradiction (value2NF _ _ s1)
 deterministic (E-AssRight isV' s1) (E-AssRed-Fail {isV = isV} nr) = contradiction (term2NF _ isV _ s1)
 deterministic (E-AssRight (isV , notE) s1) E-Assign-Err1 = contradiction (notE unit)
-deterministic (E-AssRed-Suc eq rep) (E-AssLeft s2) = contradiction (term2NF _ unit _ s2)
-deterministic (E-AssRed-Suc {isV = isV} refl rep) (E-AssRight (isV₁ , notE) s2) = contradiction (term2NF _ isV _ s2)
-deterministic (E-AssRed-Suc eq rep) (E-AssRed-Suc eq₁ rep₁) = refl
-deterministic (E-AssRed-Suc eq rep) (E-AssRed-Fail notRep) = contradiction (notRep rep)
+deterministic (E-AssRed-Suc _ eq rep) (E-AssLeft s2) = contradiction (term2NF _ unit _ s2)
+deterministic (E-AssRed-Suc isV refl rep) (E-AssRight (isV₁ , notE) s2) = contradiction (term2NF _ isV _ s2)
+deterministic (E-AssRed-Suc _ eq rep) (E-AssRed-Suc _ eq₁ rep₁) = refl
+deterministic (E-AssRed-Suc _ eq rep) (E-AssRed-Fail notRep) = contradiction (notRep rep)
 deterministic (E-AssRed-Fail notRep) (E-AssLeft s2) = contradiction (value2NF _ _ s2)
 deterministic (E-AssRed-Fail {isV = isV} notRep) (E-AssRight isV₁ s2) = contradiction (term2NF _ isV _ s2)
-deterministic (E-AssRed-Fail notRep) (E-AssRed-Suc eq rep) = contradiction (notRep rep)
+deterministic (E-AssRed-Fail notRep) (E-AssRed-Suc _ eq rep) = contradiction (notRep rep)
 deterministic (E-AssRed-Fail notRep) (E-AssRed-Fail notRep₁) = refl
 deterministic (E-Try-Catch s1) (E-Try-Catch s2) rewrite deterministic s1 s2 = refl
 deterministic (E-Try-Catch s1) (E-Try-Catch-Suc (isV , proj₂)) = contradiction (term2NF _ isV _ s1)
@@ -138,59 +143,15 @@ deterministic E-Deref-Err E-Deref-Err = refl
 deterministic E-Assign-Err1 (E-AssLeft ())
 deterministic E-Assign-Err1 (E-AssRight (isV , notE) stp) = contradiction (notE unit)
 deterministic E-Assign-Err1 E-Assign-Err1 = refl
-
--- A term is a redex if it can be reduced further
-data Redex : ∀ {ty n} -> Term ty -> Heap n -> Set where
-  Red : ∀ {ty n m} -> {H1 : Heap n} {t : Term ty} -> (H2 : Heap m) -> (t' : Term ty) ->
-        Step {H1 = H1} {H2 = H2} t t' -> Redex t H1
-
--- Proof object that a term is a value
-data Is-value : {ty : Type} -> Term ty → Set where
-  is-value : {ty : Type} -> (v : Value ty) → Is-value ⌜ v ⌝
-
-
--- Progress and preservation
-progress : ∀ {ty n} (H1 : Heap n) -> (t : Term ty) -> ((Is-value t) ⊎ Redex t H1)
-progress H1 true = inj₁ (is-value vtrue)
-progress H1 false = inj₁ (is-value vfalse)
-progress H1 error = inj₁ (is-value verror)
-progress H1 (num x) = inj₁ (is-value (vnat x))
-progress H1 (iszero t) with progress H1 t
-progress H1 (iszero .(num 0)) | inj₁ (is-value (vnat zero)) = inj₂ (Red H1 true E-IsZeroZero)
-progress H1 (iszero .(num (suc x))) | inj₁ (is-value (vnat (suc x))) = inj₂ (Red H1 false E-IsZeroSucc)
-progress H1 (iszero .error) | inj₁ (is-value verror) = inj₂ (Red H1 error E-IsZero-Err)
-progress H1 (iszero t) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (iszero t') (E-IsZero x))
-progress H1 (if t then t₁ else t₂) with progress H1 t
-progress H1 (if .true then t₁ else t₂) | inj₁ (is-value vtrue) = inj₂ (Red H1 t₁ E-IfTrue)
-progress H1 (if .false then t₁ else t₂) | inj₁ (is-value vfalse) = inj₂ (Red H1 t₂ E-IfFalse)
-progress H1 (if .error then t₁ else t₂) | inj₁ (is-value verror) = inj₂ (Red H1 error E-If-Err)
-progress H1 (if t then t₁ else t₂) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (if t' then t₁ else t₂) (E-If x))
-progress H1 (new t) with progress H1 t
-progress H1 (new .(⌜ v ⌝)) | inj₁ (is-value v) = inj₂ (Red (Cons v H1) (ref zero) (E-NewVal refl))
-progress H1 (new t) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (new t') (E-New x))
-progress H1 (! t) with progress H1 t 
-progress H1 (! .(ref x)) | inj₁ (is-value (vref x)) = inj₂ (Red H1 ⌜ lookup x H1 ⌝ E-DerefVal)
-progress H1 (! .error) | inj₁ (is-value verror) = inj₂ (Red H1 error E-Deref-Err)
-progress H1 (! t) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (! t') (E-Deref x))
-progress H1 (t <- t₁) with progress H1 t
-progress H1 (.(⌜ v ⌝) <- t₁) | inj₁ (is-value v) with progress H1 t₁
-progress H1 (.(⌜ v₁ ⌝) <- .(⌜ v ⌝)) | inj₁ (is-value v₁) | inj₁ (is-value v) with elem? H1 ? {!!}
-... | el = {!!} -- Here we need to use elem?
-progress H1 (.(⌜ vref x₁ ⌝) <- t₁) | inj₁ (is-value (vref x₁)) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (ref x₁ <- t') (E-AssRight (unit , (λ x₂ → x₂)) x))
-progress H1 (.(⌜ verror ⌝) <- t₁) | inj₁ (is-value verror) | inj₂ (Red H2 t' x) = inj₂ (Red H1 error E-Assign-Err1)
-progress H1 (t <- t₁) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (t' <- t₁) (E-AssLeft x))
-progress H1 (ref x) = inj₁ (is-value (vref x))
-progress H1 (try t catch t₁) with progress H1 t
-progress H1 (try .error catch t₁) | inj₁ (is-value verror) = inj₂ (Red H1 t₁ (E-Try-Catch-Fail unit))
-progress H1 (try .true catch t₁) | inj₁ (is-value vtrue) = inj₂ (Red H1 true (E-Try-Catch-Suc (unit , (λ x → x))))
-progress H1 (try .false catch t₁) | inj₁ (is-value vfalse) = inj₂ (Red H1 false (E-Try-Catch-Suc (unit , (λ x → x))))
-progress H1 (try .(num x) catch t₁) | inj₁ (is-value (vnat x)) = inj₂ (Red H1 (num x) (E-Try-Catch-Suc (unit , (λ x₁ → x₁))))
-progress H1 (try .(ref x) catch t₁) | inj₁ (is-value (vref x)) = inj₂ (Red H1 (ref x) (E-Try-Catch-Suc (unit , (λ x₁ → x₁))))
-progress H1 (try t catch t₁) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (try t' catch t₁) (E-Try-Catch x))
-
-preservation : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {t' : Term ty} -> Step {H1 = H1} {H2 = H2} t t' -> ty ≡ ty
-preservation stp = refl
-
+deterministic (E-Seq1 s) (E-Seq1 s2) rewrite deterministic s s2 = refl
+deterministic (E-Seq1 s) (E-SeqVal x) = contradiction (term2NF _ (Data.Product.proj₁ x) _ s)
+deterministic (E-Seq1 ()) E-Seq-Err
+deterministic (E-SeqVal s) (E-Seq1 s2) = contradiction (term2NF _ (Data.Product.proj₁ s) _ s2)
+deterministic (E-SeqVal s) (E-SeqVal x) = refl
+deterministic (E-SeqVal (unit , proj₂)) E-Seq-Err = contradiction (proj₂ unit)
+deterministic E-Seq-Err (E-Seq1 ())
+deterministic E-Seq-Err (E-SeqVal (proj₁ , proj₂)) = contradiction (proj₂ unit)
+deterministic E-Seq-Err E-Seq-Err = refl
 
 
 --------------------------------------------------------------------------------
@@ -227,6 +188,7 @@ preservation stp = refl
 ⇓complete (try t catch t₁) H | < vnat x , heap > | bstp = {!!}
 ⇓complete (try t catch t₁) H | < vref x , heap > | bstp = {!!}
 ⇓complete (try t catch t₁) H | < verror , heap > | bstp = {!!}
+⇓complete (t1 >> t2) H = {!!}
 
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >

@@ -38,14 +38,19 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-AssRight   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {v : Term (Ref ty)} {t t' : Term ty}
                 (isV : isGoodValue v) -> Step {H1 = H1} {H2 = H2} t t' -> Step {H1 = H1} {H2 = H2} (v <- t) (v <- t')
 
- E-AssRed-Suc : ∀ {ty n r} {H1 H2 : Heap n} {t : Term ty} {v : Value ty} {isV : isValue t} -> 
+ E-AssRed-Suc : ∀ {ty n r} {H1 H2 : Heap n} {t : Term ty} {v : Value ty} (isV : isValue t) ->
                  (eq : ⌜ v ⌝ ≡ t) -> (rep : Elem H1 r ty) -> Step {H1 = H1} {H2 = replace H1 rep v } ((ref r) <- t) t
 
  E-AssRed-Fail : ∀ {ty n r} {t : Term ty} {isV : isValue t} {H1 : Heap n} -> (notRep : ¬ (Elem H1 r ty)) -> 
                 Step {H1 = H1} {H2 = H1} ((ref r) <- t) error
 
 
+ E-Seq1         : ∀ {ty1 ty2 n m} {H1 : Heap n} {H2 : Heap m} {t1 t1' : Term ty1} {t2 : Term ty2} -> Step {H1 = H1} {H2 = H2} t1 t1' ->
+                  Step {H1 = H1} {H2 = H2} (t1 >> t2) (t1' >> t2)
 
+ E-SeqVal       : ∀ {ty1 ty2 n} {H : Heap n} {t1 : Term ty1} {t2 : Term ty2} -> (isGoodValue t1) ->
+                  Step {H1 = H} {H2 = H} (t1 >> t2) t2
+ E-Seq-Err      : ∀ {ty1 ty2 n} {H : Heap n} {t2 : Term ty2} -> Step {H1 = H} {H2 = H} ((error {ty1}) >> t2) (error {ty2})
 
 
  E-Try-Catch  : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> {t t' tc : Term ty} ->

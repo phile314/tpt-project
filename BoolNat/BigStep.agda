@@ -67,6 +67,10 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
               let e = elem? H2 m ty in
               BStep {ty} {n} {m} {H1 = H1} {H2 = replace-heap v e } (ref m <- t) (replace-result v e)
 
+  -- TODO sequencing ( I think try-catch is also missing)
+  -- E-Seq     : ∀ {ty1 ty2 n m} {H1 : Heap n} {H2 : Heap m} {t1 : Term ty1} {v1 : Value ty1}
+  --               {t2 : Term ty2} {v2 : Value ty2}
+
   E-Error : ∀ {ty n} {H : Heap n} -> BStep {ty} {H1 = H} {H2 = H} error verror
 
   E-Num    : ∀ {n m} {H : Heap n} -> BStep {H1 = H} {H2 = H} (num m) (vnat m)
@@ -131,6 +135,12 @@ E-Deref* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term (Ref ty)} ->
             Steps {H1 = H1} {H2 = H2} (! t) (! t')
 E-Deref* [] = []
 E-Deref* (x :: stps) = E-Deref x :: E-Deref* stps
+
+E-Seq1* : ∀ {ty1 ty2 n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty1} {t2 : Term ty2} ->
+            Steps {H1 = H1} {H2 = H2} t t' ->
+            Steps {H1 = H1} {H2 = H2} (t >> t2) (t' >> t2)
+E-Seq1* [] = []
+E-Seq1* (x :: stps) = E-Seq1 x :: E-Seq1* stps
 
 -- Lemmas used for small-to-big
 -- Converstion from big- to small-step representations.
