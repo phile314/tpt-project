@@ -1,15 +1,34 @@
-until at latest before Thursday TPT
+until at latest Saturday
 
-OP BigStep add missing steps, complete big <-> small conversions, update soundness proof
+OP BigStep add missing steps, complete big <-> small conversions, update soundness/complete proof (split assignment rule)
 
-OP Splitting the proofs into smaller files
+MV Solve if Hoare triple theorem problem (how????)
+PH Create module pulling in everything else to detect compile errors
 
-   Add sequencing to the language
-MV Add Hoare Triples
+PH What happens if Hoare Predicate are Value -> Heap -> Bool ?
+
+  Report
+  Presentation
+
+Presentation notes:
+  Our term language
+  Heap-related semantics
+  Simple-Typed lambda calculus (failed) experiment
+  Correctness by construction
+  Adding exceptions/errors to the language
+  Proofs we did
+    elem proof decidability
+    function application problem
+  Hoare Triple stuff
+    side-effects in condition
+    errors in the semantics
 
 ==========================
 DONE:
 ==========================
+   Add sequencing to the language
+MV Add Hoare Triples
+OP Splitting the proofs into smaller files
 PH The replace view function should take a natural number as index, update big <-> small (and proofs?) conversions accordingly
 PH Add Elem definitions
 -- until Thursday
