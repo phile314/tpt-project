@@ -123,7 +123,35 @@ isExpr (! t) = isExpr t
 isExpr (t <- t₁) = ⊥
 isExpr (ref x) = ⊤
 isExpr (try t catch t₁) = (isExpr t) × (isExpr t₁)
-isExpr (t >> t₁) = (isExpr t) × (isExpr t₁) 
+isExpr (t >> t₁) = (isExpr t) × (isExpr t₁)
+
+data HeapEq : ∀ {n m} -> Heap n -> Heap m -> Set where
+  Refl : ∀ {n} -> {H : Heap n} -> HeapEq H H
+
+
+⇓expr-preserves-heap : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} -> (isExpr t) -> BStep {H1 = H1} {H2 = H2} t v -> HeapEq H1 H2
+⇓expr-preserves-heap isEx E-True = Refl
+⇓expr-preserves-heap isEx E-False = Refl
+⇓expr-preserves-heap isEx E-Num = Refl
+⇓expr-preserves-heap isEx E-Ref = Refl
+⇓expr-preserves-heap isEx E-Error = Refl
+⇓expr-preserves-heap isEx (E-IfTrue bstp bstp₁) with ⇓expr-preserves-heap (proj₁ isEx) bstp | ⇓expr-preserves-heap (proj₁ (proj₂ isEx)) bstp₁
+⇓expr-preserves-heap {ty} {.m} {m} {.H2} {H2} (_ , _) (E-IfTrue bstp bstp₁) | Refl | Refl = Refl
+⇓expr-preserves-heap isEx (E-IfFalse bstp bstp₁) with ⇓expr-preserves-heap (proj₁ isEx) bstp | ⇓expr-preserves-heap (proj₂ (proj₂ isEx)) bstp₁
+⇓expr-preserves-heap {ty} {.m} {m} {.H2} {H2} (_ , _) (E-IfFalse bstp bstp₁) | Refl | Refl = Refl
+⇓expr-preserves-heap isEx (E-IfErr bstp) = ⇓expr-preserves-heap (proj₁ isEx) bstp
+⇓expr-preserves-heap isEx (E-IsZerZ bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap isEx (E-IsZerS bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap isEx (E-IsZerErr bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap () (E-New bstp)
+⇓expr-preserves-heap () (E-NewErr bstp)
+⇓expr-preserves-heap isEx (E-Deref bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap isEx (E-DerefErr bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap () (E-Ass bstp bstp₁)
+⇓expr-preserves-heap () (E-AssErr bstp)
+⇓expr-preserves-heap isEx (E-Seq x bstp bstp₁) with ⇓expr-preserves-heap (proj₁ isEx) bstp | ⇓expr-preserves-heap (proj₂ isEx) bstp₁
+⇓expr-preserves-heap ty1 (E-Seq x bstp bstp₁) | Refl | Refl = Refl
+⇓expr-preserves-heap isEx (E-SeqErr bstp) = ⇓expr-preserves-heap (proj₁ isEx) bstp
 
 -- examples
 const-exprs : isExpr (Base.true)
@@ -187,9 +215,9 @@ postWeak qq triple s TP | inj₂ (inj₂ y) = y
               let D.< v , H2 > = ⟦ t ⟧ H1 in BStep {H1 = H1} {H2 = H2} t v 
 ⇓complete = {!!}
 
-lift-true : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> BStep {H1 = H1} {H2 = H2} c vtrue -> T (lift c (pArg H1)) 
+lift-true : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} {is : isExpr c} -> BStep {H1 = H1} {H2 = H2} c vtrue -> T (lift c (pArg H1))
 lift-true {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
-lift-true {n} {m} {H1} {H2} bstp | .(D.< vtrue , H2 >) | refl = {!!}
+lift-true {n} {m} {H1} {H2} bstp | .(D.< vtrue , H2 >) | refl = tt
 
 lift-false : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> BStep {H1 = H1} {H2 = H2} c vfalse -> T (not (lift c (pArg H1))) 
 lift-false {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
@@ -261,15 +289,21 @@ pack {false} {false} () ()
 -- hoare-if' pb1 s1q pb2 s2q (E-IfFalse bstp bstp₁) TP = {!!}
 -- hoare-if' pb1 s1q pb2 s2q (E-IfErr bstp) TP = {!!}
 
+lemma2 : ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> (p : PredicateP) -> (HeapEq H1 H2) -> T (p (pArg H1)) -> T (p (pArg H2))
+lemma2 {.m} {m} {.H2} {H2} P Refl TP = TP
 
 hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} →
-           < P > c < R > → < (λ x → R (qArg vtrue x)) ∧ lift c > S1 < Q > → < (λ x → R (qArg vfalse x)) ∧ (¬ (lift c)) > S2 < Q > →
+           (isEx : isExpr c) → < P ∧ lift c > S1 < Q > → < P ∧ (¬ (lift c)) > S2 < Q > →
            < P > if c then S1 else S2 < Q >
-hoare-if {c = c} t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp
+hoare-if {c = c} isEx t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
+hoare-if {P = P} {c = c} isEx t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP | (D.< vtrue , H2 >) | refl | pr = t-t bstp₁ (pack (lemma2 P pr TP) (lemma2 (lift c) pr (lift-true {_} {_} {_} {_} {c} {isEx} bstp)))
+hoare-if isEx t-t t-e (E-IfFalse bstp bstp₁) TP = {!!}
+hoare-if isEx t-t t-e (E-IfErr bstp) TP = {!!}
+--hoare-if {c = c} t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp
 -- T      (.R (qArg vtrue (pArg H2)) and (lift .c (pArg H2) | ⟦ .c ⟧ H2))
-hoare-if t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP | (D.< vtrue , H2 >) | refl = t-t bstp₁ (pack (t-c bstp TP) (lift-true {!!}))
-hoare-if t-c t-t t-e (E-IfFalse bstp bstp₁) TP = {!!}
-hoare-if t-c t-t t-e (E-IfErr bstp) TP = {!!}
+-- hoare-if t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP | (D.< vtrue , H2 >) | refl = t-t bstp₁ (pack (t-c bstp TP) (lift-true {!!}))
+-- hoare-if t-c t-t t-e (E-IfFalse bstp bstp₁) TP = {!!}
+-- hoare-if t-c t-t t-e (E-IfErr bstp) TP = {!!}
 --... | ec | ss = {!!}
 
 -- hoare-if : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
