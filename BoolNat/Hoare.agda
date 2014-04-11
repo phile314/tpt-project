@@ -189,7 +189,7 @@ postWeak qq triple s TP | inj₂ (inj₂ y) = y
 
 lift-true : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> BStep {H1 = H1} {H2 = H2} c vtrue -> T (lift c (pArg H1)) 
 lift-true {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
-lift-true {n} {m} {H1} {H2} bstp | .(D.< vtrue , H2 >) | refl = tt
+lift-true {n} {m} {H1} {H2} bstp | .(D.< vtrue , H2 >) | refl = {!!}
 
 lift-false : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> BStep {H1 = H1} {H2 = H2} c vfalse -> T (not (lift c (pArg H1))) 
 lift-false {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
@@ -261,6 +261,16 @@ pack {false} {false} () ()
 -- hoare-if' pb1 s1q pb2 s2q (E-IfFalse bstp bstp₁) TP = {!!}
 -- hoare-if' pb1 s1q pb2 s2q (E-IfErr bstp) TP = {!!}
 
+
+hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} →
+           < P > c < R > → < (λ x → R (qArg vtrue x)) ∧ lift c > S1 < Q > → < (λ x → R (qArg vfalse x)) ∧ (¬ (lift c)) > S2 < Q > →
+           < P > if c then S1 else S2 < Q >
+hoare-if {c = c} t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp
+-- T      (.R (qArg vtrue (pArg H2)) and (lift .c (pArg H2) | ⟦ .c ⟧ H2))
+hoare-if t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP | (D.< vtrue , H2 >) | refl = t-t bstp₁ (pack (t-c bstp TP) (lift-true {!!}))
+hoare-if t-c t-t t-e (E-IfFalse bstp bstp₁) TP = {!!}
+hoare-if t-c t-t t-e (E-IfErr bstp) TP = {!!}
+--... | ec | ss = {!!}
 
 -- hoare-if : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
 --            < P ∧ (lift c) > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
