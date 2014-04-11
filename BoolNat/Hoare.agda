@@ -109,7 +109,35 @@ isExpr (! t) = isExpr t
 isExpr (t <- t₁) = ⊥
 isExpr (ref x) = ⊤
 isExpr (try t catch t₁) = (isExpr t) × (isExpr t₁)
-isExpr (t >> t₁) = (isExpr t) × (isExpr t₁) 
+isExpr (t >> t₁) = (isExpr t) × (isExpr t₁)
+
+data HeapEq : ∀ {n m} -> Heap n -> Heap m -> Set where
+  Refl : ∀ {n} -> {H : Heap n} -> HeapEq H H
+
+
+⇓expr-preserves-heap : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} -> (isExpr t) -> BStep {H1 = H1} {H2 = H2} t v -> HeapEq H1 H2
+⇓expr-preserves-heap isEx E-True = Refl
+⇓expr-preserves-heap isEx E-False = Refl
+⇓expr-preserves-heap isEx E-Num = Refl
+⇓expr-preserves-heap isEx E-Ref = Refl
+⇓expr-preserves-heap isEx E-Error = Refl
+⇓expr-preserves-heap isEx (E-IfTrue bstp bstp₁) with ⇓expr-preserves-heap (proj₁ isEx) bstp | ⇓expr-preserves-heap (proj₁ (proj₂ isEx)) bstp₁
+⇓expr-preserves-heap {ty} {.m} {m} {.H2} {H2} (_ , _) (E-IfTrue bstp bstp₁) | Refl | Refl = Refl
+⇓expr-preserves-heap isEx (E-IfFalse bstp bstp₁) with ⇓expr-preserves-heap (proj₁ isEx) bstp | ⇓expr-preserves-heap (proj₂ (proj₂ isEx)) bstp₁
+⇓expr-preserves-heap {ty} {.m} {m} {.H2} {H2} (_ , _) (E-IfFalse bstp bstp₁) | Refl | Refl = Refl
+⇓expr-preserves-heap isEx (E-IfErr bstp) = ⇓expr-preserves-heap (proj₁ isEx) bstp
+⇓expr-preserves-heap isEx (E-IsZerZ bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap isEx (E-IsZerS bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap isEx (E-IsZerErr bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap () (E-New bstp)
+⇓expr-preserves-heap () (E-NewErr bstp)
+⇓expr-preserves-heap isEx (E-Deref bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap isEx (E-DerefErr bstp) = ⇓expr-preserves-heap isEx bstp
+⇓expr-preserves-heap () (E-Ass bstp bstp₁)
+⇓expr-preserves-heap () (E-AssErr bstp)
+⇓expr-preserves-heap isEx (E-Seq x bstp bstp₁) with ⇓expr-preserves-heap (proj₁ isEx) bstp | ⇓expr-preserves-heap (proj₂ isEx) bstp₁
+⇓expr-preserves-heap ty1 (E-Seq x bstp bstp₁) | Refl | Refl = Refl
+⇓expr-preserves-heap isEx (E-SeqErr bstp) = ⇓expr-preserves-heap (proj₁ isEx) bstp
 
 -- examples
 const-exprs : isExpr (Base.true)
