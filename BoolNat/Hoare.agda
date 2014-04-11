@@ -341,6 +341,37 @@ hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₂ y) = {!!
 -- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} {v} (E-IfFalse bstp bstp₁) TP | D.< .v , .H2 > | refl = triple-not-c bstp₁ {!!}
 -- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} (E-IfErr bstp) TP | D.< .verror , .H2 > | refl = {!!}
 
+
+getPArg : QArg -> PArg
+getPArg (qArg x x₁) = x₁
+
+implies : ∀ {A} {a : A} → (P Q : Predicate A) → ⊧ (P ⇒ Q) → T (P a) → T (Q a)
+implies {_} {a} p q v TP with p a | q a | v {a}
+implies p q v TP | true | true | va = tt
+implies p q v TP | true | false | ()
+implies p q v () | false | qa | va
+
+withError : {ty : Type} -> QArg -> QArg
+withError {ty} (qArg x x₁) = qArg {ty} verror x₁
+
+
+-- Sequence rule for hoare triples
+-- I think that this rule does not cope with "errors" and "exceptions" (which are expressed with if-then-else in GCL).
+hoare-seq2 : ∀ {ty ty'} {P R' : PredicateP} {R Q : PredicateQ} {S1 : Term ty} {S2 : Term ty'} →
+            < P > S1 < R > → < R' > S2 < Q > → ⊧ (R ⇒ (λ x → R' (getPArg x))) → ⊧ (λ x → ((λ y → R (withError {ty} x)) ⇒ (λ y → Q (withError {ty'} x))) x) →  --((λ x → R (withError {ty} x)) ⇒ (λ x → Q (withError {ty'} x))) →
+            < P > S1 >> S2 < Q >
+hoare-seq2 {_} {_} {_} {R'} {R} pS1r rS2q seq err (E-Seq x bstp bstp₁) TP with pS1r bstp TP
+... | s1 with implies R (λ z → R' (getPArg z)) seq s1
+... | i = rS2q bstp₁ i
+hoare-seq2 {ty} {ty'} {R = R} {Q = Q} pS1r rS2q seq err (E-SeqErr {H2 = H2} bstp) TP with pS1r bstp TP
+... | s1 with err {qArg vtrue (pArg H2)}
+... | err' with implies {_} {verror} (λ x → R (withError (qArg {ty} x (pArg H2)))) (λ x → Q (qArg verror (pArg H2))) err' s1
+... | i = i
+
+--(E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
+--hoare-seq pS1q qS2r err (E-SeqErr bstp) TP = qS2r {!!} (pS1q bstp TP) 
+
+
 NotError  : ∀ {ty} (t : Term ty) -> Set
 NotError t = ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> BStep {H1 = H1} {H2 = H2} t verror -> ⊥
 
@@ -375,6 +406,6 @@ hoare-seq : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 
               < P > S1 < (¬ fail) ⇒ liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < (¬ fail) ⇒ R >
 hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP with split (not (not (fail (qArg v1 (pArg _))))) _ (ps1q bstp TP)
 hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x₁ bstp bstp₁) TP | inj₁ (proj₁ , proj₂) = pack∨ (not (not (fail (qArg v2 (pArg _))))) _ (inj₂ (qs2r bstp₁ proj₂))
-hoare-seq ps1q qs2r (E-Seq notE bstp bstp₁) TP | inj₂ (inj₁ x) = contradiction (notE (fail2error (double-neg _ x)))
+hoare-seq ps1q qs2r (E-Seq notE bstp bstp₁) TP | inj₂ (inj₁ x) = ⊥-elim (notE (fail2error (double-neg _ x)))
 hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP | inj₂ (inj₂ y) = pack∨ (not (not (fail (qArg v2 (pArg _))))) _ (inj₂ (qs2r bstp₁ y))
 hoare-seq ps1q qs2r (E-SeqErr bstp) TP = tt
