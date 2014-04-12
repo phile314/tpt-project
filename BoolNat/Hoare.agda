@@ -56,6 +56,11 @@ data PArg : Set where
 data QArg : Set where
   qArg : ∀ {ty} -> Value ty -> PArg -> QArg
 
+-- Short hand for QArg
+arg : ∀ {ty n} -> Value ty -> Heap n -> QArg
+arg v H = qArg v (pArg H)
+  
+
 PredicateP : Set
 PredicateP = Predicate PArg
 
@@ -71,6 +76,9 @@ lift : Term Boolean -> PredicateP
 lift t (pArg H) with ⟦ t ⟧ H
 lift t (pArg H) | D.< vtrue , heap > = true
 lift t (pArg H) | D.< _ , heap > = false
+
+lift' : Term Boolean -> PredicateQ
+lift' = liftPQ ∘ lift
 
 -- Specific lifts on the value level (for proofs)
 lift-true : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} ->
@@ -144,7 +152,7 @@ absurd {false} p₁ p₂ = p₁
 -- Hoare triples
 --------------------------------------------------------------------------------
 
--- Definition.
+-- Definition of Hoare triple in the total interpretation.
 -- Exploiting T only valid hoare triples can be constructed.
 <_>_<_> : ∀ {ty} -> PredicateP -> Term ty -> PredicateQ -> Set
 <_>_<_> {ty} P S Q = ∀ {n m} -> {H1 : Heap n} {H2 : Heap m} {v : Value ty} ->
@@ -211,49 +219,104 @@ const-exprs = tt
 if-expr : isExpr (if Base.false then (num 1) else error)
 if-expr = tt , tt , tt
 
-NotError  : ∀ {ty} (t : Term ty) -> Set
-NotError t = ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> BStep {H1 = H1} {H2 = H2} t verror -> ⊥
-
 --------------------------------------------------------------------------------
 -- Theorems
 --------------------------------------------------------------------------------
 
--- If the post condition is valid (⊧ Q) then for any precondition P and any program S
--- the hoare triple < P > S < Q > holds.
-postTrue : ∀ {ty} {v : Value ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} -> ⊧ Q -> < P > S < Q >
-postTrue validQ bstp TP = validQ
+  module Total where
 
--- If the precondition is always false in any state ( ⊧ (¬ P) ) then any program S and any post condition Q
--- form a valid hoare triple < P > S < Q > . The point is that Hoare triples have the premises that the precondition
--- holds. If this is not the case I do not have any obligation.
-preFalse : ∀ {ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} ->  ⊧ (¬ P) -> < P > S < Q >
-preFalse invalidP bstp P = ⊥-elim (absurd P invalidP)
+  -- In order to use some of this module's theorems the user has to provide the proof that the evaluation
+  -- will not fail (NotError).
 
--- Precondition strengthening (total interpretation)
-preStrength : ∀ {ty} {P P' : PredicateP} {Q : PredicateQ} {S : Term ty} ->
-              ⊧ (P ⇒ P') -> < P' > S < Q > -> < P > S < Q >
-preStrength {P = P} {P' = P'} p2p' triple {n} {m} {H1} with split∨ (not (P (pArg H1))) (P' (pArg H1)) p2p'
-preStrength p2p' triple | inj₁ (TP , TP') = λ bstp _ → triple bstp TP'
-preStrength p2p' triple | inj₂ (inj₁ notTP) = λ bstp TP → ⊥-elim (absurd TP notTP)
-preStrength p2p' triple | inj₂ (inj₂ TP') = λ bstp _ → triple bstp TP'
+    NotError  : ∀ {ty} (t : Term ty) -> Set
+    NotError t = ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> BStep {H1 = H1} {H2 = H2} t verror -> ⊥
 
--- Postcondition weakening (total interpretation)
-postWeak : ∀ {ty} {P : PredicateP} {Q Q' : PredicateQ} {S : Term ty} ->
-           ⊧ (Q' ⇒ Q) -> < P > S < Q' > -> < P > S < Q >
-postWeak {P = P} {Q = Q} {Q' = Q'} qq triple {n} {m} {H1} {H2} s TP with split∨ (not (Q' (qArg _ (pArg H2)))) (Q (qArg _ (pArg H2))) qq 
-postWeak qq triple s TP | inj₁ (proj₁ , proj₂) = proj₂
-postWeak qq triple s TP | inj₂ (inj₁ x) = ⊥-elim (absurd (triple s TP) x)
-postWeak qq triple s TP | inj₂ (inj₂ y) = y
+    -- If the post condition is valid (⊧ Q) then for any precondition P and any program S
+    -- the hoare triple < P > S < Q > holds.
+    postTrue : ∀ {ty} {v : Value ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} -> ⊧ Q -> < P > S < Q >
+    postTrue validQ bstp TP = validQ
 
--- This is the usual theorem for if-then-else statement with total interpretation 
--- in which the condition is restricted to be an expression
-hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} {isEx : isExpr c} {notE : NotError c} ->
-              < P ∧ lift c > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
-hoare-if {isEx = isEx}  pS1q pS2q (E-IfTrue bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp 
-hoare-if {isEx = isEx} pS1q pS2q (E-IfTrue bstp bstp₁) TP | Refl = pS1q bstp₁ (pack∧ TP (lift-true bstp)) 
-hoare-if {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp
-hoare-if {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP | Refl = pS2q bstp₁ (pack∧ TP (lift-false bstp))
-hoare-if {notE = notE} pS1q pS2q (E-IfErr bstp) TP = ⊥-elim (notE bstp)
+    -- If the precondition is always false in any state ( ⊧ (¬ P) ) then any program S and any post condition Q
+    -- form a valid hoare triple < P > S < Q > . The point is that Hoare triples have the premises that the precondition
+    -- holds. If this is not the case I do not have any obligation.
+    preFalse : ∀ {ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} ->  ⊧ (¬ P) -> < P > S < Q >
+    preFalse invalidP bstp P = ⊥-elim (absurd P invalidP)
+  
+    -- Precondition strengthening
+    preStrength : ∀ {ty} {P P' : PredicateP} {Q : PredicateQ} {S : Term ty} ->
+                  ⊧ (P ⇒ P') -> < P' > S < Q > -> < P > S < Q >
+    preStrength {P = P} {P' = P'} p2p' triple {n} {m} {H1} with split∨ (not (P (pArg H1))) (P' (pArg H1)) p2p'
+    preStrength p2p' triple | inj₁ (TP , TP') = λ bstp _ → triple bstp TP'
+    preStrength p2p' triple | inj₂ (inj₁ notTP) = λ bstp TP → ⊥-elim (absurd TP notTP)
+    preStrength p2p' triple | inj₂ (inj₂ TP') = λ bstp _ → triple bstp TP'
+
+    -- Postcondition weakening
+    postWeak : ∀ {ty} {P : PredicateP} {Q Q' : PredicateQ} {S : Term ty} ->
+               ⊧ (Q' ⇒ Q) -> < P > S < Q' > -> < P > S < Q >
+    postWeak {P = P} {Q = Q} {Q' = Q'} qq triple {n} {m} {H1} {H2} s TP with split∨ (not (Q' (qArg _ (pArg H2)))) (Q (qArg _ (pArg H2))) qq 
+    postWeak qq triple s TP | inj₁ (proj₁ , proj₂) = proj₂
+    postWeak qq triple s TP | inj₂ (inj₁ x) = ⊥-elim (absurd (triple s TP) x)
+    postWeak qq triple s TP | inj₂ (inj₂ y) = y
+
+    -- This is the usual theorem for if-then-else statement with total interpretation 
+    -- in which the condition is restricted to be an expression
+    hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} {isEx : isExpr c} {notE : NotError c} ->
+                  < P ∧ lift c > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
+    hoare-if {isEx = isEx}  pS1q pS2q (E-IfTrue bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp 
+    hoare-if {isEx = isEx} pS1q pS2q (E-IfTrue bstp bstp₁) TP | Refl = pS1q bstp₁ (pack∧ TP (lift-true bstp)) 
+    hoare-if {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp
+    hoare-if {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP | Refl = pS2q bstp₁ (pack∧ TP (lift-false bstp))
+    hoare-if {notE = notE} pS1q pS2q (E-IfErr bstp) TP = ⊥-elim (notE bstp)
+
+    -- Sequence rule with total interpretation.
+    hoare-seq : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} (notE : NotError S1) ->
+                       < P > S1 < liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
+    hoare-seq notE pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
+    hoare-seq notE pS1q qS2r (E-SeqErr bstp) TP = ⊥-elim (notE bstp)
+
+
+    module Partial where
+
+      -- The underlying assumption of this module is that terms won't fail, thus proofs are limited modulo fail.
+
+      -- It's true when the result of the last computation is verror
+      fail : PredicateQ
+      fail (qArg vtrue pa) = false
+      fail (qArg vfalse pa) = false
+      fail (qArg (vnat x) pa) = false
+      fail (qArg (vref x) pa) = false
+      fail (qArg verror pa) = true
+
+      -- If we have failed the resulting value is a verror.
+      fail2error : ∀ {ty n} {H : Heap n} {v : Value ty} -> T (fail (arg v H)) -> isVError v 
+      fail2error {.Boolean} {n} {H} {vtrue} ()
+      fail2error {.Boolean} {n} {H} {vfalse} ()
+      fail2error {.Natural} {n} {H} {vnat x} ()
+      fail2error {.(Ref _)} {n} {H} {vref x} ()
+      fail2error {ty} {n} {H} {verror} TF = unit 
+
+      -- Definition of hoare triple in the partial interpretation
+      <_>_<_>* : ∀ {ty} -> PredicateP -> Term ty -> PredicateQ -> Set
+      <_>_<_>* {ty} P S Q = ∀ {n m} -> {H1 : Heap n} {H2 : Heap m} {v : Value ty} ->
+                           BStep {H1 = H1} {H2 = H2} S v -> T (P (pArg H1)) -> T (((¬ fail) ⇒ Q) (arg v H2))
+
+      -- Any hoare triple valid in the total formulation is valid also in the partial interpretation
+      lift-total : ∀ {P Q ty} {S : Term ty} -> < P > S < Q > -> < P > S < Q >*
+      lift-total {Q = Q} hoareT {H2 = H2} {v = v}  bstp PT = pack∨ (not (not (fail (arg v H2)))) (Q (arg v H2)) (inj₂ (hoareT bstp PT)) 
+      -- Hoare sequencing with partial interpretation
+      hoare-seqP : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} ->
+                  < P > S1 < liftPQ Q >* -> < Q > S2 < R >* -> < P > S1 >> S2 < R >*
+      hoare-seqP ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP with split∨ (not (not (fail (arg v1 H2)))) _ (ps1q bstp TP)
+      hoare-seqP ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x₁ bstp bstp₁) TP | inj₁ (proj₁ , proj₂) = qs2r bstp₁ proj₂
+      hoare-seqP ps1q qs2r (E-Seq notE bstp bstp₁) TP | inj₂ (inj₁ x) = ⊥-elim (notE (fail2error (double¬ _ x)))
+      hoare-seqP ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP | inj₂ (inj₂ y) = qs2r bstp₁ y 
+      hoare-seqP ps1q qs2r (E-SeqErr bstp) TP = tt
+
+
+
+
+
+
 
 -- hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} →
 --            (isEx : isExpr c) → < P ∧ lift c > S1 < Q > → < P ∧ (¬ (lift c)) > S2 < Q > → ⊧ (P ⇒ (λ x → Q (qArg {Boolean} verror x))) →
@@ -293,35 +356,3 @@ hoare-seq2 {ty} {ty'} {R = R} {Q = Q} pS1r rS2q seq err (E-SeqErr {H2 = H2} bstp
 ... | s1 with err {qArg vtrue (pArg H2)}
 ... | err' with mp {_} {verror} (λ x → R (withError (qArg {ty} x (pArg H2)))) (λ x → Q (qArg verror (pArg H2))) err' s1
 ... | i = i
-
-
--- Sequence rule with total interpretation.
-hoare-seq-no-error : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} (notE : NotError S1) ->
-                       < P > S1 < liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
-hoare-seq-no-error notE pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
-hoare-seq-no-error notE pS1q qS2r (E-SeqErr bstp) TP = ⊥-elim (notE bstp)
-
--- It's true when the result of the last computation is verror
-fail : PredicateQ
-fail (qArg vtrue pa) = false
-fail (qArg vfalse pa) = false
-fail (qArg (vnat x) pa) = false
-fail (qArg (vref x) pa) = false
-fail (qArg verror pa) = true
-
--- If we have failed the resulting value is a verror.
-fail2error : ∀ {ty n} {H : Heap n} {v : Value ty} -> T (fail (qArg v (pArg H))) -> isVError v 
-fail2error {.Boolean} {n} {H} {vtrue} ()
-fail2error {.Boolean} {n} {H} {vfalse} ()
-fail2error {.Natural} {n} {H} {vnat x} ()
-fail2error {.(Ref _)} {n} {H} {vref x} ()
-fail2error {ty} {n} {H} {verror} TF = unit 
-
--- Hoare sequencing with partial interpretation
-hoare-seq : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} ->
-              < P > S1 < (¬ fail) ⇒ liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < (¬ fail) ⇒ R >
-hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP with split∨ (not (not (fail (qArg v1 (pArg _))))) _ (ps1q bstp TP)
-hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x₁ bstp bstp₁) TP | inj₁ (proj₁ , proj₂) = pack∨ (not (not (fail (qArg v2 (pArg _))))) _ (inj₂ (qs2r bstp₁ proj₂))
-hoare-seq ps1q qs2r (E-Seq notE bstp bstp₁) TP | inj₂ (inj₁ x) = ⊥-elim (notE (fail2error (double¬ _ x)))
-hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP | inj₂ (inj₂ y) = pack∨ (not (not (fail (qArg v2 (pArg _))))) _ (inj₂ (qs2r bstp₁ y))
-hoare-seq ps1q qs2r (E-SeqErr bstp) TP = tt
