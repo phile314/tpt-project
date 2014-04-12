@@ -7,7 +7,7 @@ open import Data.Nat
 open import Data.Sum
 open import Data.Product
 open import Data.Unit
-open import Data.Empty
+open import Data.Empty renaming (⊥-elim to contradiction)
 open import Data.Bool hiding ( if_then_else_ ) renaming ( _∧_ to _and_  ; _∨_ to _or_ )
 open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
@@ -194,7 +194,7 @@ preStrength : ∀ {ty} {P P' : PredicateP} {Q : PredicateQ} {S : Term ty} ->
               ⊧ (P ⇒ P') -> < P' > S < Q > -> < P > S < Q >
 preStrength {P = P} {P' = P'} p2p' triple {n} {m} {H1} with split (not (P (pArg H1))) (P' (pArg H1)) p2p'
 preStrength p2p' triple | inj₁ (TP , TP') = λ bstp _ → triple bstp TP'
-preStrength p2p' triple | inj₂ (inj₁ notTP) = λ bstp TP → ⊥-elim (lemma TP notTP)
+preStrength p2p' triple | inj₂ (inj₁ notTP) = λ bstp TP → contradiction (lemma TP notTP)
 preStrength p2p' triple | inj₂ (inj₂ TP') = λ bstp _ → triple bstp TP'
 
 
@@ -203,7 +203,7 @@ postWeak : ∀ {ty} {P : PredicateP} {Q Q' : PredicateQ} {S : Term ty} ->
            ⊧ (Q' ⇒ Q) -> < P > S < Q' > -> < P > S < Q >
 postWeak {P = P} {Q = Q} {Q' = Q'} qq triple {n} {m} {H1} {H2} s TP with split (not (Q' (qArg _ (pArg H2)))) (Q (qArg _ (pArg H2))) qq 
 postWeak qq triple s TP | inj₁ (proj₁ , proj₂) = proj₂
-postWeak qq triple s TP | inj₂ (inj₁ x) = ⊥-elim (lemma (triple s TP) x)
+postWeak qq triple s TP | inj₂ (inj₁ x) = contradiction (lemma (triple s TP) x)
 postWeak qq triple s TP | inj₂ (inj₂ y) = y
 
 -- TODO : Import sound and complete from Proofs
@@ -292,20 +292,13 @@ pack {false} {false} () ()
 lemma2 : ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> (p : PredicateP) -> (HeapEq H1 H2) -> T (p (pArg H1)) -> T (p (pArg H2))
 lemma2 {.m} {m} {.H2} {H2} P Refl TP = TP
 
-
 hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} →
-           (isEx : isExpr c) → < P ∧ lift c > S1 < Q > → < P ∧ (¬ (lift c)) > S2 < Q > → ⊧ (P ⇒ (λ x → Q (qArg {Boolean} verror x))) →
+           (isEx : isExpr c) → < P ∧ lift c > S1 < Q > → < P ∧ (¬ (lift c)) > S2 < Q > →
            < P > if c then S1 else S2 < Q >
-hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
-hoare-if isEx t-t t-e err (E-IfTrue bstp bstp₁) TP | D.< vtrue , H2 > | refl | Refl = t-t bstp₁ (pack TP (lift-true {_} {_} {_} {_} {_} {isEx} bstp))
-hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfFalse bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
-hoare-if isEx t-t t-e err (E-IfFalse bstp bstp₁) TP | D.< vfalse , H2 > | refl | Refl = t-e bstp₁ (pack TP (lift-false bstp))
-hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfErr bstp) TP with ⇓expr-preserves-heap isEx bstp
-hoare-if {P = P} {Q = Q} isEx t-t t-e err {H1 = H1} {H2 = .H1} (E-IfErr bstp) TP | Refl with err {pArg H1}
-... | e with split (not (P (pArg H1))) (Q (qArg verror (pArg H1))) e
-hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₁ (proj₁ , proj₂) = {!!}
-hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₁ x) = ⊥-elim (lemma TP x)
-hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₂ y) = {!!}
+hoare-if {c = c} isEx t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
+hoare-if {P = P} {c = c} isEx t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP | (D.< vtrue , H2 >) | refl | pr = t-t bstp₁ (pack (lemma2 P pr TP) (lemma2 (lift c) pr (lift-true {_} {_} {_} {_} {c} {isEx} bstp)))
+hoare-if isEx t-t t-e (E-IfFalse bstp bstp₁) TP = {!!}
+hoare-if isEx t-t t-e (E-IfErr bstp) TP = {!!}
 --hoare-if {c = c} t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp
 -- T      (.R (qArg vtrue (pArg H2)) and (lift .c (pArg H2) | ⟦ .c ⟧ H2))
 -- hoare-if t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP | (D.< vtrue , H2 >) | refl = t-t bstp₁ (pack (t-c bstp TP) (lift-true {!!}))
