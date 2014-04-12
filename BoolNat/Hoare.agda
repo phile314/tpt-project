@@ -27,7 +27,7 @@ data QArg : Set where
   qArg : ∀ {ty} -> Value ty -> PArg -> QArg
 
 PredicateP : Set
-PredicateP = Predicate (PArg)
+PredicateP = Predicate PArg
 
 PredicateQ : Set
 PredicateQ = Predicate QArg
@@ -189,6 +189,12 @@ split true false tpq = inj₂ (inj₁ tt)
 split false true tpq = inj₂ (inj₂ tt)
 split false false () 
 
+split∧ : ∀ p q -> T (p and q) -> T p × T q
+split∧ true true tp = tt , tt
+split∧ true false ()
+split∧ false true ()
+split∧ false false ()
+
 -- Precondition strengthening 
 preStrength : ∀ {ty} {P P' : PredicateP} {Q : PredicateQ} {S : Term ty} ->
               ⊧ (P ⇒ P') -> < P' > S < Q > -> < P > S < Q >
@@ -233,6 +239,13 @@ pack {true} {true} TP TQ = tt
 pack {true} {false} TP ()
 pack {false} {true} () TQ
 pack {false} {false} () ()
+
+pack∨ : ∀ p q -> T p  ⊎ T q -> T (p or q)
+pack∨ true true t = tt
+pack∨ true false t = tt
+pack∨ false true t = tt
+pack∨ false false (inj₁ ())
+pack∨ false false (inj₂ ())
 
 -- I think that with our language this rule as it is does not hold.
 -- The problem is that in our language expressions are statements (they can affect the state  / heap)
@@ -305,18 +318,40 @@ pack {false} {false} () ()
 -- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} {v} (E-IfFalse bstp bstp₁) TP | D.< .v , .H2 > | refl = triple-not-c bstp₁ {!!}
 -- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} (E-IfErr bstp) TP | D.< .verror , .H2 > | refl = {!!}
 
--- Sequence rule for hoare triples
--- I think that this rule does not cope with "errors" and "exceptions" (which are expressed with if-then-else in GCL).
--- hoare-seq : ∀ {ty ty'} {P Q R : Predicate} {S1 : Term ty} {S2 : Term ty'} ->
---             < P > S1 < Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
--- hoare-seq pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
--- hoare-seq pS1q qS2r (E-SeqErr bstp) TP = qS2r {!!} (pS1q bstp TP) 
-
 NotError  : ∀ {ty} (t : Term ty) -> Set
 NotError t = ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> BStep {H1 = H1} {H2 = H2} t verror -> ⊥
 
 -- If the first statement does not fail the rule holds
--- hoare-seq-no-error : ∀ {ty ty'} {P Q R : Predicate} {S1 : Term ty} {S2 : Term ty'} (notE : NotError S1) ->
+-- hoare-seq-no-error : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} (notE : NotError S1) ->
 --                        < P > S1 < Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
 -- hoare-seq-no-error notE pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
 -- hoare-seq-no-error notE pS1q qS2r (E-SeqErr bstp) TP = contradiction (notE bstp)
+
+liftPQ : PredicateP -> PredicateQ
+liftPQ p (qArg v parg) = p parg
+
+fail : PredicateQ
+fail (qArg vtrue pa) = false
+fail (qArg vfalse pa) = false
+fail (qArg (vnat x) pa) = false
+fail (qArg (vref x) pa) = false
+fail (qArg verror pa) = true
+
+double-neg : ∀ p -> T (not (not p)) -> T p
+double-neg true tp = tt
+double-neg false ()
+
+fail2error : ∀ {ty n} {H : Heap n} {v : Value ty} -> T (fail (qArg v (pArg H))) -> isVError v 
+fail2error {.Boolean} {n} {H} {vtrue} ()
+fail2error {.Boolean} {n} {H} {vfalse} ()
+fail2error {.Natural} {n} {H} {vnat x} ()
+fail2error {.(Ref _)} {n} {H} {vref x} ()
+fail2error {ty} {n} {H} {verror} TF = unit 
+
+hoare-seq : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} ->
+              < P > S1 < (¬ fail) ⇒ liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < (¬ fail) ⇒ R >
+hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP with split (not (not (fail (qArg v1 (pArg _))))) _ (ps1q bstp TP)
+hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x₁ bstp bstp₁) TP | inj₁ (proj₁ , proj₂) = pack∨ (not (not (fail (qArg v2 (pArg _))))) _ (inj₂ (qs2r bstp₁ proj₂))
+hoare-seq ps1q qs2r (E-Seq notE bstp bstp₁) TP | inj₂ (inj₁ x) = contradiction (notE (fail2error (double-neg _ x)))
+hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP | inj₂ (inj₂ y) = pack∨ (not (not (fail (qArg v2 (pArg _))))) _ (inj₂ (qs2r bstp₁ y))
+hoare-seq ps1q qs2r (E-SeqErr bstp) TP = tt
