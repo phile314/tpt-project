@@ -11,7 +11,7 @@ open import Data.Empty
 open import Data.Bool hiding ( if_then_else_ ) renaming ( _∧_ to _and_  ; _∨_ to _or_ )
 open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding ( [_] )
 
 -- TODO move all the examples to another module
 -- TODO : Import sound from Proofs
@@ -258,6 +258,20 @@ if-expr = tt , tt , tt
     postWeak qq triple s TP | inj₂ (inj₁ x) = ⊥-elim (absurd (triple s TP) x)
     postWeak qq triple s TP | inj₂ (inj₂ y) = y
 
+    -- Conjunction
+    hoare-conj : ∀ {ty} {P1 P2 : PredicateP} {Q1 Q2 : PredicateQ} {S : Term ty} ->
+                 < P1 > S < Q1 > -> < P2 > S < Q2 > -> < P1 ∧ P2 > S < Q1 ∧ Q2 > 
+    hoare-conj {P1 = P1} {P2 = P2} p1sq1 p2sq2 bstp TP1P2 with split∧ (P1 _) (P2 _) TP1P2
+    hoare-conj p1sq1 p2sq2 bstp TP1P2 | TP1 , TP2 = pack∧ (p1sq1 bstp TP1) (p2sq2 bstp TP2)
+
+    -- Disjunction
+    hoare-disj : ∀ {ty} {P1 P2 : PredicateP} {Q1 Q2 : PredicateQ} {S : Term ty} ->
+                 < P1 > S < Q1 > -> < P2 > S < Q2 > -> < P1 ∨ P2 > S < Q1 ∨ Q2 > 
+    hoare-disj {P1 = P1} {P2 = P2} p1sq1 p2sq2 bstp TP1-TP2 with split∨ (P1 _) (P2 _) TP1-TP2
+    hoare-disj p1sq1 p2sq2 bstp TP1-TP2 | inj₁ (TP1 , TP2) = pack∨ _ _ (inj₁ (p1sq1 bstp TP1))
+    hoare-disj p1sq1 p2sq2 bstp TP1-TP2 | inj₂ (inj₁ TP1) = pack∨ _ _ (inj₁ (p1sq1 bstp TP1))
+    hoare-disj {Q1 = Q1} {Q2 = Q2} p1sq1 p2sq2 bstp TP1-TP2 | inj₂ (inj₂ TP2) = pack∨ (Q1 _) (Q2 _) (inj₂ (p2sq2 bstp TP2))
+
     -- This is the usual theorem for if-then-else statement with total interpretation 
     -- in which the condition is restricted to be an expression
     hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} {isEx : isExpr c} {notE : NotError c} ->
@@ -272,8 +286,19 @@ if-expr = tt , tt , tt
     hoare-seq : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} (notE : NotError S1) ->
                        < P > S1 < liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
     hoare-seq notE pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
-    hoare-seq notE pS1q qS2r (E-SeqErr bstp) TP = ⊥-elim (notE bstp)
+    hoare-seq notE pS1q qS2r (E-SeqErr bstp) TP = ⊥-elim (notE bstp)   
 
+    alloc : ∀ {ty} -> Term ty -> PredicateQ -> PredicateP
+    alloc {ty} S q (pArg H) = 
+      let D.< v , H2 > = ⟦ S ⟧ H in q (qArg (vref {ty} 0) (pArg (Cons v H2)))
+
+    hoare-new : ∀ {ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} -> ⊧ (P ⇒ alloc S Q) -> < P > new S < Q >
+    hoare-new {P = P} {Q = Q} pq {H1 = H1} (E-New {t = S} bstp) TP with split∨ (not (P (pArg H1))) (alloc S Q (pArg H1)) pq
+    hoare-new n (E-New bstp) TP | inj₁ (NTP , T-alloc) = ⊥-elim (absurd TP NTP)
+    hoare-new n (E-New bstp) TP | inj₂ (inj₁ NTP) = ⊥-elim (absurd TP NTP)
+    hoare-new n {H1 = H1} (E-New {t = S} bstp) TP | inj₂ (inj₂ T-alloc) with ⟦ S ⟧ H1 | ⇓sound _ _ bstp 
+    hoare-new n (E-New bstp) TP | inj₂ (inj₂ T-alloc) | D.< v , H2 > | refl = T-alloc
+    hoare-new pq (E-NewErr bstp) TP = {!!}   -- This case should not occur since also error are allowed in the heap
 
     module Partial where
 
@@ -301,8 +326,8 @@ if-expr = tt , tt , tt
                            BStep {H1 = H1} {H2 = H2} S v -> T (P (pArg H1)) -> T (((¬ fail) ⇒ Q) (arg v H2))
 
       -- Any hoare triple valid in the total formulation is valid also in the partial interpretation
-      lift-total : ∀ {P Q ty} {S : Term ty} -> < P > S < Q > -> < P > S < Q >*
-      lift-total {Q = Q} hoareT {H2 = H2} {v = v}  bstp PT = pack∨ (not (not (fail (arg v H2)))) (Q (arg v H2)) (inj₂ (hoareT bstp PT)) 
+      lift-partial : ∀ {P Q ty} {S : Term ty} -> < P > S < Q > -> < P > S < Q >*
+      lift-partial {Q = Q} hoareT {H2 = H2} {v = v}  bstp PT = pack∨ (not (not (fail (arg v H2)))) (Q (arg v H2)) (inj₂ (hoareT bstp PT)) 
       -- Hoare sequencing with partial interpretation
       hoare-seqP : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} ->
                   < P > S1 < liftPQ Q >* -> < Q > S2 < R >* -> < P > S1 >> S2 < R >*
@@ -312,8 +337,14 @@ if-expr = tt , tt , tt
       hoare-seqP ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP | inj₂ (inj₂ y) = qs2r bstp₁ y 
       hoare-seqP ps1q qs2r (E-SeqErr bstp) TP = tt
 
-
-
+      -- Hoare if-then-else with partial interpretation
+      hoare-ifP : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} {isEx : isExpr c} ->
+                  < P ∧ lift c > S1 < Q >* -> < P ∧ (¬ (lift c)) > S2 < Q >* -> < P > if c then S1 else S2 < Q >*
+      hoare-ifP {isEx = isEx} ps1q ps2q (E-IfTrue bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp 
+      hoare-ifP {isEx = isEx} pS1q pS2q (E-IfTrue bstp bstp₁) TP | Refl = pS1q bstp₁ (pack∧ TP (lift-true bstp)) 
+      hoare-ifP {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp
+      hoare-ifP {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP | Refl = pS2q bstp₁ (pack∧ TP (lift-false bstp))
+      hoare-ifP ps1q ps2q (E-IfErr bstp) TP = tt
 
 
 
@@ -356,3 +387,57 @@ hoare-seq2 {ty} {ty'} {R = R} {Q = Q} pS1r rS2q seq err (E-SeqErr {H2 = H2} bstp
 ... | s1 with err {qArg vtrue (pArg H2)}
 ... | err' with mp {_} {verror} (λ x → R (withError (qArg {ty} x (pArg H2)))) (λ x → Q (qArg verror (pArg H2))) err' s1
 ... | i = i
+
+
+--------------------------------------------------------------------------------
+-- Examples
+--------------------------------------------------------------------------------
+
+open Total
+
+-- Short hands
+_[_] : ∀ {ty n} -> Heap n -> ℕ -> Value ty
+_[_] H n = lookup n H 
+
+_==_ : ∀ {ty} -> Value ty -> Value ty -> Bool 
+_==_ vtrue vtrue = true
+_==_ vfalse vfalse = true
+_==_ (vnat n) (vnat m) with compare n m
+vnat .m == vnat m | equal .m = true
+(vnat n) == (vnat m) | _ = false
+_==_ (vref n) (vref m) with compare n m 
+vref .m == vref m | equal .m = true
+(vref m) == (vref n) | _ = false
+_==_ verror verror = true
+_==_ _ _ = false
+
+p1 : Term (Ref Natural)
+p1 = new (num 1)
+
+Q1 : PredicateQ 
+Q1 (qArg v (pArg H)) = (H [ 0 ] ) == vnat 1
+
+h1 : < isEmpty > p1 < Q1 >
+h1 {.0} {.(suc _)} {Nil} {H2 = Cons v H2} (E-New bstp) tt = {!!}
+
+--  with ⟦ p1 ⟧ Nil | ⇓sound _ _ (E-New bstp) | ⟦ num 1 ⟧ Nil | ⇓sound _ _ bstp
+-- h1 {._} {.(suc _)} {Nil} {Cons v H2} (E-New bstp) tt | .(D.< vref 0 , Cons v H2 >) | refl | .(D.< v , H2 >) | refl = {!!}
+
+-- hoare-new {P = isEmpty} {Q = Q1} (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 {!pArg ?!}) (inj₂ {!!})) (E-New bstp) tt
+--  (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 (pArg Nil)) (inj₂ tt)) (E-New bstp) {!!} -- 
+h1 {.(suc _)} {.(suc _)} {Cons v H1} (E-New bstp) ()
+h1 (E-NewErr bstp) TP = {!!} --  hoare-new {!!} bstp TP 
+
+p2 : Term Boolean
+p2 = if Base.true then Base.true else Base.false
+
+Q2 : PredicateQ
+Q2 (qArg vtrue x₁) = true
+Q2 (qArg v x₁) = false
+
+h2 : < True > p2 < Q2 >
+h2 (E-IfTrue {v = vtrue} E-True bstp₁) tt = tt
+h2 (E-IfTrue {v = vfalse} E-True ()) tt
+h2 (E-IfTrue {v = verror} E-True ()) tt
+h2 (E-IfFalse () bstp₁) tt
+h2 (E-IfErr ()) tt
