@@ -258,6 +258,20 @@ if-expr = tt , tt , tt
     postWeak qq triple s TP | inj₂ (inj₁ x) = ⊥-elim (absurd (triple s TP) x)
     postWeak qq triple s TP | inj₂ (inj₂ y) = y
 
+    -- Conjunction
+    hoare-conj : ∀ {ty} {P1 P2 : PredicateP} {Q1 Q2 : PredicateQ} {S : Term ty} ->
+                 < P1 > S < Q1 > -> < P2 > S < Q2 > -> < P1 ∧ P2 > S < Q1 ∧ Q2 > 
+    hoare-conj {P1 = P1} {P2 = P2} p1sq1 p2sq2 bstp TP1P2 with split∧ (P1 _) (P2 _) TP1P2
+    hoare-conj p1sq1 p2sq2 bstp TP1P2 | TP1 , TP2 = pack∧ (p1sq1 bstp TP1) (p2sq2 bstp TP2)
+
+    -- Disjunction
+    hoare-disj : ∀ {ty} {P1 P2 : PredicateP} {Q1 Q2 : PredicateQ} {S : Term ty} ->
+                 < P1 > S < Q1 > -> < P2 > S < Q2 > -> < P1 ∨ P2 > S < Q1 ∨ Q2 > 
+    hoare-disj {P1 = P1} {P2 = P2} p1sq1 p2sq2 bstp TP1-TP2 with split∨ (P1 _) (P2 _) TP1-TP2
+    hoare-disj p1sq1 p2sq2 bstp TP1-TP2 | inj₁ (TP1 , TP2) = pack∨ _ _ (inj₁ (p1sq1 bstp TP1))
+    hoare-disj p1sq1 p2sq2 bstp TP1-TP2 | inj₂ (inj₁ TP1) = pack∨ _ _ (inj₁ (p1sq1 bstp TP1))
+    hoare-disj {Q1 = Q1} {Q2 = Q2} p1sq1 p2sq2 bstp TP1-TP2 | inj₂ (inj₂ TP2) = pack∨ (Q1 _) (Q2 _) (inj₂ (p2sq2 bstp TP2))
+
     -- This is the usual theorem for if-then-else statement with total interpretation 
     -- in which the condition is restricted to be an expression
     hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} {isEx : isExpr c} {notE : NotError c} ->
@@ -272,8 +286,7 @@ if-expr = tt , tt , tt
     hoare-seq : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} (notE : NotError S1) ->
                        < P > S1 < liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
     hoare-seq notE pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
-    hoare-seq notE pS1q qS2r (E-SeqErr bstp) TP = ⊥-elim (notE bstp)
-
+    hoare-seq notE pS1q qS2r (E-SeqErr bstp) TP = ⊥-elim (notE bstp)   
 
     module Partial where
 
