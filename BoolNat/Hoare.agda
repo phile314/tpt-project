@@ -314,8 +314,8 @@ if-expr = tt , tt , tt
                            BStep {H1 = H1} {H2 = H2} S v -> T (P (pArg H1)) -> T (((¬ fail) ⇒ Q) (arg v H2))
 
       -- Any hoare triple valid in the total formulation is valid also in the partial interpretation
-      lift-total : ∀ {P Q ty} {S : Term ty} -> < P > S < Q > -> < P > S < Q >*
-      lift-total {Q = Q} hoareT {H2 = H2} {v = v}  bstp PT = pack∨ (not (not (fail (arg v H2)))) (Q (arg v H2)) (inj₂ (hoareT bstp PT)) 
+      lift-partial : ∀ {P Q ty} {S : Term ty} -> < P > S < Q > -> < P > S < Q >*
+      lift-partial {Q = Q} hoareT {H2 = H2} {v = v}  bstp PT = pack∨ (not (not (fail (arg v H2)))) (Q (arg v H2)) (inj₂ (hoareT bstp PT)) 
       -- Hoare sequencing with partial interpretation
       hoare-seqP : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} ->
                   < P > S1 < liftPQ Q >* -> < Q > S2 < R >* -> < P > S1 >> S2 < R >*
@@ -325,8 +325,14 @@ if-expr = tt , tt , tt
       hoare-seqP ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP | inj₂ (inj₂ y) = qs2r bstp₁ y 
       hoare-seqP ps1q qs2r (E-SeqErr bstp) TP = tt
 
-
-
+      -- Hoare if-then-else with partial interpretation
+      hoare-ifP : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} {isEx : isExpr c} ->
+                  < P ∧ lift c > S1 < Q >* -> < P ∧ (¬ (lift c)) > S2 < Q >* -> < P > if c then S1 else S2 < Q >*
+      hoare-ifP {isEx = isEx} ps1q ps2q (E-IfTrue bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp 
+      hoare-ifP {isEx = isEx} pS1q pS2q (E-IfTrue bstp bstp₁) TP | Refl = pS1q bstp₁ (pack∧ TP (lift-true bstp)) 
+      hoare-ifP {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp
+      hoare-ifP {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP | Refl = pS2q bstp₁ (pack∧ TP (lift-false bstp))
+      hoare-ifP ps1q ps2q (E-IfErr bstp) TP = tt
 
 
 
