@@ -13,6 +13,11 @@ open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
 open import Relation.Binary.PropositionalEquality
 
+-- TODO : Import sound from Proofs
+⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
+         BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ D.< v , H2 >
+⇓sound = {!!} 
+
 --------------------------------------------------------------------------------
 -- Predicates and combinators
 --------------------------------------------------------------------------------
@@ -32,7 +37,9 @@ PredicateP = Predicate PArg
 PredicateQ : Set
 PredicateQ = Predicate QArg
 
--- ∀ {ty n} -> Value ty -> Heap n -> Bool
+-- Lifts predicateP to PredicateQ (the result value is simply ignored). 
+liftPQ : PredicateP -> PredicateQ
+liftPQ p (qArg v parg) = p parg
 
 -- The predicate that holds in any state
 True : ∀ {a} -> Predicate a
@@ -58,18 +65,6 @@ p ∨ q = λ a -> (p a) or (q a)
 _⇒_ : ∀ {a} -> Predicate a -> Predicate a -> Predicate a
 p ⇒ q = λ a -> (not (p a)) or (q a) 
 
--- A direct encoding is more convenient. I wonder whether I would get the same with the derived operators.
-
--- Derived operators : 
-
--- -- Disjunction
--- _∨_ : Predicate -> Predicate -> Predicate
--- p ∨ q = ¬ ((¬ p) ∧ (¬ q))
-
--- -- Implies
--- _⇒_ : Predicate -> Predicate -> Predicate
--- p ⇒ q = (¬ p) ∨ q
-
 -- Valid 
 ⊧_ : ∀ {a} -> Predicate a -> Set
 ⊧ P = ∀ {a} -> T (P a)
@@ -84,6 +79,50 @@ lift t (pArg H) | D.< _ , heap > = false
 isEmpty : PredicateP
 isEmpty (pArg Nil) = true
 isEmpty (pArg (Cons v x)) = false
+
+------------------------------------------------------------------------------
+-- Logics theorem and lemmas
+--------------------------------------------------------------------------------
+ 
+split∨ : ∀ p q -> T (p or q) -> (T p × T q) ⊎ ( T p ⊎ T q)
+split∨ true true tpq = inj₁ (tt , tt)
+split∨ true false tpq = inj₂ (inj₁ tt)
+split∨ false true tpq = inj₂ (inj₂ tt)
+split∨ false false () 
+
+split∧ : ∀ p q -> T (p and q) -> T p × T q
+split∧ true true tp = tt , tt
+split∧ true false ()
+split∧ false true ()
+split∧ false false ()
+
+double¬ : ∀ p -> T (not (not p)) -> T p
+double¬ true tp = tt
+double¬ false ()
+
+pack∧ : ∀ {p q} -> T p -> T q -> T (p and q)
+pack∧ {true} {true} TP TQ = tt
+pack∧ {true} {false} TP ()
+pack∧ {false} {true} () TQ
+pack∧ {false} {false} () ()
+
+pack∨ : ∀ p q -> T p  ⊎ T q -> T (p or q)
+pack∨ true true t = tt
+pack∨ true false t = tt
+pack∨ false true t = tt
+pack∨ false false (inj₁ ())
+pack∨ false false (inj₂ ())
+
+mp : ∀ {A} {a : A} → (P Q : Predicate A) → ⊧ (P ⇒ Q) → T (P a) → T (Q a)
+mp {_} {a} p q v TP with p a | q a | v {a}
+mp p q v TP | true | true | va = tt
+mp p q v TP | true | false | ()
+mp p q v () | false | qa | va
+
+-- I don't know whether there is something from the standard library for this.
+absurd : ∀ {p} -> T p -> T (not p) -> ⊥
+absurd {true} p₁ p₂ = p₂
+absurd {false} p₁ p₂ = p₁
 
 ------------------------------------------------------------------------------
 -- Hoare triples
@@ -106,8 +145,9 @@ trivial : ∀ {ty} {t : Term ty} -> < True > t < True >
 trivial = λ {ty} {t} {n} {m} {H1} {H2} {v} _ _ → tt
 
 -- An invalid hoare triple cannot be constructed
--- impossible : ∀ {ty} {t : Term ty} -> < True > t < False > 
--- impossible = {!!}
+invalid : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} -> 
+          BStep {H1 = H1} {H2 = H2} t v -> < True > t < False > -> ⊥ 
+invalid bstp triple = triple bstp tt
 
 -- An expression is a particular kind of term which does not affect the state (Heap)
 
@@ -163,6 +203,9 @@ if-expr = tt , tt , tt
 -- non-expr : isExpr (! new Base.true)
 -- non-expr = {!!}
 
+NotError  : ∀ {ty} (t : Term ty) -> Set
+NotError t = ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> BStep {H1 = H1} {H2 = H2} t verror -> ⊥
+
 --------------------------------------------------------------------------------
 -- Theorems
 --------------------------------------------------------------------------------
@@ -172,153 +215,62 @@ if-expr = tt , tt , tt
 postTrue : ∀ {ty} {v : Value ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} -> ⊧ Q -> < P > S < Q >
 postTrue validQ bstp TP = validQ
 
--- I don't know whether there is something from the standard library for this.
-lemma : ∀ {p} -> T p -> T (not p) -> ⊥
-lemma {true} p₁ p₂ = p₂
-lemma {false} p₁ p₂ = p₁
-
 -- If the precondition is always false in any state ( ⊧ (¬ P) ) then any program S and any post condition Q
 -- form a valid hoare triple < P > S < Q > . The point is that Hoare triples have the premises that the precondition
 -- holds. If this is not the case I do not have any obligation.
--- preFalse : ∀ {ty} {P Q : Predicate} {S : Term ty} ->  ⊧ (¬ P) -> < P > S < Q >
--- preFalse invalidP bstp P = contradiction (lemma P invalidP)
-
-split : ∀ p q -> T (p or q) -> (T p × T q) ⊎ ( T p ⊎ T q)
-split true true tpq = inj₁ (tt , tt)
-split true false tpq = inj₂ (inj₁ tt)
-split false true tpq = inj₂ (inj₂ tt)
-split false false () 
-
-split∧ : ∀ p q -> T (p and q) -> T p × T q
-split∧ true true tp = tt , tt
-split∧ true false ()
-split∧ false true ()
-split∧ false false ()
+preFalse : ∀ {ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} ->  ⊧ (¬ P) -> < P > S < Q >
+preFalse invalidP bstp P = ⊥-elim (absurd P invalidP)
 
 -- Precondition strengthening 
 preStrength : ∀ {ty} {P P' : PredicateP} {Q : PredicateQ} {S : Term ty} ->
               ⊧ (P ⇒ P') -> < P' > S < Q > -> < P > S < Q >
-preStrength {P = P} {P' = P'} p2p' triple {n} {m} {H1} with split (not (P (pArg H1))) (P' (pArg H1)) p2p'
+preStrength {P = P} {P' = P'} p2p' triple {n} {m} {H1} with split∨ (not (P (pArg H1))) (P' (pArg H1)) p2p'
 preStrength p2p' triple | inj₁ (TP , TP') = λ bstp _ → triple bstp TP'
-preStrength p2p' triple | inj₂ (inj₁ notTP) = λ bstp TP → ⊥-elim (lemma TP notTP)
+preStrength p2p' triple | inj₂ (inj₁ notTP) = λ bstp TP → ⊥-elim (absurd TP notTP)
 preStrength p2p' triple | inj₂ (inj₂ TP') = λ bstp _ → triple bstp TP'
 
 
 -- Postcondition weakening
 postWeak : ∀ {ty} {P : PredicateP} {Q Q' : PredicateQ} {S : Term ty} ->
            ⊧ (Q' ⇒ Q) -> < P > S < Q' > -> < P > S < Q >
-postWeak {P = P} {Q = Q} {Q' = Q'} qq triple {n} {m} {H1} {H2} s TP with split (not (Q' (qArg _ (pArg H2)))) (Q (qArg _ (pArg H2))) qq 
+postWeak {P = P} {Q = Q} {Q' = Q'} qq triple {n} {m} {H1} {H2} s TP with split∨ (not (Q' (qArg _ (pArg H2)))) (Q (qArg _ (pArg H2))) qq 
 postWeak qq triple s TP | inj₁ (proj₁ , proj₂) = proj₂
-postWeak qq triple s TP | inj₂ (inj₁ x) = ⊥-elim (lemma (triple s TP) x)
+postWeak qq triple s TP | inj₂ (inj₁ x) = ⊥-elim (absurd (triple s TP) x)
 postWeak qq triple s TP | inj₂ (inj₂ y) = y
 
--- TODO : Import sound and complete from Proofs
-⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
-         BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ D.< v , H2 >
-⇓sound = {!!} 
-
-⇓complete : ∀ {ty n} -> (t : Term ty) -> (H1 : Heap n) -> 
-              let D.< v , H2 > = ⟦ t ⟧ H1 in BStep {H1 = H1} {H2 = H2} t v 
-⇓complete = {!!}
-
-lift-true : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} {is : isExpr c} -> BStep {H1 = H1} {H2 = H2} c vtrue -> T (lift c (pArg H1))
+lift-true : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} ->
+            BStep {H1 = H1} {H2 = H2} c vtrue -> T (lift c (pArg H1))
 lift-true {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
 lift-true {n} {m} {H1} {H2} bstp | .(D.< vtrue , H2 >) | refl = tt
 
-lift-false : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> BStep {H1 = H1} {H2 = H2} c vfalse -> T (not (lift c (pArg H1))) 
+lift-false : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> 
+             BStep {H1 = H1} {H2 = H2} c vfalse -> T (not (lift c (pArg H1))) 
 lift-false {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
 lift-false {n} {m} {H1} {H2} bstp | .(D.< vfalse , H2 >) | refl = tt
 
-lift-err : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> BStep {H1 = H1} {H2 = H2} c verror -> T (not (lift c (pArg H1))) 
-lift-err {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
-lift-err {n} {m} {H1} {H2} bstp | .(D.< verror , H2 >) | refl = tt
+-- This is the usual theorem for if-then-else statement with total interpretation 
+-- in which the condition is restricted to be an expression
+hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} {isEx : isExpr c} {notE : NotError c} ->
+              < P ∧ lift c > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
+hoare-if {isEx = isEx}  pS1q pS2q (E-IfTrue bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp 
+hoare-if {isEx = isEx} pS1q pS2q (E-IfTrue bstp bstp₁) TP | Refl = pS1q bstp₁ (pack∧ TP (lift-true bstp)) 
+hoare-if {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP with ⇓expr-preserves-heap isEx bstp
+hoare-if {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP | Refl = pS2q bstp₁ (pack∧ TP (lift-false bstp))
+hoare-if {notE = notE} pS1q pS2q (E-IfErr bstp) TP = ⊥-elim (notE bstp)
 
-
-pack : ∀ {p q} -> T p -> T q -> T (p and q)
-pack {true} {true} TP TQ = tt
-pack {true} {false} TP ()
-pack {false} {true} () TQ
-pack {false} {false} () ()
-
-pack∨ : ∀ p q -> T p  ⊎ T q -> T (p or q)
-pack∨ true true t = tt
-pack∨ true false t = tt
-pack∨ false true t = tt
-pack∨ false false (inj₁ ())
-pack∨ false false (inj₂ ())
-
--- I think that with our language this rule as it is does not hold.
--- The problem is that in our language expressions are statements (they can affect the state  / heap)
--- At the moment we are considering the Heap as a program State.
--- The problem is that evaluation can change the Heap.
--- Consider the Hoare Triple : < IsEmpty > if !(new true) then skip else skip < IsEmpty >
--- According to the if-rule it is valid if :
---     < IsEmpty ∧ ! ( new true ) > skip < IsEmpty >
---     < IsEmpty ^ ¬ ! ( new true ) > skip > < IsEmpty >
--- The first triple is invalid, but still is synatctically valid.
--- The possibility of change in the heap is built in the evaluation (in the big steps definition)
--- thus even defining specific hoare triple (<_>*_<_>) does not solve the problem. 
-
-
-
--- With this lemma I want to show that if an expression is big-step evaluated the heap does not change.
--- However I don't know how to type this lemma: ≡ does not work because the two heaps are different types
--- because n m are different. 
--- expr-lemma : ∀ {ty n m} -> {t : Term ty} {v : Value ty} {H1 : Heap m} {H2 : Heap n} (isE : isExpr t) ->
---              BStep {H1 = H1} {H2 = H2} t v -> H1 ≡ H2
--- expr-lemma = {!!}
-
--- Here I get the same error
--- expr-lemma : ∀ {ty n m} -> {t : Term ty} {H1 : Heap m} -> (isE : isExpr t) ->
---              let D.< v , H2 > = ⟦ t ⟧ H1 in H1 ≡ H2
--- expr-lemma = {!!}
-
--- hoare-if-expr : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
---                 < P ∧ (lift c) >* S1 < Q > -> < P ∧ (¬ (lift c)) >* S2 < Q > -> < P > if c then S1 else S2 < Q >
--- hoare-if-expr {c = c} triple-c triple-not-c {H1 = H1} (E-IfTrue {H3 = H3} bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
--- hoare-if-expr triple-c triple-not-c {H1 = H1} (E-IfTrue {H1 = .H1} {H2 = .H2} {H3 = H3} bstp bstp₁) TP | D.< vtrue , H2 > | refl = triple-c {!bstp₁!} (pack {!TP!} (lift-true bstp))
--- hoare-if-expr triple-c triple-not-c (E-IfFalse bstp bstp₁) TP = {!!}
--- hoare-if-expr triple-c triple-not-c (E-IfErr bstp) TP = {!!}
-
-
-
--- Here I get the same problem.
--- The problem lies in the BigStep rules for the If construct that modify the Heap. Even if you restrict the input terms
--- the big step fix two different heaps.
--- Maybe it is reasonable to require the heap not to change when evaluating conditions for if (and similarly for isZero)
-
--- Provide a different if-rule :
--- Require :  ⊧ (P ∧ C ⇒ A) , ⊧ (P ∧ ¬ C ⇒ B) , < A > S1 < Q > ,  < B > S2 < Q >
--- I think this is what you would get if you would first evaluate c and then sequence it with the if (considering only the value)
-
--- hoare-if' : ∀ {ty} {P Q B1 B2 : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
---             ⊧ ( (P ∧ (lift c)) ⇒ B1 ) -> < B1 > S1 < Q > -> ⊧ ( (P ∧ (¬ (lift c))) ⇒ B2) -> < B2 > S2 < Q > ->
---             < P > if c then S1 else S2 < Q >
--- -- hoare-if' {c = c} pb1 s1q pb2 s2q {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _ bstp 
--- hoare-if' {_} {P} {Q} {B1} {B2} {c} pb1 s1q pb2 s2q {H1 = H1} (E-IfTrue bstp bstp₁) TP with split (not ((P H1) and (lift c H1)) ) (B1 H1) pb1 
--- hoare-if' pb1 s1q pb2 s2q (E-IfTrue H4 bstp₁) TP | inj₁ ( TPCH1 , TB1H1) = s1q bstp₁ {!TB1H1!} -- Different heaps
--- hoare-if' pb1 s1q pb2 s2q (E-IfTrue H4 bstp₁) TP | inj₂ (inj₁ x) = {!!}
--- hoare-if' pb1 s1q pb2 s2q (E-IfTrue H4 bstp₁) TP | inj₂ (inj₂ y) = {!!} -- s1q bstp₁ {!pb1!}
--- hoare-if' pb1 s1q pb2 s2q (E-IfFalse bstp bstp₁) TP = {!!}
--- hoare-if' pb1 s1q pb2 s2q (E-IfErr bstp) TP = {!!}
-
-lemma2 : ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> (p : PredicateP) -> (HeapEq H1 H2) -> T (p (pArg H1)) -> T (p (pArg H2))
-lemma2 {.m} {m} {.H2} {H2} P Refl TP = TP
-
-
-hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} →
-           (isEx : isExpr c) → < P ∧ lift c > S1 < Q > → < P ∧ (¬ (lift c)) > S2 < Q > → ⊧ (P ⇒ (λ x → Q (qArg {Boolean} verror x))) →
-           < P > if c then S1 else S2 < Q >
-hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
-hoare-if isEx t-t t-e err (E-IfTrue bstp bstp₁) TP | D.< vtrue , H2 > | refl | Refl = t-t bstp₁ (pack TP (lift-true {_} {_} {_} {_} {_} {isEx} bstp))
-hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfFalse bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
-hoare-if isEx t-t t-e err (E-IfFalse bstp bstp₁) TP | D.< vfalse , H2 > | refl | Refl = t-e bstp₁ (pack TP (lift-false bstp))
-hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfErr bstp) TP with ⇓expr-preserves-heap isEx bstp
-hoare-if {P = P} {Q = Q} isEx t-t t-e err {H1 = H1} {H2 = .H1} (E-IfErr bstp) TP | Refl with err {pArg H1}
-... | e with split (not (P (pArg H1))) (Q (qArg verror (pArg H1))) e
-hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₁ (proj₁ , proj₂) = {!!}
-hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₁ x) = ⊥-elim (lemma TP x)
-hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₂ y) = {!!}
+-- hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} →
+--            (isEx : isExpr c) → < P ∧ lift c > S1 < Q > → < P ∧ (¬ (lift c)) > S2 < Q > → ⊧ (P ⇒ (λ x → Q (qArg {Boolean} verror x))) →
+--            < P > if c then S1 else S2 < Q >
+-- hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
+-- hoare-if isEx t-t t-e err (E-IfTrue bstp bstp₁) TP | D.< vtrue , H2 > | refl | Refl = t-t bstp₁ (pack TP (lift-true {_} {_} {_} {_} {_} {isEx} bstp))
+-- hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfFalse bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
+-- hoare-if isEx t-t t-e err (E-IfFalse bstp bstp₁) TP | D.< vfalse , H2 > | refl | Refl = t-e bstp₁ (pack TP (lift-false bstp))
+-- hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfErr bstp) TP with ⇓expr-preserves-heap isEx bstp
+-- hoare-if {P = P} {Q = Q} isEx t-t t-e err {H1 = H1} {H2 = .H1} (E-IfErr bstp) TP | Refl with err {pArg H1}
+-- ... | e with split (not (P (pArg H1))) (Q (qArg verror (pArg H1))) e
+-- hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₁ (proj₁ , proj₂) = {!!}
+-- hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₁ x) = ⊥-elim (lemma TP x)
+-- hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₂ y) = {!!}
 --hoare-if {c = c} t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp
 -- T      (.R (qArg vtrue (pArg H2)) and (lift .c (pArg H2) | ⟦ .c ⟧ H2))
 -- hoare-if t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP | (D.< vtrue , H2 >) | refl = t-t bstp₁ (pack (t-c bstp TP) (lift-true {!!}))
@@ -326,64 +278,33 @@ hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₂ y) = {!!
 -- hoare-if t-c t-t t-e (E-IfErr bstp) TP = {!!}
 --... | ec | ss = {!!}
 
--- hoare-if : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
---            < P ∧ (lift c) > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
--- hoare-if : ∀ {ty} {P Q : Predicate} {c : Term Boolean} {S1 S2 : Term ty} ->
---            < (\ H -> P H and lift c H )  > S1 < Q > -> < P ∧ (¬ (lift c)) > S2 < Q > -> < P > if c then S1 else S2 < Q >
-
--- hoare-if {c = c} triple-c triple-not-c {H1 = H1} (E-IfTrue {H3 = H3} bstp bstp₁) with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
--- hoare-if triple-c triple-not-c {H1 = H1} (E-IfTrue {H3 = H3} bstp bstp₁) | D.< vtrue , H2 > | refl =  λ TP → triple-c {H1 = H2} {H2 = H3} bstp₁ (pack {!TP!} (lift-true bstp))
--- hoare-if triple-c triple-not-c (E-IfFalse bstp bstp₁) = {!!}
--- hoare-if triple-c triple-not-c (E-IfErr bstp) = {!!}
-
--- hoare-if {c = c} {S1} {S2} triple-c triple-not-c {n} {m} {H1} bstp TP with  ⟦ if c then S1 else S2 ⟧ H1 | ⇓sound _ _ bstp
--- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} {v} (E-IfTrue bstp bstp₁) TP | D.< .v , .H2 > | refl = triple-c bstp₁ {!!}
--- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} {v} (E-IfFalse bstp bstp₁) TP | D.< .v , .H2 > | refl = triple-not-c bstp₁ {!!}
--- hoare-if triple-c triple-not-c {n} {m} {H1} {H2} (E-IfErr bstp) TP | D.< .verror , .H2 > | refl = {!!}
-
-
 getPArg : QArg -> PArg
 getPArg (qArg x x₁) = x₁
-
-implies : ∀ {A} {a : A} → (P Q : Predicate A) → ⊧ (P ⇒ Q) → T (P a) → T (Q a)
-implies {_} {a} p q v TP with p a | q a | v {a}
-implies p q v TP | true | true | va = tt
-implies p q v TP | true | false | ()
-implies p q v () | false | qa | va
 
 withError : {ty : Type} -> QArg -> QArg
 withError {ty} (qArg x x₁) = qArg {ty} verror x₁
 
 
 -- Sequence rule for hoare triples
--- I think that this rule does not cope with "errors" and "exceptions" (which are expressed with if-then-else in GCL).
 hoare-seq2 : ∀ {ty ty'} {P R' : PredicateP} {R Q : PredicateQ} {S1 : Term ty} {S2 : Term ty'} →
             < P > S1 < R > → < R' > S2 < Q > → ⊧ (R ⇒ (λ x → R' (getPArg x))) → ⊧ (λ x → ((λ y → R (withError {ty} x)) ⇒ (λ y → Q (withError {ty'} x))) x) →  --((λ x → R (withError {ty} x)) ⇒ (λ x → Q (withError {ty'} x))) →
             < P > S1 >> S2 < Q >
 hoare-seq2 {_} {_} {_} {R'} {R} pS1r rS2q seq err (E-Seq x bstp bstp₁) TP with pS1r bstp TP
-... | s1 with implies R (λ z → R' (getPArg z)) seq s1
+... | s1 with mp R (λ z → R' (getPArg z)) seq s1
 ... | i = rS2q bstp₁ i
 hoare-seq2 {ty} {ty'} {R = R} {Q = Q} pS1r rS2q seq err (E-SeqErr {H2 = H2} bstp) TP with pS1r bstp TP
 ... | s1 with err {qArg vtrue (pArg H2)}
-... | err' with implies {_} {verror} (λ x → R (withError (qArg {ty} x (pArg H2)))) (λ x → Q (qArg verror (pArg H2))) err' s1
+... | err' with mp {_} {verror} (λ x → R (withError (qArg {ty} x (pArg H2)))) (λ x → Q (qArg verror (pArg H2))) err' s1
 ... | i = i
 
---(E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
---hoare-seq pS1q qS2r err (E-SeqErr bstp) TP = qS2r {!!} (pS1q bstp TP) 
 
+-- Sequence rule with total interpretation.
+hoare-seq-no-error : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} (notE : NotError S1) ->
+                       < P > S1 < liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
+hoare-seq-no-error notE pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
+hoare-seq-no-error notE pS1q qS2r (E-SeqErr bstp) TP = ⊥-elim (notE bstp)
 
-NotError  : ∀ {ty} (t : Term ty) -> Set
-NotError t = ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> BStep {H1 = H1} {H2 = H2} t verror -> ⊥
-
--- If the first statement does not fail the rule holds
--- hoare-seq-no-error : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} (notE : NotError S1) ->
---                        < P > S1 < Q > -> < Q > S2 < R > -> < P > S1 >> S2 < R >
--- hoare-seq-no-error notE pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
--- hoare-seq-no-error notE pS1q qS2r (E-SeqErr bstp) TP = contradiction (notE bstp)
-
-liftPQ : PredicateP -> PredicateQ
-liftPQ p (qArg v parg) = p parg
-
+-- It's true when the result of the last computation is verror
 fail : PredicateQ
 fail (qArg vtrue pa) = false
 fail (qArg vfalse pa) = false
@@ -391,10 +312,7 @@ fail (qArg (vnat x) pa) = false
 fail (qArg (vref x) pa) = false
 fail (qArg verror pa) = true
 
-double-neg : ∀ p -> T (not (not p)) -> T p
-double-neg true tp = tt
-double-neg false ()
-
+-- If we have failed the resulting value is a verror.
 fail2error : ∀ {ty n} {H : Heap n} {v : Value ty} -> T (fail (qArg v (pArg H))) -> isVError v 
 fail2error {.Boolean} {n} {H} {vtrue} ()
 fail2error {.Boolean} {n} {H} {vfalse} ()
@@ -402,10 +320,11 @@ fail2error {.Natural} {n} {H} {vnat x} ()
 fail2error {.(Ref _)} {n} {H} {vref x} ()
 fail2error {ty} {n} {H} {verror} TF = unit 
 
+-- Hoare sequencing with partial interpretation
 hoare-seq : ∀ {ty ty'} {P Q : PredicateP} {R : PredicateQ} {S1 : Term ty} {S2 : Term ty'} ->
               < P > S1 < (¬ fail) ⇒ liftPQ Q > -> < Q > S2 < R > -> < P > S1 >> S2 < (¬ fail) ⇒ R >
-hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP with split (not (not (fail (qArg v1 (pArg _))))) _ (ps1q bstp TP)
+hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP with split∨ (not (not (fail (qArg v1 (pArg _))))) _ (ps1q bstp TP)
 hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x₁ bstp bstp₁) TP | inj₁ (proj₁ , proj₂) = pack∨ (not (not (fail (qArg v2 (pArg _))))) _ (inj₂ (qs2r bstp₁ proj₂))
-hoare-seq ps1q qs2r (E-Seq notE bstp bstp₁) TP | inj₂ (inj₁ x) = ⊥-elim (notE (fail2error (double-neg _ x)))
+hoare-seq ps1q qs2r (E-Seq notE bstp bstp₁) TP | inj₂ (inj₁ x) = ⊥-elim (notE (fail2error (double¬ _ x)))
 hoare-seq ps1q qs2r (E-Seq {H1 = H1} {H2 = H2} {v1 = v1} {v2 = v2} x bstp bstp₁) TP | inj₂ (inj₂ y) = pack∨ (not (not (fail (qArg v2 (pArg _))))) _ (inj₂ (qs2r bstp₁ y))
 hoare-seq ps1q qs2r (E-SeqErr bstp) TP = tt
