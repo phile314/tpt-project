@@ -11,7 +11,7 @@ open import Data.Empty
 open import Data.Bool hiding ( if_then_else_ ) renaming ( _∧_ to _and_  ; _∨_ to _or_ )
 open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
-open import Relation.Binary.PropositionalEquality
+open import Relation.Binary.PropositionalEquality hiding ( [_] )
 
 -- TODO move all the examples to another module
 -- TODO : Import sound from Proofs
@@ -387,3 +387,57 @@ hoare-seq2 {ty} {ty'} {R = R} {Q = Q} pS1r rS2q seq err (E-SeqErr {H2 = H2} bstp
 ... | s1 with err {qArg vtrue (pArg H2)}
 ... | err' with mp {_} {verror} (λ x → R (withError (qArg {ty} x (pArg H2)))) (λ x → Q (qArg verror (pArg H2))) err' s1
 ... | i = i
+
+
+--------------------------------------------------------------------------------
+-- Examples
+--------------------------------------------------------------------------------
+
+open Total
+
+-- Short hands
+_[_] : ∀ {ty n} -> Heap n -> ℕ -> Value ty
+_[_] H n = lookup n H 
+
+_==_ : ∀ {ty} -> Value ty -> Value ty -> Bool 
+_==_ vtrue vtrue = true
+_==_ vfalse vfalse = true
+_==_ (vnat n) (vnat m) with compare n m
+vnat .m == vnat m | equal .m = true
+(vnat n) == (vnat m) | _ = false
+_==_ (vref n) (vref m) with compare n m 
+vref .m == vref m | equal .m = true
+(vref m) == (vref n) | _ = false
+_==_ verror verror = true
+_==_ _ _ = false
+
+p1 : Term (Ref Natural)
+p1 = new (num 1)
+
+Q1 : PredicateQ 
+Q1 (qArg v (pArg H)) = (H [ 0 ] ) == vnat 1
+
+h1 : < isEmpty > p1 < Q1 >
+h1 {.0} {.(suc _)} {Nil} {H2 = Cons v H2} (E-New bstp) tt = {!!}
+
+--  with ⟦ p1 ⟧ Nil | ⇓sound _ _ (E-New bstp) | ⟦ num 1 ⟧ Nil | ⇓sound _ _ bstp
+-- h1 {._} {.(suc _)} {Nil} {Cons v H2} (E-New bstp) tt | .(D.< vref 0 , Cons v H2 >) | refl | .(D.< v , H2 >) | refl = {!!}
+
+-- hoare-new {P = isEmpty} {Q = Q1} (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 {!pArg ?!}) (inj₂ {!!})) (E-New bstp) tt
+--  (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 (pArg Nil)) (inj₂ tt)) (E-New bstp) {!!} -- 
+h1 {.(suc _)} {.(suc _)} {Cons v H1} (E-New bstp) ()
+h1 (E-NewErr bstp) TP = {!!} --  hoare-new {!!} bstp TP 
+
+p2 : Term Boolean
+p2 = if Base.true then Base.true else Base.false
+
+Q2 : PredicateQ
+Q2 (qArg vtrue x₁) = true
+Q2 (qArg v x₁) = false
+
+h2 : < True > p2 < Q2 >
+h2 (E-IfTrue {v = vtrue} E-True bstp₁) tt = tt
+h2 (E-IfTrue {v = vfalse} E-True ()) tt
+h2 (E-IfTrue {v = verror} E-True ()) tt
+h2 (E-IfFalse () bstp₁) tt
+h2 (E-IfErr ()) tt
