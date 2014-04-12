@@ -13,6 +13,7 @@ open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
 open import Relation.Binary.PropositionalEquality
 
+-- TODO move all the examples to another module
 -- TODO : Import sound from Proofs
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ D.< v , H2 >
@@ -24,30 +25,6 @@ open import Relation.Binary.PropositionalEquality
 
 Predicate : Set -> Set
 Predicate A = A -> Bool
-
-data PArg : Set where
-  pArg : ∀ {n} -> Heap n -> PArg
-
-data QArg : Set where
-  qArg : ∀ {ty} -> Value ty -> PArg -> QArg
-
-PredicateP : Set
-PredicateP = Predicate PArg
-
-PredicateQ : Set
-PredicateQ = Predicate QArg
-
--- Lifts predicateP to PredicateQ (the result value is simply ignored). 
-liftPQ : PredicateP -> PredicateQ
-liftPQ p (qArg v parg) = p parg
-
--- The predicate that holds in any state
-True : ∀ {a} -> Predicate a
-True _ = true
-
--- The predicate that never holds in any state
-False : ∀ {a} -> Predicate a
-False _ = false
 
 -- Negation
 ¬_ : ∀ {a} -> Predicate a -> Predicate a
@@ -68,17 +45,56 @@ p ⇒ q = λ a -> (not (p a)) or (q a)
 -- Valid 
 ⊧_ : ∀ {a} -> Predicate a -> Set
 ⊧ P = ∀ {a} -> T (P a)
- 
--- Lifts a boolean expression to a predicate
+
+--------------------------------------------------------------------------------
+-- Precondition and postcondition predicates
+--------------------------------------------------------------------------------
+
+data PArg : Set where
+  pArg : ∀ {n} -> Heap n -> PArg
+
+data QArg : Set where
+  qArg : ∀ {ty} -> Value ty -> PArg -> QArg
+
+PredicateP : Set
+PredicateP = Predicate PArg
+
+PredicateQ : Set
+PredicateQ = Predicate QArg
+
+-- Lifts predicateP to PredicateQ (the result value is simply ignored). 
+liftPQ : PredicateP -> PredicateQ
+liftPQ p (qArg v parg) = p parg 
+
+-- Lifts a boolean expression to a predicate (for signatures)
 lift : Term Boolean -> PredicateP
 lift t (pArg H) with ⟦ t ⟧ H
 lift t (pArg H) | D.< vtrue , heap > = true
 lift t (pArg H) | D.< _ , heap > = false
 
--- Example
+-- Specific lifts on the value level (for proofs)
+lift-true : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} ->
+            BStep {H1 = H1} {H2 = H2} c vtrue -> T (lift c (pArg H1))
+lift-true {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
+lift-true {n} {m} {H1} {H2} bstp | .(D.< vtrue , H2 >) | refl = tt
+
+lift-false : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> 
+             BStep {H1 = H1} {H2 = H2} c vfalse -> T (not (lift c (pArg H1))) 
+lift-false {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
+lift-false {n} {m} {H1} {H2} bstp | .(D.< vfalse , H2 >) | refl = tt
+
+-- Examples
 isEmpty : PredicateP
 isEmpty (pArg Nil) = true
 isEmpty (pArg (Cons v x)) = false
+
+-- The predicate that holds in any state
+True : ∀ {a} -> Predicate a
+True _ = true
+
+-- The predicate that never holds in any state
+False : ∀ {a} -> Predicate a
+False _ = false
 
 ------------------------------------------------------------------------------
 -- Logics theorem and lemmas
@@ -134,12 +150,6 @@ absurd {false} p₁ p₂ = p₁
 <_>_<_> {ty} P S Q = ∀ {n m} -> {H1 : Heap n} {H2 : Heap m} {v : Value ty} ->
                      BStep {H1 = H1} {H2 = H2} S v -> T (P (pArg H1)) -> T (Q (qArg v (pArg H2)))
 
--- Side effect free hoare triple
--- <_>*_<_> : ∀ {ty} -> Predicate -> Term ty -> Predicate -> Set
--- <_>*_<_> {ty} P S Q = ∀ {n} -> {H : Heap n} {v : Value ty} ->
---                      BStep {H1 = H} {H2 = H} S v -> T (P H) -> T (Q H)
-
-
 -- Examples
 trivial : ∀ {ty} {t : Term ty} -> < True > t < True >
 trivial = λ {ty} {t} {n} {m} {H1} {H2} {v} _ _ → tt
@@ -149,8 +159,8 @@ invalid : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} 
           BStep {H1 = H1} {H2 = H2} t v -> < True > t < False > -> ⊥ 
 invalid bstp triple = triple bstp tt
 
--- An expression is a particular kind of term which does not affect the state (Heap)
 
+-- An expression is a particular kind of term which does not affect the state (Heap)
 isExpr : ∀ {ty} -> Term ty -> Set
 isExpr Base.true = ⊤
 isExpr Base.false = ⊤
@@ -164,6 +174,7 @@ isExpr (t <- t₁) = ⊥
 isExpr (ref x) = ⊤
 isExpr (try t catch t₁) = (isExpr t) × (isExpr t₁)
 isExpr (t >> t₁) = (isExpr t) × (isExpr t₁)
+
 
 data HeapEq : ∀ {n m} -> Heap n -> Heap m -> Set where
   Refl : ∀ {n} -> {H : Heap n} -> HeapEq H H
@@ -200,9 +211,6 @@ const-exprs = tt
 if-expr : isExpr (if Base.false then (num 1) else error)
 if-expr = tt , tt , tt
 
--- non-expr : isExpr (! new Base.true)
--- non-expr = {!!}
-
 NotError  : ∀ {ty} (t : Term ty) -> Set
 NotError t = ∀ {n m} {H1 : Heap n} {H2 : Heap m} -> BStep {H1 = H1} {H2 = H2} t verror -> ⊥
 
@@ -221,7 +229,7 @@ postTrue validQ bstp TP = validQ
 preFalse : ∀ {ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} ->  ⊧ (¬ P) -> < P > S < Q >
 preFalse invalidP bstp P = ⊥-elim (absurd P invalidP)
 
--- Precondition strengthening 
+-- Precondition strengthening (total interpretation)
 preStrength : ∀ {ty} {P P' : PredicateP} {Q : PredicateQ} {S : Term ty} ->
               ⊧ (P ⇒ P') -> < P' > S < Q > -> < P > S < Q >
 preStrength {P = P} {P' = P'} p2p' triple {n} {m} {H1} with split∨ (not (P (pArg H1))) (P' (pArg H1)) p2p'
@@ -229,24 +237,13 @@ preStrength p2p' triple | inj₁ (TP , TP') = λ bstp _ → triple bstp TP'
 preStrength p2p' triple | inj₂ (inj₁ notTP) = λ bstp TP → ⊥-elim (absurd TP notTP)
 preStrength p2p' triple | inj₂ (inj₂ TP') = λ bstp _ → triple bstp TP'
 
-
--- Postcondition weakening
+-- Postcondition weakening (total interpretation)
 postWeak : ∀ {ty} {P : PredicateP} {Q Q' : PredicateQ} {S : Term ty} ->
            ⊧ (Q' ⇒ Q) -> < P > S < Q' > -> < P > S < Q >
 postWeak {P = P} {Q = Q} {Q' = Q'} qq triple {n} {m} {H1} {H2} s TP with split∨ (not (Q' (qArg _ (pArg H2)))) (Q (qArg _ (pArg H2))) qq 
 postWeak qq triple s TP | inj₁ (proj₁ , proj₂) = proj₂
 postWeak qq triple s TP | inj₂ (inj₁ x) = ⊥-elim (absurd (triple s TP) x)
 postWeak qq triple s TP | inj₂ (inj₂ y) = y
-
-lift-true : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} ->
-            BStep {H1 = H1} {H2 = H2} c vtrue -> T (lift c (pArg H1))
-lift-true {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
-lift-true {n} {m} {H1} {H2} bstp | .(D.< vtrue , H2 >) | refl = tt
-
-lift-false : ∀ {n m} {H1 : Heap n} {H2 : Heap m} {c : Term Boolean} -> 
-             BStep {H1 = H1} {H2 = H2} c vfalse -> T (not (lift c (pArg H1))) 
-lift-false {H1 = H1} {c = c} bstp with ⟦ c ⟧ H1 | ⇓sound _ _ bstp
-lift-false {n} {m} {H1} {H2} bstp | .(D.< vfalse , H2 >) | refl = tt
 
 -- This is the usual theorem for if-then-else statement with total interpretation 
 -- in which the condition is restricted to be an expression
