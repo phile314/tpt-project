@@ -288,6 +288,18 @@ if-expr = tt , tt , tt
     hoare-seq notE pS1q qS2r (E-Seq x bstp bstp₁) TP = qS2r bstp₁ (pS1q bstp TP)
     hoare-seq notE pS1q qS2r (E-SeqErr bstp) TP = ⊥-elim (notE bstp)   
 
+    alloc : ∀ {ty} -> Term ty -> PredicateQ -> PredicateP
+    alloc {ty} S q (pArg H) = 
+      let D.< v , H2 > = ⟦ S ⟧ H in q (qArg (vref {ty} 0) (pArg (Cons v H2)))
+
+    hoare-new : ∀ {ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} -> ⊧ (P ⇒ alloc S Q) -> < P > new S < Q >
+    hoare-new {P = P} {Q = Q} pq {H1 = H1} (E-New {t = S} bstp) TP with split∨ (not (P (pArg H1))) (alloc S Q (pArg H1)) pq
+    hoare-new n (E-New bstp) TP | inj₁ (NTP , T-alloc) = ⊥-elim (absurd TP NTP)
+    hoare-new n (E-New bstp) TP | inj₂ (inj₁ NTP) = ⊥-elim (absurd TP NTP)
+    hoare-new n {H1 = H1} (E-New {t = S} bstp) TP | inj₂ (inj₂ T-alloc) with ⟦ S ⟧ H1 | ⇓sound _ _ bstp 
+    hoare-new n (E-New bstp) TP | inj₂ (inj₂ T-alloc) | D.< v , H2 > | refl = T-alloc
+    hoare-new pq (E-NewErr bstp) TP = {!!}   -- This case should not occur since also error are allowed in the heap
+
     module Partial where
 
       -- The underlying assumption of this module is that terms won't fail, thus proofs are limited modulo fail.
