@@ -25,8 +25,7 @@ replace-heap {_} {H} v (inj₁ x) = replace H x v
 replace-heap {_} {H} v (inj₂ y) = H
 
 
--- TODO: there should be no isValue proofs in the big steps. Instead take another bigstep as parameter which reduces the argment to a value. (e.g. E-New)
--- TODO sequencing ( I think try-catch is also missing)
+-- TODO try-catch is missing
 
 data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty → Set where
 
@@ -65,47 +64,47 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
                BStep {H1 = H1} {H2 = H2} (if t then t1 else t2) verror
 
 -- isZero
-  E-IsZerZ   : ∀ {  n1 n2} {H1 : Heap n1} {H2 : Heap n2} {t : Term Natural} →
-               BStep {H1 = H1} {H2 = H2} t          (vnat 0)                →
+  E-IsZerZ   : ∀ {  n1 n2} {H1 : Heap n1} {H2 : Heap n2} {t : Term Natural}       →
+               BStep {H1 = H1} {H2 = H2} t          (vnat 0)                      →
                BStep {H1 = H1} {H2 = H2} (iszero t) vtrue
 
   E-IsZerS   : ∀ {n1 n2} {H1 : Heap n1} {H2 : Heap n2} {t : Term Natural} {n : ℕ} →
-               BStep {H1 = H1} {H2 = H2} t          (vnat (suc n))          →
+               BStep {H1 = H1} {H2 = H2} t          (vnat (suc n))                →
                BStep {H1 = H1} {H2 = H2} (iszero t) vfalse
 
-  E-IsZerErr : ∀ {  n1 n2} {H1 : Heap n1} {H2 : Heap n2} {t : Term Natural} →
-               BStep {H1 = H1} {H2 = H2} t          verror                  →
+  E-IsZerErr : ∀ {  n1 n2} {H1 : Heap n1} {H2 : Heap n2} {t : Term Natural}       →
+               BStep {H1 = H1} {H2 = H2} t          verror                        →
                BStep {H1 = H1} {H2 = H2} (iszero t) verror
 
 -- refs
-  E-New      : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} →
-               BStep {H1 = H1} {H2 = H2}        t            v                     →
-               BStep {H1 = H1} {H2 = Cons v H2} (new t)      (vref 0)
+  E-New      : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty}        →
+               BStep {H1 = H1} {H2 = H2}        t             v                           →
+               BStep {H1 = H1} {H2 = Cons v H2} (new t)       (vref 0)
 
-  E-NewErr   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m}  {t : Term ty}               →
-               BStep {H1 = H1} {H2 = H2}        t            verror                →
-               BStep {H1 = H1} {H2 = H2}        (new t)      verror
+  E-NewErr   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m}  {t : Term ty}                      →
+               BStep {H1 = H1} {H2 = H2}        t             verror                      →
+               BStep {H1 = H1} {H2 = H2}        (new t)       verror
 
-  E-Deref    : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t : Term (Ref ty)}        →
-               BStep {H1 = H1} {H2 = H2}        t            (vref r)              →
-               BStep {H1 = H1} {H2 = H2}        (! t)        (lookup r H2)
+  E-Deref    : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t : Term (Ref ty)}               →
+               BStep {H1 = H1} {H2 = H2}        t             (vref r)                    →
+               BStep {H1 = H1} {H2 = H2}        (! t)         (lookup r H2)
 
-  E-DerefErr : ∀ {ty n m  } {H1 : Heap n} {H2 : Heap m} {t : Term (Ref ty)}        →
-               BStep {H1 = H1} {H2 = H2}        t            verror                →
-               BStep {H1 = H1} {H2 = H2}        (! t)        verror
+  E-DerefErr : ∀ {ty n m  } {H1 : Heap n} {H2 : Heap m} {t : Term (Ref ty)}               →
+               BStep {H1 = H1} {H2 = H2}        t             verror                      →
+               BStep {H1 = H1} {H2 = H2}        (! t)         verror
 
   E-Ass      : ∀ {ty n m k r} {H1 : Heap n} {H2 : Heap m} {H3 : Heap k}
-               {t1 : Term (Ref ty)} {t2 : Term ty} {v2 : Value ty}                 →
-               BStep {H1 = H1} {H2 = H2}        t1            (vref r)             →
-               BStep {H1 = H2} {H2 = H3}        t2            v2                   →
+               {t1 : Term (Ref ty)} {t2 : Term ty} {v2 : Value ty}                        →
+               BStep {H1 = H1} {H2 = H2}        t1            (vref r)                    →
+               BStep {H1 = H2} {H2 = H3}        t2            v2                          →
                let e = elem? H3 r ty in
                BStep {ty} {n} {k} {H1 = H1} {H2 = replace-heap v2 e }
                                                 (ref r <- t2) (replace-result v2 e)
 
-  E-AssErr   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} →
-               BStep {H1 = H1} {H2 = H2}        t            verror                →
+  E-AssErr   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t1 : Term (Ref ty)} {t2 : Term ty} →
+               BStep {H1 = H1} {H2 = H2}        t1            verror                      →
                BStep {H1 = H1} {H2 = H2}
-                                                (ref m <- t) verror
+                                                (t1 <- t2)    verror
 
 -- seq
   E-Seq      : ∀ {ty1 ty2 n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
@@ -120,6 +119,25 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
                BStep {H1 = H1} {H2 = H2} t1         verror                         →
                BStep {H1 = H1} {H2 = H2} (t1 >> t2) verror
 
+-- try-catch
+  E-TryCat   : ∀ {ty n1 n2} {H1 : Heap n1} {H2 : Heap n2}
+                 {t1 : Term ty} {t2 : Term ty} {v : Value ty}               →
+               ¬ (isVError v)                                               →
+               BStep {H1 = H1} {H2 = H2} t1                v                →
+               BStep {H1 = H1} {H2 = H2} (try t1 catch t2) v
+
+  E-TryCatEx : ∀ {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
+                 {t1 : Term ty} {t2 : Term ty} {v : Value ty}               →
+               ¬ (isVError v)                                               →
+               BStep {H1 = H1} {H2 = H2} t1                verror           →
+               BStep {H1 = H2} {H2 = H3} t2                v                →
+               BStep {H1 = H1} {H2 = H3} (try t1 catch t2) v
+
+  E-TryCatEr : ∀ {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
+                 {t1 : Term ty} {t2 : Term ty}                              →
+               BStep {H1 = H1} {H2 = H2} t1                verror           →
+               BStep {H1 = H2} {H2 = H3} t2                verror           →
+               BStep {H1 = H1} {H2 = H3} (try t1 catch t2) verror
 
 --------------------------------------------------------------------------------
 -- Conversion between BigStep and SmallStep
@@ -138,11 +156,11 @@ E-New* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t′ : Term ty} ->
 E-New* [] = []
 E-New* (x :: stps) = E-New x :: E-New* stps
 
-E-Ass* : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty} ->
+E-AssR* : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty} ->
          Steps {H1 = H1} {H2 = H2} t t' -> 
          Steps {H1 = H1} {H2 = H2} (ref r <- t) (ref r <- t') 
-E-Ass* [] = []
-E-Ass* (x :: stps) = E-AssRight (unit , (λ x₁ → x₁)) x :: E-Ass* stps
+E-AssR* [] = []
+E-AssR* (x :: stps) = E-AssRight (unit , (λ x₁ → x₁)) x :: E-AssR* stps
 
 E-AssL* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term (Ref ty)} {t2 : Term ty} ->
          Steps {H1 = H1} {H2 = H2} t t' -> 
@@ -177,7 +195,7 @@ E-Seq* (x :: stps) = E-Seq1 x :: E-Seq* stps
 
 -- Lemmas used for small-to-big
 -- Converstion from big- to small-step representations.
-{-
+
 big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
                BStep {H1 = H1} {H2 = H2} t v -> Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝
 big-to-small E-True  = []
@@ -188,7 +206,7 @@ big-to-small E-Error = []
 
 big-to-small (E-IfTrue  bstp1 bstp2) = E-If* (big-to-small bstp1) ++ (E-IfTrue  :: big-to-small bstp2)
 big-to-small (E-IfFalse bstp1 bstp2) = E-If* (big-to-small bstp1) ++ (E-IfFalse :: big-to-small bstp2)
-big-to-small (E-IfErr   bstp       ) = E-If* (big-to-small bstp) ++ [ E-If-Err ]
+big-to-small (E-IfErr   bstp       ) = E-If* (big-to-small bstp ) ++ [ E-If-Err ]
 
 big-to-small (E-IsZerZ   bstp) = E-IsZero* (big-to-small bstp) ++ [ E-IsZeroZero ]
 big-to-small (E-IsZerS   bstp) = E-IsZero* (big-to-small bstp) ++ [ E-IsZeroSucc ]
@@ -196,14 +214,20 @@ big-to-small (E-IsZerErr bstp) = E-IsZero* (big-to-small bstp) ++ [ E-IsZero-Err
 
 big-to-small (E-New      bstp) = E-New*   (big-to-small bstp) ++ [ E-NewVal refl ]
 big-to-small (E-NewErr   bstp) = E-New*   (big-to-small bstp) ++ [ {!!}          ]
+
 big-to-small (E-Deref    bstp) = E-Deref* (big-to-small bstp) ++ [ E-DerefVal    ]
 big-to-small (E-DerefErr bstp) = E-Deref* (big-to-small bstp) ++ [ E-Deref-Err   ]
-big-to-small (E-Ass      bstp) = E-Ass*   (big-to-small bstp) ++ [ {!!}          ]
-big-to-small (E-AssErr   bstp) = E-Ass*   (big-to-small bstp) ++ [ {!!}          ]
+
+big-to-small (E-Ass      bstp1 bstp2) = (E-AssL* (big-to-small {!!}) ++ E-AssR* (big-to-small {!!})) ++ [ {!!} ]
+big-to-small (E-AssErr   bstp       ) = (E-AssL* (big-to-small bstp)) ++ [ E-Assign-Err1 ]
 
 big-to-small (E-Seq    bstp1 bstp2 bstp3) = {!!}
 big-to-small (E-SeqErr bstp             ) = {!!}
--}
+
+big-to-small (E-TryCat   ner b    ) = E-Try* (big-to-small b) ++ [ E-Try-Catch-Suc {!!} ]
+big-to-small (E-TryCatEx ner b1 b2) = (E-Try* (big-to-small b1) ++ {!!}) ++ [ E-Try-Catch-Fail unit ]
+big-to-small (E-TryCatEr     b1 b2) = (E-Try* (big-to-small b1) ++ {!!}) ++ [ {!!} ]
+
 
 -- A value term evaluates to itself.
 
@@ -216,7 +240,7 @@ value-of-value verror = E-Error
 
 -- Combining a single small step with a big step.
 
-{-prepend-step : forall {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3} {t1 t2 : Term ty} {v : Value ty} -> 
+prepend-step : forall {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3} {t1 t2 : Term ty} {v : Value ty} -> 
                Step {H1 = H1} {H2 = H2} t1 t2 -> BStep {H1 = H2} {H2 = H3} t2 v -> BStep {H1 = H1} {H2 = H3} t1 v
 prepend-step E-IsZeroZero E-True         = E-IsZerZ   E-Num
 prepend-step E-IsZeroSucc E-False        = E-IsZerS   E-Num
@@ -264,9 +288,11 @@ prepend-step (E-Seq1   s) b       = {!!}
 prepend-step (E-SeqVal x) b       = {!!}
 prepend-step E-Seq-Err    E-Error = E-SeqErr E-Error
 
-prepend-step (E-Try-Catch      s  ) b = {!!}
-prepend-step (E-Try-Catch-Suc  x  ) b = {!!}
-prepend-step (E-Try-Catch-Fail isE) b = {!!}
+prepend-step (E-Try-Catch s) (E-TryCat   x b    ) = E-TryCat   x (prepend-step s b)
+prepend-step (E-Try-Catch s) (E-TryCatEx x b1 b2) = E-TryCatEx x (prepend-step s b1) b2
+prepend-step (E-Try-Catch s) (E-TryCatEr   b1 b2) = E-TryCatEr   (prepend-step s b1) b2
+prepend-step (E-Try-Catch-Suc  (proj₁ , proj₂)) b = E-TryCat   {!!}       b
+prepend-step (E-Try-Catch-Fail isE            ) b = E-TryCatEx {!!} {!!} b
 
 
 small-to-big : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} → 
@@ -274,4 +300,4 @@ small-to-big : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value
 small-to-big [] = value-of-value _
 small-to-big (stp :: stps) = prepend-step stp (small-to-big stps)
 
--}
+
