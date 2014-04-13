@@ -65,8 +65,7 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓sound .(! t) .(lookup r H2) (E-Deref {t = t} bstp) | < vref r , H2 > | refl = refl
 ⇓sound {H1 = H1} (! t) .verror (E-DerefErr bstp) with  ⟦ t ⟧ H1 | ⇓sound t verror bstp
 ⇓sound {H1 = H1} (! t) .verror (E-DerefErr bstp) | < verror , H2 > | refl = refl 
-⇓sound {H1 = H1} (ref m <- t) ._ (E-Ass  bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp 
-⇓sound {ty} (ref m <- t) ._ (E-Ass bstp) | (< v , H2 >) | refl = {!!} -- E-AssRed comes here and makes things horrible
+⇓sound {H1 = H1} (ref m <- t) ._ (E-Ass  bstp1 bstp2) = {!!} -- E-AssRed comes here and makes things horrible
 ⇓sound .error .verror E-Error = refl
 ⇓sound (ref .m₁) (vref m₁) E-Ref = refl
 ⇓sound {H1 = H1} (t1 >> t2) v (E-Seq isG stp1 stp2) with ⟦ t1 ⟧ H1 | ⇓sound t1 _ stp1
@@ -79,7 +78,31 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vref x , H2 > | refl with ⟦ t2 ⟧ H2 | ⇓sound t2 _ stp2
 ⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vref x , H2 > | refl | < .v , H3 > | refl = refl
 ⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < verror , H2 > | refl = contradiction (notE unit)
+
 ⇓sound {H1 = H1} (t1 >> t2) .verror (E-SeqErr bstp) with ⟦ t1 ⟧ H1 | ⇓sound t1 verror bstp
 ⇓sound (t1 >> t2) .verror (E-SeqErr bstp) | < verror , H2 > | refl = refl
-⇓sound (iszero t) .verror (E-IsZerErr b) = {!!}
-⇓sound (ref m <- t) .verror (E-AssErr b) = {!!}
+
+⇓sound {H1 = H1} (iszero t) .verror (E-IsZerErr b) with ⟦ t ⟧ H1        | ⇓sound t verror b
+...                                                | .(< verror , _ >)  | refl              = refl
+
+⇓sound {H1 = H1} (new t) (vref m) (E-New c) with ⟦ t ⟧ H1      | ⇓sound t _ c
+...                                         |    .(< _ , _ >)  | refl         = refl
+
+⇓sound                    {H1 = H1} (try t1 catch t2) v        (E-TryCat a b) with ⟦ t1 ⟧ H1       | ⇓sound t1 v b
+⇓sound {.Boolean} {n} {m} {H1} {H2} (try t1 catch t2) vtrue    (E-TryCat a b) | .(< vtrue  , H2 >) | refl          = refl
+⇓sound {.Boolean} {n} {m} {H1} {H2} (try t1 catch t2) vfalse   (E-TryCat a b) | .(< vfalse , H2 >) | refl          = refl
+⇓sound {.Natural} {n} {m} {H1} {H2} (try t1 catch t2) (vnat x) (E-TryCat a b) | .(< vnat x , H2 >) | refl          = refl
+⇓sound {.(Ref _)} {n} {m} {H1} {H2} (try t1 catch t2) (vref x) (E-TryCat a b) | .(< vref x , H2 >) | refl          = refl
+⇓sound {ty      } {n} {m} {H1} {H2} (try t1 catch t2) verror   (E-TryCat a b) | .(< verror , H2 >) | refl          = contradiction (a unit)
+
+⇓sound {H1 = H1} (try t1 catch t2) v (E-TryCatEx a b) with ⟦ t1 ⟧ H1
+⇓sound (try t1 catch t2) v (E-TryCatEx a b) | < value , heap > = {!!}
+
+⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {error {._}} {_} _) = {!!}
+⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {if_then_else_ {._} _ _ _} {_} _) = {!!}
+⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {new {._} _} {_} _) = {!!}
+⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} { !_ {._} _ } {_} _) = {!!}
+⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {_<-_ {._} _ _} {_} _) = {!!}
+⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {try_catch_ {._} _ _} {_} _) = {!!}
+⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {_>>_ {_} {._} _ _} {_} _) = {!!}
+⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {ref {._} _} {_} _) = {!!}
