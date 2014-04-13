@@ -12,12 +12,13 @@ open import Data.Bool hiding ( if_then_else_ ) renaming ( _∧_ to _and_  ; _∨
 open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
 open import Relation.Binary.PropositionalEquality hiding ( [_] )
+--open import Proofs.CompSound
 
 -- TODO move all the examples to another module
 -- TODO : Import sound from Proofs
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ D.< v , H2 >
-⇓sound = {!!} 
+⇓sound = {!!}
 
 --------------------------------------------------------------------------------
 -- Predicates and combinators
@@ -210,6 +211,9 @@ data HeapEq : ∀ {n m} -> Heap n -> Heap m -> Set where
 ⇓expr-preserves-heap isEx (E-Seq x bstp bstp₁) with ⇓expr-preserves-heap (proj₁ isEx) bstp | ⇓expr-preserves-heap (proj₂ isEx) bstp₁
 ⇓expr-preserves-heap ty1 (E-Seq x bstp bstp₁) | Refl | Refl = Refl
 ⇓expr-preserves-heap isEx (E-SeqErr bstp) = ⇓expr-preserves-heap (proj₁ isEx) bstp
+⇓expr-preserves-heap isEx (E-TryCat isEr bstp) = ⇓expr-preserves-heap (proj₁ isEx) bstp
+⇓expr-preserves-heap isEx (E-TryCatEx bstp1 bstp2) with ⇓expr-preserves-heap (proj₁ isEx) bstp1 | ⇓expr-preserves-heap (proj₂ isEx) bstp2
+⇓expr-preserves-heap {ty} {.m} {m} _ (E-TryCatEx bstp1 bstp2) | Refl | Refl = Refl
 
 -- examples
 const-exprs : isExpr (Base.true)
@@ -289,7 +293,7 @@ if-expr = tt , tt , tt
 
     alloc : ∀ {ty} -> Term ty -> PredicateQ -> PredicateP
     alloc {ty} S q (pArg H) = 
-      let D.< v , H2 > = ⟦ S ⟧ H in q (qArg (vref {ty} 0) (pArg (Cons v H2)))
+      let D.<_,_> {n} v H2 = ⟦ S ⟧ H in q (qArg (vref {ty} n) (pArg (append H2 v)))
 
     hoare-new : ∀ {ty} {P : PredicateP} {Q : PredicateQ} {S : Term ty} -> ⊧ (P ⇒ alloc S Q) -> < P > new S < Q >
     hoare-new {P = P} {Q = Q} pq {H1 = H1} (E-New {t = S} bstp) TP with split∨ (not (P (pArg H1))) (alloc S Q (pArg H1)) pq
@@ -376,7 +380,7 @@ withError {ty} (qArg x x₁) = qArg {ty} verror x₁
 
 -- Sequence rule for hoare triples
 hoare-seq2 : ∀ {ty ty'} {P R' : PredicateP} {R Q : PredicateQ} {S1 : Term ty} {S2 : Term ty'} →
-            < P > S1 < R > → < R' > S2 < Q > → ⊧ (R ⇒ (λ x → R' (getPArg x))) → ⊧ (λ x → ((λ y → R (withError {ty} x)) ⇒ (λ y → Q (withError {ty'} x))) x) →  --((λ x → R (withError {ty} x)) ⇒ (λ x → Q (withError {ty'} x))) →
+            < P > S1 < R > → < R' > S2 < Q > → ⊧ (R ⇒ (λ x → R' (getPArg x))) → ⊧ (λ x → ((λ y → R (withError {ty} x)) ⇒ (λ y → Q (withError {ty'} x))) x) →
             < P > S1 >> S2 < Q >
 hoare-seq2 {_} {_} {_} {R'} {R} pS1r rS2q seq err (E-Seq x bstp bstp₁) TP with pS1r bstp TP
 ... | s1 with mp R (λ z → R' (getPArg z)) seq s1
@@ -415,15 +419,16 @@ p1 = new (num 1)
 Q1 : PredicateQ 
 Q1 (qArg v (pArg H)) = (H [ 0 ] ) == vnat 1
 
-h1 : < isEmpty > p1 < Q1 >
-h1 {.0} {.(suc _)} {Nil} {H2 = Cons v H2} (E-New bstp) tt = {!!}
+--h1 : < isEmpty > p1 < Q1 >
+--h1 (E-New b) = {!!}
+--h1 {.0} {.(suc _)} {Nil} {H2 = (append H2 v)} (E-New bstp) tt = {!!}
 
 --  with ⟦ p1 ⟧ Nil | ⇓sound _ _ (E-New bstp) | ⟦ num 1 ⟧ Nil | ⇓sound _ _ bstp
 -- h1 {._} {.(suc _)} {Nil} {Cons v H2} (E-New bstp) tt | .(D.< vref 0 , Cons v H2 >) | refl | .(D.< v , H2 >) | refl = {!!}
 
 -- hoare-new {P = isEmpty} {Q = Q1} (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 {!pArg ?!}) (inj₂ {!!})) (E-New bstp) tt
 --  (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 (pArg Nil)) (inj₂ tt)) (E-New bstp) {!!} -- 
-h1 {.(suc _)} {.(suc _)} {Cons v H1} (E-New bstp) ()
+--h1 {.(suc _)} {.(suc _)} {Cons v H1} (E-New bstp) ()
 
 p2 : Term Boolean
 p2 = if Base.true then Base.true else Base.false

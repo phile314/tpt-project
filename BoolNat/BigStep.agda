@@ -124,16 +124,9 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
 
   E-TryCatEx : ∀ {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
                  {t1 : Term ty} {t2 : Term ty} {v : Value ty}               →
-               ¬ (isVError v)                                               →
                BStep {H1 = H1} {H2 = H2} t1                verror           →
                BStep {H1 = H2} {H2 = H3} t2                v                →
                BStep {H1 = H1} {H2 = H3} (try t1 catch t2) v
-
-  E-TryCatEr : ∀ {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
-                 {t1 : Term ty} {t2 : Term ty}                              →
-               BStep {H1 = H1} {H2 = H2} t1                verror           →
-               BStep {H1 = H2} {H2 = H3} t2                verror           →
-               BStep {H1 = H1} {H2 = H3} (try t1 catch t2) verror
 
 --------------------------------------------------------------------------------
 -- Conversion between BigStep and SmallStep
