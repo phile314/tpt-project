@@ -3,9 +3,7 @@ until at latest Saturday
 OP BigStep add missing steps, complete big <-> small conversions, update soundness/complete proof (split assignment rule)
 
 MV Solve if Hoare triple theorem problem (how????)
-PH Create module pulling in everything else to detect compile errors
 
-PH What happens if Hoare Predicate are Value -> Heap -> Bool ?
 
   Report
   Presentation
@@ -26,6 +24,8 @@ Presentation notes:
 ==========================
 DONE:
 ==========================
+PH What happens if Hoare Predicate are Value -> Heap -> Bool ?
+PH Create module pulling in everything else to detect compile errors
    Add sequencing to the language
 MV Add Hoare Triples
 OP Splitting the proofs into smaller files
