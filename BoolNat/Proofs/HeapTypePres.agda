@@ -26,8 +26,8 @@ eq=>TypePres (Cons v H) = Write H H (eq=>TypePres H) v
 --Cons (eq=>TypePres H) v
 
 h-pres-replace : ∀ {n r ty} {H : Heap n} {v : Value ty} -> (e : Elem H r ty) -> TypePres H (replace H  e v)
-h-pres-replace {suc n} {zero} {ty} {Cons v H} {v'} Top = Write H H (eq=>TypePres H) v'
-h-pres-replace {suc n} {suc i} {ty} {Cons v H} {v'} (Pop e) = Write H (replace H e v') (h-pres-replace e) v
+h-pres-replace {suc n} .{n} {ty} {Cons v H} {v'} Current = Write H H (eq=>TypePres H) v'
+h-pres-replace {suc n} {_} {_} {Cons v H} {v'} (Skip x e) = Write H (replace H e v') (h-pres-replace e) v
 
 h-pres : ∀ {n m ty} (H1 : Heap n) (H2 : Heap m) {t t' : Term ty} -> Step {H1 = H1} {H2 = H2} t t' -> TypePres H1 H2
 h-pres .H2 H2 E-IsZeroZero = eq=>TypePres H2

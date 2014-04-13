@@ -182,23 +182,14 @@ tyEq (Ref ty1) (Ref ty2) | inj₂ y = inj₂ (λ x → y (f x))
         f refl = refl
 
 
--- elem-eq : ∀ {n ty ty₁} {H : Heap n} {v : Value ty} -> (e : Elem (Cons v H) 0 ty₁) -> (ty₁ ≡ ty)
--- elem-eq Current = refl
--- elem-eq (Skip e) = elem-eq {!e!}
-
-≤next : ∀ {n m} -> (n Data.Nat.≤ m) ≡ ((suc n) Data.Nat.≤ (suc m))
-≤next {n} {m} = (n Data.Nat.≤ m)
- {!!} 
-  {!(suc n) Data.Nat.≤ (suc m)!}
-∎
--- ≤next z≤n = s≤s z≤n
--- ≤next (s≤s le) = s≤s (≤next le)
+≤next : ∀ {n m} -> (n Data.Nat.≤ m) -> ((suc n) Data.Nat.≤ (suc m))
+≤next z≤n = s≤s z≤n
+≤next (s≤s le) = s≤s (≤next le)
 
 ≤plus : ∀ {n m} -> n Data.Nat.≤ (n + m)
 ≤plus {zero} {zero} = z≤n
-≤plus {suc n} {zero} = s≤s (≤plus {n} {zero})
-≤plus {n} {suc m} with ≤plus {n} {m}
-... | sp = {!!}
+≤plus {suc n} {m} = s≤s (≤plus {n} {m})
+≤plus {zero} {suc m} = z≤n
 
 ≤elim : ∀ {n} -> (suc n) Data.Nat.≤ n -> ⊥
 ≤elim {zero} ()
@@ -212,10 +203,6 @@ elem-eq (Skip {i} {_} .{i} x e) = ⊥-elim (f x)
         f {suc i₁} (s≤s s) = f s
 
 
-elem-suc : ∀ {n i ty ty2} {H : Heap n} {v : Value ty2} -> (Elem (Cons v H) (suc i) ty) -> Elem H i ty
-elem-suc Current = {!!}
-elem-suc (Skip x e) = {!!}
-
 elem? : ∀ {n} -> (H : Heap n) -> (fn : ℕ) -> (ty : Type) -> ((Elem {n} H fn ty) ⊎ (¬ (Elem {n} H fn ty)))
 elem? Nil i ty = inj₂ g
   where g : ∀ {ty i} -> Elem Nil i ty -> ⊥
@@ -223,20 +210,21 @@ elem? Nil i ty = inj₂ g
 elem? (Cons {ty} {n} v H) i ty₁ with compare i n
 elem? (Cons v H) i ty₁ | less .i k with elem? H i ty₁
 elem? (Cons v H) i ty₁ | less .i k | inj₁ x = inj₁ (Skip {suc (i + k)} {ty₁} {i} {_} {v} {H} (≤plus) x)
-elem? (Cons v H) i ty₁ | less .i k | inj₂ y = inj₂ (λ x → y {!!})
+elem? (Cons v H) i ty₁ | less .i k | inj₂ y = inj₂ (λ x → y (g {_} {_} {_} {i} {v} {H} (≤plus) x))
+  where g : ∀ {ty ty₁ n i} {v : Value ty₁} {H : Heap n} -> (i Data.Nat.< n) -> Elem (Cons v H) i ty -> Elem H i ty
+        g lt Current = ⊥-elim (≤elim lt)
+        g lt (Skip x e) = e
 elem? (Cons {ty} {n} v H) .n ty₁ | equal .n with tyEq ty₁ ty
 elem? (Cons {ty} {n} v H) .n .ty | equal .n | inj₁ refl = inj₁ Current
 elem? (Cons {ty} {n} v H) .n ty₁ | equal .n | inj₂ y = inj₂ (λ x → y (elem-eq x))
 elem? (Cons {ty} {n} v H) .(suc (n + k)) ty₁ | greater .n k = inj₂ (λ x → g ≤plus x)
-  where g : ∀ {ty ty1 n m} {v : Value ty1} {H : Heap n} -> (m Data.Nat.> n) -> (Elem (Cons v H) m ty) -> ⊥
+  where h : ∀ {m n} -> (suc m) Data.Nat.≤ n -> (suc n) Data.Nat.≤ m -> ⊥
+        h {zero} a ()
+        h {suc m} {zero} () b
+        h {suc m} {suc n₁} (s≤s a) (s≤s b) = h a b
+        g : ∀ {ty ty1 n m} {v : Value ty1} {H : Heap n} -> (m Data.Nat.> n) -> (Elem (Cons v H) m ty) -> ⊥
         g leq Current = ≤elim leq
-        g leq (Skip x e) = {!!}
--- elem? (Cons {ty} v H) zero ty₁ with tyEq ty₁ ty
--- elem? (Cons {ty} v H) zero .ty | inj₁ refl = inj₁ {!!}
--- elem? (Cons {ty} v H) zero ty₁ | inj₂ y = inj₂ (λ x → y {!!})
--- elem? (Cons v H) (suc n₁) ty₁ with elem? H n₁ ty₁
--- elem? (Cons v H) (suc n₁) ty₁ | inj₁ x = inj₁ {!!}
--- elem? (Cons v H) (suc n₁) ty₁ | inj₂ y = inj₂ (λ x → y {!!})
+        g leq (Skip x e) = h leq x
 
 
 replace : ∀ {ty n} -> {fn : ℕ} -> (H : Heap n) -> Elem H fn ty -> Value ty -> Heap n
