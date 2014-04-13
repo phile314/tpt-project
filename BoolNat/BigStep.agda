@@ -97,10 +97,11 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
                                                 (t1 <- t2)    v
 
   E-AssOob   : ∀ {ty n1 n2 n3 r} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
-               {t1 : Term (Ref ty)} {t2 : Term ty}                                        →
-               ¬ (Elem H1 r ty)                                                           →
+               {t1 : Term (Ref ty)} {t2 : Term ty} {v : Value ty}                         →
+               ¬ (Elem H3 r ty)                                                           →
                BStep {H1 = H1} {H2 = H2}        t1            (vref r)                    →
-               BStep {H1 = H1} {H2 = H2}        (t1 <- t2)    verror
+               BStep {H1 = H2} {H2 = H3}        t2            v                           →
+               BStep {H1 = H1} {H2 = H3}        (t1 <- t2)    verror
 
   E-AssErr   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m}
                  {t1 : Term (Ref ty)} {t2 : Term ty}                                      →
@@ -189,13 +190,14 @@ E-Seq* (x :: stps) = E-Seq1 x :: E-Seq* stps
 
 -- Lemmas used for small-to-big
 -- Converstion from big- to small-step representations.
-{-
+
 err-is-verr : ∀ {ty} {v : Value ty} -> isError ⌜ v ⌝ -> isVError v
 err-is-verr {.Boolean} {vtrue} ()
 err-is-verr {.Boolean} {vfalse} ()
 err-is-verr {.Natural} {vnat x} ()
 err-is-verr {Ref ty} {vref x} ()
 err-is-verr {ty} {verror} err = unit
+
 
 big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
                BStep {H1 = H1} {H2 = H2} t v -> Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝
@@ -218,15 +220,15 @@ big-to-small (E-New      bstp) = E-New*   (big-to-small bstp) ++ [ E-NewVal refl
 big-to-small (E-Deref    bstp) = E-Deref* (big-to-small bstp) ++ [ E-DerefVal    ]
 big-to-small (E-DerefErr bstp) = E-Deref* (big-to-small bstp) ++ [ E-Deref-Err   ]
 
-big-to-small (E-Ass      rep  bstp1 bstp2) = ? --(E-AssL* (big-to-small {!!}) ++ E-AssR* (big-to-small {!!})) ++ [ {!!} ]
-big-to-small (E-AssOob   nrp  bstp       ) = ?
+big-to-small (E-Ass    {v = v} rep  bstp1 bstp2) = (E-AssL* (big-to-small bstp1)) ++ ((E-AssR* (big-to-small bstp2)) ++ [ (E-AssRed-Suc (isValue? v) refl rep) ])
+big-to-small (E-AssOob {v = v} nrp  bstp1 bstp2) = (E-AssL* (big-to-small bstp1)) ++ (E-AssR* (big-to-small bstp2) ++ [ (E-AssRed-Fail {isV = (isValue? v)} nrp) ])
 big-to-small (E-AssErr        bstp       ) = (E-AssL* (big-to-small bstp)) ++ [ E-Assign-Err1 ]
 
-big-to-small (E-Seq    bstp1 bstp2 bstp3) = {!!}
-big-to-small (E-SeqErr bstp             ) = {!!}
+big-to-small (E-Seq {v1 = v1} nEr bstp bstp2 ) = (E-Seq* (big-to-small bstp)) ++ ((E-SeqVal ((isValue? v1) , (λ x → nEr (err-is-verr x)))) :: big-to-small bstp2)
+big-to-small (E-SeqErr bstp             ) = (E-Seq* (big-to-small bstp)) ++ [ E-Seq-Err ]
 
 big-to-small {v = v} (E-TryCat   ner b    ) = E-Try* (big-to-small b) ++ [ E-Try-Catch-Suc ((isValue? v) , (λ x → ner (err-is-verr x))) ]
-big-to-small (E-TryCatEx b1 b2) = ? --(E-Try* (big-to-small b1) ++ {!!}) ++ [ E-Try-Catch-Fail unit ]
+big-to-small (E-TryCatEx b1 b2) = (E-Try* (big-to-small b1)) ++ ((E-Try-Catch-Fail unit) :: big-to-small b2)
 
 
 -- A value term evaluates to itself.
@@ -239,7 +241,7 @@ value-of-value (vref x) = E-Ref
 value-of-value verror = E-Error
 
 -- Combining a single small step with a big step.
-
+{-
 prepend-step : forall {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3} {t1 t2 : Term ty} {v : Value ty} -> 
                Step {H1 = H1} {H2 = H2} t1 t2 -> BStep {H1 = H2} {H2 = H3} t2 v -> BStep {H1 = H1} {H2 = H3} t1 v
 prepend-step E-IsZeroZero E-True         = E-IsZerZ   E-Num
@@ -297,6 +299,7 @@ small-to-big : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value
                Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝ -> BStep {H1 = H1} {H2 = H2} t v
 small-to-big [] = value-of-value _
 small-to-big (stp :: stps) = prepend-step stp (small-to-big stps)
+
+
+
 -}
-
-
