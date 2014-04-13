@@ -203,7 +203,6 @@ data HeapEq : ∀ {n m} -> Heap n -> Heap m -> Set where
 ⇓expr-preserves-heap isEx (E-IsZerS bstp) = ⇓expr-preserves-heap isEx bstp
 ⇓expr-preserves-heap isEx (E-IsZerErr bstp) = ⇓expr-preserves-heap isEx bstp
 ⇓expr-preserves-heap () (E-New bstp)
-⇓expr-preserves-heap () (E-NewErr bstp)
 ⇓expr-preserves-heap isEx (E-Deref bstp) = ⇓expr-preserves-heap isEx bstp
 ⇓expr-preserves-heap isEx (E-DerefErr bstp) = ⇓expr-preserves-heap isEx bstp
 ⇓expr-preserves-heap () (E-Ass bstp bstp₁)
@@ -298,7 +297,6 @@ if-expr = tt , tt , tt
     hoare-new n (E-New bstp) TP | inj₂ (inj₁ NTP) = ⊥-elim (absurd TP NTP)
     hoare-new n {H1 = H1} (E-New {t = S} bstp) TP | inj₂ (inj₂ T-alloc) with ⟦ S ⟧ H1 | ⇓sound _ _ bstp 
     hoare-new n (E-New bstp) TP | inj₂ (inj₂ T-alloc) | D.< v , H2 > | refl = T-alloc
-    hoare-new pq (E-NewErr bstp) TP = {!!}   -- This case should not occur since also error are allowed in the heap
 
     module Partial where
 
@@ -426,7 +424,6 @@ h1 {.0} {.(suc _)} {Nil} {H2 = Cons v H2} (E-New bstp) tt = {!!}
 -- hoare-new {P = isEmpty} {Q = Q1} (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 {!pArg ?!}) (inj₂ {!!})) (E-New bstp) tt
 --  (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 (pArg Nil)) (inj₂ tt)) (E-New bstp) {!!} -- 
 h1 {.(suc _)} {.(suc _)} {Cons v H1} (E-New bstp) ()
-h1 (E-NewErr bstp) TP = {!!} --  hoare-new {!!} bstp TP 
 
 p2 : Term Boolean
 p2 = if Base.true then Base.true else Base.false
