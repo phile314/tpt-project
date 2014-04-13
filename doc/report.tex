@@ -1,0 +1,96 @@
+\documentclass[12pt, a4paper, oneside]{article}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{placeins}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{bussproofs}
+\usepackage{xparse}
+% font size could be 10pt (default), 11pt or 12 pt
+% paper size coulde be letterpaper (default), legalpaper, executivepaper,
+% a4paper, a5paper or b5paper
+% side coulde be oneside (default) or twoside 
+% columns coulde be onecolumn (default) or twocolumn
+% graphics coulde be final (default) or draft 
+%
+% titlepage coulde be notitlepage (default) or titlepage which 
+% makes an extra page for title 
+% 
+% paper alignment coulde be portrait (default) or landscape 
+%
+% equations coulde be 
+%   default number of the equation on the rigth and equation centered 
+%   leqno number on the left and equation centered 
+%   fleqn number on the rigth and  equation on the left side
+%   
+
+\newcommand{\sproof}{
+  \scriptsize
+  \begin{center}
+  \begin{prooftree}
+  \def\defaultHypSeparation{\hskip .1in}
+% whats that doing? ->  \def\fCenter{\models}
+}
+
+\newcommand{\eproof}{
+  \end{prooftree}
+  \end{center}
+  \normalsize
+}
+
+\DeclareDocumentCommand{\sstep}{O{} O{} m m} {%
+  \ensuremath{\Phi_{#1} \vdash {#3} \rightarrow \Phi_{#2} \vdash {#4}}%
+}
+
+
+
+\title{TPT Project (TODO add desc)}
+\author{Marco Vassena  \\
+    4110161 \\
+    \and
+    Philipp Hausmann \\
+    4003373 \\
+    \and
+    Ondra Pelech \\
+    F131636 \\
+    }
+
+\date{\today}
+\begin{document}
+
+
+
+\maketitle
+
+\tableofcontents
+
+blablalb
+
+\section{Semantics}
+
+\sproof
+\AxiomC{\sstep[0][1]{t}{t'}}
+\UnaryInfC{\sstep[0][1]{iszero \; t}{iszero \; t'}}
+\eproof
+
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{iszero \; 0}{true}}
+\eproof
+
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{iszero \; (suc \; v)}{false}}
+\eproof
+
+\begin{thebibliography}{1}
+
+\bibitem{PV14}
+  Wishnu Prasetya.
+  \emph{Lecture Notes Program Verification, v2014.0}.
+
+\end{thebibliography}
+
+
+\end{document}
