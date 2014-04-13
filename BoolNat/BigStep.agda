@@ -88,18 +88,24 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
                BStep {H1 = H1} {H2 = H2}        t             verror                      →
                BStep {H1 = H1} {H2 = H2}        (! t)         verror
 
-  E-Ass      : ∀ {ty n m k r} {H1 : Heap n} {H2 : Heap m} {H3 : Heap k}
-               {t1 : Term (Ref ty)} {t2 : Term ty} {v2 : Value ty}                        →
+  E-Ass      : ∀ {ty n1 n2 n3 r} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
+               {t1 : Term (Ref ty)} {t2 : Term ty} {v : Value ty}                         →
+               (rep : Elem H3 r ty)                                                       →
                BStep {H1 = H1} {H2 = H2}        t1            (vref r)                    →
-               BStep {H1 = H2} {H2 = H3}        t2            v2                          →
-               let e = elem? H3 r ty in
-               BStep {ty} {n} {k} {H1 = H1} {H2 = replace-heap v2 e }
-                                                (ref r <- t2) (replace-result v2 e)
+               BStep {H1 = H2} {H2 = H3}        t2            v                           →
+               BStep {H1 = H1} {H2 = replace H3 rep v }
+                                                (t1 <- t2)    v
 
-  E-AssErr   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t1 : Term (Ref ty)} {t2 : Term ty} →
+  E-AssOob   : ∀ {ty n1 n2 n3 r} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
+               {t1 : Term (Ref ty)} {t2 : Term ty}                                        →
+               ¬ (Elem H1 r ty)                                                           →
+               BStep {H1 = H1} {H2 = H2}        t1            (vref r)                    →
+               BStep {H1 = H1} {H2 = H2}        (t1 <- t2)    verror
+
+  E-AssErr   : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m}
+                 {t1 : Term (Ref ty)} {t2 : Term ty}                                      →
                BStep {H1 = H1} {H2 = H2}        t1            verror                      →
-               BStep {H1 = H1} {H2 = H2}
-                                                (t1 <- t2)    verror
+               BStep {H1 = H1} {H2 = H2}        (t1 <- t2)    verror
 
 -- seq
   E-Seq      : ∀ {ty1 ty2 n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3}
@@ -212,14 +218,15 @@ big-to-small (E-New      bstp) = E-New*   (big-to-small bstp) ++ [ E-NewVal refl
 big-to-small (E-Deref    bstp) = E-Deref* (big-to-small bstp) ++ [ E-DerefVal    ]
 big-to-small (E-DerefErr bstp) = E-Deref* (big-to-small bstp) ++ [ E-Deref-Err   ]
 
-big-to-small (E-Ass      bstp1 bstp2) = (E-AssL* (big-to-small {!!}) ++ E-AssR* (big-to-small {!!})) ++ [ {!!} ]
-big-to-small (E-AssErr   bstp       ) = (E-AssL* (big-to-small bstp)) ++ [ E-Assign-Err1 ]
+big-to-small (E-Ass      rep  bstp1 bstp2) = ? --(E-AssL* (big-to-small {!!}) ++ E-AssR* (big-to-small {!!})) ++ [ {!!} ]
+big-to-small (E-AssOob   nrp  bstp       ) = ?
+big-to-small (E-AssErr        bstp       ) = (E-AssL* (big-to-small bstp)) ++ [ E-Assign-Err1 ]
 
 big-to-small (E-Seq    bstp1 bstp2 bstp3) = {!!}
 big-to-small (E-SeqErr bstp             ) = {!!}
 
 big-to-small {v = v} (E-TryCat   ner b    ) = E-Try* (big-to-small b) ++ [ E-Try-Catch-Suc ((isValue? v) , (λ x → ner (err-is-verr x))) ]
-big-to-small (E-TryCatEx b1 b2) = (E-Try* (big-to-small b1) ++ {!!}) ++ [ E-Try-Catch-Fail unit ]
+big-to-small (E-TryCatEx b1 b2) = ? --(E-Try* (big-to-small b1) ++ {!!}) ++ [ E-Try-Catch-Fail unit ]
 
 
 -- A value term evaluates to itself.
@@ -261,9 +268,9 @@ prepend-step E-Deref-Err E-Error        = E-DerefErr E-Error
 
 prepend-step (E-AssLeft         s     ) b       = {!!}
 prepend-step (E-AssRight    isV s     ) b       = {!!}
-prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {H2} {t} {v} isV eq rep) b    with elem? H1 r ty
-... | inj₁ x with replace-heap v (inj₁ rep) | replace-result v (inj₁ rep)
-... | rh | rr rewrite (sym eq) = E-Ass {ty} {n} {n} {{!!}} {r} {H1} {H1} {{!!}} {ref r} E-Ref {!!}
+prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {H2} {t} {v} isV eq rep) b = ? --    with elem? H1 r ty
+--... | inj₁ x with replace-heap v (inj₁ rep) | replace-result v (inj₁ rep)
+--... | rh | rr rewrite (sym eq) = E-Ass ? --{ty} {n} {n} {{!!}} {r} {H1} {H1} {{!!}} {ref r} E-Ref {!!}
 --... | rh rewrite (sym eq) with value-of-value {ty} {n} {H1} v
 --... | vov = E-Ass {ty} {n} {n} {_} {r} {H1} {H1} {{!!}} {ref r} E-Ref {!!}
 -- E-Ass {ty} {n} {n} {{!!}} {r} {H1} {H1} {replace-heap v (inj₁ {!!})} {ref r} {t} {v} E-Ref {!!}
@@ -272,7 +279,7 @@ prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {H2} {t} {v} isV eq rep) b    with 
 -- ... | rr  with replace-heap v (inj₁ rep)
 -- --Goal: BStep (ref .r <- .t2) .v
 -- ... | rh rewrite (sym eq) = E-Ass E-Ref {!!}
-prepend-step (E-AssRed-Suc {v = v} isV eq rep) b | inj₂ y = ⊥-elim (y rep)
+--prepend-step (E-AssRed-Suc {v = v} isV eq rep) b | inj₂ y = ⊥-elim (y rep)
 prepend-step (E-AssRed-Fail notRep    ) E-Error = {!!}
 prepend-step E-Assign-Err1              E-Error = {!!}
 
@@ -291,6 +298,5 @@ small-to-big : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value
 small-to-big [] = value-of-value _
 small-to-big (stp :: stps) = prepend-step stp (small-to-big stps)
 -}
-
 
 

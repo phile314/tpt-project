@@ -46,6 +46,38 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >
+{-
+⇓sound .true     .vtrue     E-True            = refl
+⇓sound .false    .vfalse    E-False           = refl
+⇓sound .(num m₁) .(vnat m₁) (E-Num {._} {m₁}) = refl
+⇓sound .(ref m₁) .(vref m₁) (E-Ref {._} {m₁}) = refl
+⇓sound .error    .verror    E-Error           = refl
+
+⇓sound .(if t then t1 else t2) v       (E-IfTrue {._} {._} {n2} {._} {._} {H3} {._} {t} {t1} {t2} b1 b2) with ⟦ t ⟧ H1 | ⇓sound t vtrue b1
+...                                                                                                      |    xx       | yy                = {!!}
+⇓sound .(if t then t1 else t2) v       (E-IfFalse {._} {._} {n2} {._} {._} {H3} {._} {t} {t1} {t2} b b₁) = {!!}
+⇓sound .(if t then t1 else t2) .verror (E-IfErr {._} {._} {._} {._} {._} {t} {t1} {t2} b) = {!!}
+
+⇓sound .(iszero t) .vtrue (E-IsZerZ {._} {._} {._} {._} {t} b) = {!!}
+⇓sound .(iszero t) .vfalse (E-IsZerS {._} {._} {._} {._} {t} b) = {!!}
+⇓sound .(iszero t) .verror (E-IsZerErr {._} {._} {._} {._} {t} b) = {!!}
+
+⇓sound .(new t) .(vref m) (E-New {ty} {._} {m} {._} {H2} {t} b) = {!!}
+
+⇓sound {ty} {n} {m} {H1} {H2} .(! t) .(lookup r H2) (E-Deref {.ty} {.n} {.m} {r} {.H1} {.H2} {t} b) = {!!}
+⇓sound .(! t) .verror (E-DerefErr {._} {._} {._} {._} {._} {t} b) = {!!}
+
+⇓sound .(t1 <- t2) v (E-Ass {._} {._} {n2} {._} {r} {._} {H2} {H3} {t2} t1 rep b b₁) = {!!}
+⇓sound .(t1 <- t2) .verror (E-AssOob {._} {._} {._} {n3} {r} {._} {._} {H3} {t2} t1 x b) = {!!}
+⇓sound .(t1 <- t2) .verror (E-AssErr {._} {._} {._} {._} {._} {t2} t1 b) = {!!}
+
+⇓sound .(t1 >> t2) v (E-Seq {ty1} {._} {._} {n2} {._} {._} {H3} {._} {t1} {v1} {t2} x b b₁) = {!!}
+⇓sound .(t1 >> t2) .verror (E-SeqErr {ty1} {._} {._} {._} {._} {._} {t1} {t2} b) = {!!}
+
+⇓sound .(try t1 catch t2) v (E-TryCat {._} {._} {._} {._} {._} {t1} {t2} x b) = {!!}
+⇓sound .(try t1 catch t2) v (E-TryCatEx {._} {._} {n2} {._} {._} {H3} {._} {t1} {t2} b b₁) = {!!}
+-}
+
 ⇓sound .true .vtrue E-True = refl
 ⇓sound .false .vfalse E-False = refl
 ⇓sound (num n) (vnat .n) E-Num = refl
@@ -53,19 +85,31 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓sound (iszero t) .vtrue (E-IsZerZ bstp) | (< vnat 0 , H2 >) | refl = refl
 ⇓sound {H1 = H1} (iszero t) .vfalse (E-IsZerS {n = n} bstp) with ⟦ t ⟧ H1 | ⇓sound t (vnat (suc n)) bstp
 ⇓sound (iszero t) .vfalse (E-IsZerS bstp) | (< vnat (suc n₁) , H2 >) | refl = refl
+
 ⇓sound {H1 = H1} (if t then t1 else t2) v (E-IfTrue bstp bstp₁) with ⟦ t ⟧ H1 | ⇓sound t vtrue bstp
 ⇓sound (if t then t1 else t2) v (E-IfTrue bstp bstp₁) | < vtrue , H2 > | refl = ⇓sound t1 v bstp₁
 ⇓sound {H1 = H1} (if t then t1 else t2) v (E-IfFalse bstp bstp₁) with ⟦ t ⟧ H1 | ⇓sound t vfalse bstp 
 ⇓sound (if t then t1 else t2) v (E-IfFalse bstp bstp₁) | < vfalse , H2 > | refl = ⇓sound t2 v bstp₁
 ⇓sound {H1 = H1} (if t then t1 else t2) .verror (E-IfErr bstp) with ⟦ t ⟧ H1 | ⇓sound t verror bstp
 ⇓sound (if t then t1 else t2) .verror (E-IfErr bstp) | < verror , H2 > | refl = refl 
+
 ⇓sound {H1 = H1} (new t) (vref 0) (E-New bstp) with ⟦ t ⟧ H1 | ⇓sound t _ bstp
 ⇓sound (new t) (vref zero) (E-New bstp) | < v , H2 > | refl = refl 
 ⇓sound {H1 = H1} {H2 = H2} .(! t) .(lookup r H2) (E-Deref {r = r} {t = t} bstp) with  ⟦ t ⟧ H1 | ⇓sound t (vref r) bstp
 ⇓sound .(! t) .(lookup r H2) (E-Deref {t = t} bstp) | < vref r , H2 > | refl = refl
 ⇓sound {H1 = H1} (! t) .verror (E-DerefErr bstp) with  ⟦ t ⟧ H1 | ⇓sound t verror bstp
 ⇓sound {H1 = H1} (! t) .verror (E-DerefErr bstp) | < verror , H2 > | refl = refl 
-⇓sound {H1 = H1} (ref m <- t) ._ (E-Ass  bstp1 bstp2) = {!!} -- E-AssRed comes here and makes things horrible
+
+--⇓sound {H1 = H1} (ref r <- t) v (E-Ass  rep bstp1 bstp2) = {!!} -- E-AssRed comes here and makes things horrible
+⇓sound ._ _ (E-Ass {t1 = error {._}              } _ _ _) = {!!}
+⇓sound ._ _ (E-Ass {t1 = if_then_else_ {._} _ _ _} _ _ _) = {!!}
+⇓sound ._ _ (E-Ass {t1 = new {._} _              } _ _ _) = {!!}
+⇓sound ._ _ (E-Ass {t1 = !_ {._} _               } _ _ _) = {!!}
+⇓sound ._ _ (E-Ass {t1 = _<-_ {._} _ _           } _ _ _) = {!!}
+⇓sound ._ _ (E-Ass {t1 = try_catch_ {._} _ _     } _ _ _) = {!!}
+⇓sound ._ _ (E-Ass {t1 = _>>_ {_} {._} _ _       } _ _ _) = {!!}
+⇓sound ._ _ (E-Ass {t1 = ref {._} _              } _ _ _) = {!!}
+
 ⇓sound .error .verror E-Error = refl
 ⇓sound (ref .m₁) (vref m₁) E-Ref = refl
 ⇓sound {H1 = H1} (t1 >> t2) v (E-Seq isG stp1 stp2) with ⟦ t1 ⟧ H1 | ⇓sound t1 _ stp1
@@ -98,11 +142,13 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓sound {H1 = H1} (try t1 catch t2) v (E-TryCatEx a b) with ⟦ t1 ⟧ H1
 ⇓sound (try t1 catch t2) v (E-TryCatEx a b) | < value , heap > = {!!}
 
-⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {error {._}} {_} _) = {!!}
-⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {if_then_else_ {._} _ _ _} {_} _) = {!!}
-⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {new {._} _} {_} _) = {!!}
-⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} { !_ {._} _ } {_} _) = {!!}
-⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {_<-_ {._} _ _} {_} _) = {!!}
-⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {try_catch_ {._} _ _} {_} _) = {!!}
-⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {_>>_ {_} {._} _ _} {_} _) = {!!}
-⇓sound ._ ._ (E-AssErr {._} {._} {._} {._} {._} {ref {._} _} {_} _) = {!!}
+⇓sound ._ ._ (E-AssErr {t1 = error {._}              } _) = {!!}
+⇓sound ._ ._ (E-AssErr {t1 = if_then_else_ {._} _ _ _} _) = {!!}
+⇓sound ._ ._ (E-AssErr {t1 = new {._} _              } _) = {!!}
+⇓sound ._ ._ (E-AssErr {t1 = !_ {._} _               } _) = {!!}
+⇓sound ._ ._ (E-AssErr {t1 = _<-_ {._} _ _           } _) = {!!}
+⇓sound ._ ._ (E-AssErr {t1 = try_catch_ {._} _ _     } _) = {!!}
+⇓sound ._ ._ (E-AssErr {t1 = _>>_ {_} {._} _ _       } _) = {!!}
+⇓sound ._ ._ (E-AssErr {t1 = ref {._} _              } _) = {!!}
+
+⇓sound ._ ._ (E-AssOob {._} {._} {._} {_} {_} {._} {._} {_} {_} {_} _ _) = {!!}
