@@ -42,7 +42,7 @@ progress H1 (if .false then t₁ else t₂) | inj₁ (is-value vfalse) = inj₂ 
 progress H1 (if .error then t₁ else t₂) | inj₁ (is-value verror) = inj₂ (Red H1 error E-If-Err)
 progress H1 (if t then t₁ else t₂) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (if t' then t₁ else t₂) (E-If x))
 progress H1 (new t) with progress H1 t
-progress H1 (new .(⌜ v ⌝)) | inj₁ (is-value v) = inj₂ (Red (Cons v H1) (ref zero) (E-NewVal refl))
+progress {n = n} H1 (new .(⌜ v ⌝)) | inj₁ (is-value v) = inj₂ (Red (append H1 v) (ref n) (E-NewVal refl))
 progress H1 (new t) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (new t') (E-New x))
 progress H1 (! t) with progress H1 t 
 progress H1 (! .(ref x)) | inj₁ (is-value (vref x)) = inj₂ (Red H1 ⌜ lookup x H1 ⌝ E-DerefVal)

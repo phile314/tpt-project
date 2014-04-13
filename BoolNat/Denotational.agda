@@ -35,7 +35,7 @@ record Result (ty : Type) : Set where
 ⟦_⟧ (if t then t₁ else t₂) H | < verror , H' > = < verror , H' >
 ⟦_⟧ (new t) H with ⟦ t ⟧ H
 -- We allow also error to be stored in the heap
-⟦_⟧ (new t) H | < v , H' > = < (vref 0) , (Cons v H') >  -- Consistent with the current small step (cons instead of append)
+⟦_⟧ (new t) H | <_,_> {n} v H' = < (vref n) , (append H' v) >  -- Consistent with the current small step (cons instead of append)
 ⟦_⟧ (! t) H with ⟦ t ⟧ H
 ⟦_⟧ (! t) H | < vref x , H' > = < (lookup x H') , H' >
 ⟦_⟧ (! t) H | < verror , H' > = < verror , H' >

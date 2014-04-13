@@ -18,7 +18,6 @@ open import Data.Maybe
 open import Data.Fin using (Fin; fromℕ; toℕ)
 open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary
-open import Relation.Binary.PreorderReasoning
 
 --------------------------------------------------------------------------------
 -- Types
@@ -137,33 +136,31 @@ isValue? verror = unit
 -- Vector of values
 data Heap : ℕ -> Set where
   Nil : Heap 0
-  Cons : forall {ty} {n : ℕ} -> (v : Value ty) -> Heap n -> Heap (1 + n)
-
-
+  Cons : forall {ty n} -> (v : Value ty) -> Heap n -> Heap (1 + n)
 
 -- Partial lookup in the heap.
 -- If the index given is correct and the required type match with the stored value type, the value is returned.
 -- Otherwise verror is returned.
 lookup : ∀ {ty n} -> (m : ℕ)  -> Heap n -> Value ty
 lookup m Nil = verror
-lookup m (Cons {_} {n} v H) with compare m n
-lookup m (Cons v H) | less .m k = lookup m H
-lookup {ty} .n (Cons {ty₁} {n} v H) | equal .n with ty =? ty₁
-lookup .n (Cons {ty} {n} v H) | equal .n | just refl = v
-lookup .n (Cons {ty₁} {n} v H) | equal .n | nothing = verror
-lookup .(suc (n + k)) (Cons {ty₁} {n} v H) | greater .n k = verror
+lookup {ty} zero (Cons {ty'} v H) with ty =? ty' 
+lookup zero (Cons v H)  | just refl = v
+lookup zero (Cons v H) | nothing = verror
+lookup (suc m) (Cons v H) = lookup m H
 
-
+append : ∀ {ty n} -> (H : Heap n) -> (v : Value ty) -> Heap (suc n)
+append Nil v = Cons v Nil
+append (Cons v H) v₁ = Cons v (append H v₁)
 
 -- Safe lookup for type. Returns the type of the value at the given position
--- lookupTy : ∀ {n} -> (H : Heap n) -> (fn : Fin n) -> Type
--- lookupTy (Cons {ty} v H) Data.Fin.zero = ty
--- lookupTy (Cons v H) (Data.Fin.suc f) = lookupTy H f
+lookupTy : ∀ {n} -> (H : Heap n) -> (fn : Fin n) -> Type
+lookupTy (Cons {ty} v H) Data.Fin.zero = ty
+lookupTy (Cons v H) (Data.Fin.suc f) = lookupTy H f
 
 
 data Elem : ∀ {n} -> Heap n -> ℕ -> Type -> Set where
-  Current : ∀ {n ty} {v : Value ty} {H : Heap n} -> Elem (Cons v H) n ty
-  Skip    : ∀ {n ty i ty'} {v : Value ty'} {H : Heap n} -> (i Data.Nat.< n) -> (Elem {n} H i ty) -> Elem {suc n} (Cons v H) i ty
+  Top : ∀ {n ty} {v : Value ty} {H : Heap n} -> Elem (Cons v H) 0 ty
+  Pop : ∀ {n ty i ty'} {v : Value ty'} {H : Heap n} -> (Elem H i ty) -> Elem (Cons v H) (suc i) ty
 
 
 tyEq : (ty1 ty2 : Type) -> (ty1 ≡ ty2) ⊎ (ty1 ≢ ty2)
@@ -182,51 +179,26 @@ tyEq (Ref ty1) (Ref ty2) | inj₂ y = inj₂ (λ x → y (f x))
         f refl = refl
 
 
-≤next : ∀ {n m} -> (n Data.Nat.≤ m) -> ((suc n) Data.Nat.≤ (suc m))
-≤next z≤n = s≤s z≤n
-≤next (s≤s le) = s≤s (≤next le)
+elem-eq : ∀ {n ty ty₁} {H : Heap n} {v : Value ty} -> (e : Elem (Cons v H) 0 ty₁) -> (ty₁ ≡ ty)
+elem-eq Top = refl
 
-≤plus : ∀ {n m} -> n Data.Nat.≤ (n + m)
-≤plus {zero} {zero} = z≤n
-≤plus {suc n} {m} = s≤s (≤plus {n} {m})
-≤plus {zero} {suc m} = z≤n
 
-≤elim : ∀ {n} -> (suc n) Data.Nat.≤ n -> ⊥
-≤elim {zero} ()
-≤elim {suc n} (s≤s ss) = ≤elim ss
-
-elem-eq : ∀ {n ty ty₁} {H : Heap n} {v : Value ty} -> (e : Elem {suc n} (Cons v H) n ty₁) -> (ty₁ ≡ ty)
-elem-eq Current = refl
-elem-eq (Skip {i} {_} .{i} x e) = ⊥-elim (f x)
-  where f : ∀ {i} -> (suc i) Data.Nat.≤ i -> ⊥
-        f {zero} ()
-        f {suc i₁} (s≤s s) = f s
+elem-suc : ∀ {n i ty ty2} {H : Heap n} {v : Value ty2} -> (Elem (Cons v H) (suc i) ty) -> Elem H i ty
+elem-suc (Pop e) = e
 
 
 elem? : ∀ {n} -> (H : Heap n) -> (fn : ℕ) -> (ty : Type) -> ((Elem {n} H fn ty) ⊎ (¬ (Elem {n} H fn ty)))
 elem? Nil i ty = inj₂ g
   where g : ∀ {ty i} -> Elem Nil i ty -> ⊥
         g ()
-elem? (Cons {ty} {n} v H) i ty₁ with compare i n
-elem? (Cons v H) i ty₁ | less .i k with elem? H i ty₁
-elem? (Cons v H) i ty₁ | less .i k | inj₁ x = inj₁ (Skip {suc (i + k)} {ty₁} {i} {_} {v} {H} (≤plus) x)
-elem? (Cons v H) i ty₁ | less .i k | inj₂ y = inj₂ (λ x → y (g {_} {_} {_} {i} {v} {H} (≤plus) x))
-  where g : ∀ {ty ty₁ n i} {v : Value ty₁} {H : Heap n} -> (i Data.Nat.< n) -> Elem (Cons v H) i ty -> Elem H i ty
-        g lt Current = ⊥-elim (≤elim lt)
-        g lt (Skip x e) = e
-elem? (Cons {ty} {n} v H) .n ty₁ | equal .n with tyEq ty₁ ty
-elem? (Cons {ty} {n} v H) .n .ty | equal .n | inj₁ refl = inj₁ Current
-elem? (Cons {ty} {n} v H) .n ty₁ | equal .n | inj₂ y = inj₂ (λ x → y (elem-eq x))
-elem? (Cons {ty} {n} v H) .(suc (n + k)) ty₁ | greater .n k = inj₂ (λ x → g ≤plus x)
-  where h : ∀ {m n} -> (suc m) Data.Nat.≤ n -> (suc n) Data.Nat.≤ m -> ⊥
-        h {zero} a ()
-        h {suc m} {zero} () b
-        h {suc m} {suc n₁} (s≤s a) (s≤s b) = h a b
-        g : ∀ {ty ty1 n m} {v : Value ty1} {H : Heap n} -> (m Data.Nat.> n) -> (Elem (Cons v H) m ty) -> ⊥
-        g leq Current = ≤elim leq
-        g leq (Skip x e) = h leq x
+elem? (Cons {ty} v H) zero ty₁ with tyEq ty₁ ty
+elem? (Cons {ty} v H) zero .ty | inj₁ refl = inj₁ Top
+elem? (Cons {ty} v H) zero ty₁ | inj₂ y = inj₂ (λ x → y (elem-eq x))
+elem? (Cons v H) (suc n₁) ty₁ with elem? H n₁ ty₁
+elem? (Cons v H) (suc n₁) ty₁ | inj₁ x = inj₁ (Pop x)
+elem? (Cons v H) (suc n₁) ty₁ | inj₂ y = inj₂ (λ x → y (elem-suc x))
 
 
 replace : ∀ {ty n} -> {fn : ℕ} -> (H : Heap n) -> Elem H fn ty -> Value ty -> Heap n
-replace .(Cons v H) (Current {i} {ty} {v} {H}) v₁ = Cons v₁ H
-replace .(Cons v H) (Skip {n} {ty} {i} {ty'} {v} {H} x e) v₁ = Cons v (replace H e v₁)
+replace .(Cons v H) (Top {n} {ty} {v} {H}) v₁ = Cons v₁ H
+replace .(Cons v H) (Pop {n} {ty} {i} {ty'} {v} {H} e) v₁ = Cons v (replace H e v₁)

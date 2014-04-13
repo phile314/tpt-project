@@ -79,7 +79,7 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
 -- refs
   E-New      : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty}        →
                BStep {H1 = H1} {H2 = H2}        t             v                           →
-               BStep {H1 = H1} {H2 = Cons v H2} (new t)       (vref m)
+               BStep {H1 = H1} {H2 = append H2 v} (new t)       (vref m)
 
   E-Deref    : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t : Term (Ref ty)}               →
                BStep {H1 = H1} {H2 = H2}        t             (vref r)                    →
@@ -299,6 +299,7 @@ small-to-big : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value
                Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝ -> BStep {H1 = H1} {H2 = H2} t v
 small-to-big [] = value-of-value _
 small-to-big (stp :: stps) = prepend-step stp (small-to-big stps)
+
 
 
 -}

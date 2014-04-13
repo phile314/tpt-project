@@ -82,5 +82,4 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓sound {H1 = H1} (t1 >> t2) .verror (E-SeqErr bstp) with ⟦ t1 ⟧ H1 | ⇓sound t1 verror bstp
 ⇓sound (t1 >> t2) .verror (E-SeqErr bstp) | < verror , H2 > | refl = refl
 ⇓sound (iszero t) .verror (E-IsZerErr b) = {!!}
-⇓sound (new t) .verror (E-NewErr b) = {!!}
 ⇓sound (ref m <- t) .verror (E-AssErr b) = {!!}

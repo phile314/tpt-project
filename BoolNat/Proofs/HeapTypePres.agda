@@ -18,7 +18,7 @@ data TypePres : ∀ {n m} -> Heap m -> Heap n -> Set where
   -- If we overwrite a position with a value of the same type, we preserve shape as well.
   Write : ∀ {n ty} {v : Value ty} -> (H1 H2 : Heap n) -> (tp : TypePres H1 H2) -> (v' : Value ty) -> TypePres (Cons v H1) (Cons v' H2)
   -- If we append something, shape is also preserved.
-  Grow  : ∀ {n ty} -> (H : Heap n) -> (v : Value ty) -> TypePres H (Cons v H)
+  Grow  : ∀ {n ty} -> (H : Heap n) -> (v : Value ty) -> TypePres H (append H v)
 
 eq=>TypePres : ∀ {n} -> (H : Heap n) -> TypePres H H
 eq=>TypePres Nil = Base
@@ -26,8 +26,8 @@ eq=>TypePres (Cons v H) = Write H H (eq=>TypePres H) v
 --Cons (eq=>TypePres H) v
 
 h-pres-replace : ∀ {n r ty} {H : Heap n} {v : Value ty} -> (e : Elem H r ty) -> TypePres H (replace H  e v)
-h-pres-replace {suc n} .{n} {ty} {Cons v H} {v'} Current = Write H H (eq=>TypePres H) v'
-h-pres-replace {suc n} {_} {_} {Cons v H} {v'} (Skip x e) = Write H (replace H e v') (h-pres-replace e) v
+h-pres-replace {suc n} .{zero} {ty} {Cons v H} {v'} Top = Write H H (eq=>TypePres H) v'
+h-pres-replace {suc n} {suc i} {_} {Cons v H} {v'} (Pop e) = Write H (replace H e v') (h-pres-replace e) v
 
 h-pres : ∀ {n m ty} (H1 : Heap n) (H2 : Heap m) {t t' : Term ty} -> Step {H1 = H1} {H2 = H2} t t' -> TypePres H1 H2
 h-pres .H2 H2 E-IsZeroZero = eq=>TypePres H2
@@ -37,7 +37,7 @@ h-pres .H2 H2 E-IfTrue = eq=>TypePres H2
 h-pres .H2 H2 E-IfFalse = eq=>TypePres H2
 h-pres H1 H2 (E-If s) = h-pres H1 H2 s
 h-pres H1 H2 (E-New s) = h-pres H1 H2 s
-h-pres H1 .(Cons v H1) (E-NewVal {ty} {n} {.H1} {v} eq) = Grow H1 v
+h-pres H1 .(append H1 v) (E-NewVal {ty} {n} {.H1} {v} eq) = Grow H1 v
 h-pres H1 H2 (E-Deref s) = h-pres H1 H2 s
 h-pres .H2 H2 E-DerefVal = eq=>TypePres H2
 h-pres H1 H2 (E-AssLeft s) = h-pres H1 H2 s
