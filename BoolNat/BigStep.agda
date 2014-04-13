@@ -199,6 +199,9 @@ err-is-verr {Ref ty} {vref x} ()
 err-is-verr {ty} {verror} err = unit
 
 
+--verr-is-err : ∀ {ty} {v : Value ty} -> isVError v -> isError ⌜ v ⌝
+--verr-is-err e = {!!}
+
 big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
                BStep {H1 = H1} {H2 = H2} t v -> Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝
 big-to-small E-True  = []
@@ -268,9 +271,15 @@ prepend-step E-DerefVal  b              = {!!}
 prepend-step E-Deref-Err E-Error        = E-DerefErr E-Error
 
 
-prepend-step (E-AssLeft         s     ) b       = {!!}
-prepend-step (E-AssRight    isV s     ) b       = {!!}
-prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {H2} {t} {v} isV eq rep) b = ? --    with elem? H1 r ty
+prepend-step (E-AssLeft s) (E-Ass rep b b₁) = E-Ass rep (prepend-step s b) b₁
+prepend-step (E-AssLeft s) (E-AssOob x b b₁) = E-AssOob x (prepend-step s b) b₁
+prepend-step (E-AssLeft s) (E-AssErr b) = E-AssErr (prepend-step s b)
+prepend-step (E-AssRight isV s) (E-Ass rep b b₁) = E-Ass rep {!!} {!!}
+prepend-step (E-AssRight isV s) (E-AssOob x b b₁) = E-AssOob x {!!} (prepend-step s {!!})
+prepend-step (E-AssRight (proj₁ , proj₂) s) (E-AssErr b) = ⊥-elim (proj₂ {!!})
+prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {t} {v} isV eq rep) b with elem? H1 r ty
+prepend-step (E-AssRed-Suc isV eq rep) b | inj₁ x = E-Ass {!!} {!!} b
+prepend-step (E-AssRed-Suc isV eq rep) b | inj₂ y = ⊥-elim (y rep)
 --... | inj₁ x with replace-heap v (inj₁ rep) | replace-result v (inj₁ rep)
 --... | rh | rr rewrite (sym eq) = E-Ass ? --{ty} {n} {n} {{!!}} {r} {H1} {H1} {{!!}} {ref r} E-Ref {!!}
 --... | rh rewrite (sym eq) with value-of-value {ty} {n} {H1} v
@@ -285,16 +294,19 @@ prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {H2} {t} {v} isV eq rep) b = ? --  
 prepend-step (E-AssRed-Fail notRep    ) E-Error = {!!}
 prepend-step E-Assign-Err1              E-Error = {!!}
 
-prepend-step (E-Seq1   s) b       = {!!}
-prepend-step (E-SeqVal x) b       = {!!}
+prepend-step (E-Seq1 s) (E-Seq x b b₁) = E-Seq x (prepend-step s b) b₁
+prepend-step (E-Seq1 s) (E-SeqErr b) = E-SeqErr (prepend-step s b)
+prepend-step (E-SeqVal {ty1 = ty1} {t1 = t1} (proj₁ , proj₂)) b with ⌞ t1 , proj₁ ⌟
+... | d = E-Seq (λ x → proj₂ (verr-is-err {ty1} {{!!}} x)) (value-of-value {!!}) b
 prepend-step E-Seq-Err    E-Error = E-SeqErr E-Error
 
 prepend-step (E-Try-Catch s) (E-TryCat   x b    ) = E-TryCat   x (prepend-step s b)
 prepend-step (E-Try-Catch s) (E-TryCatEx b1 b2) = E-TryCatEx (prepend-step s b1) b2
-prepend-step (E-Try-Catch-Suc  (proj₁ , proj₂)) b = E-TryCat   {!!}       b
-prepend-step (E-Try-Catch-Fail isE            ) b = E-TryCatEx (prepend-step {!!} E-Error) b
-
-
+prepend-step (E-Try-Catch-Suc  (proj₁ , proj₂)) b = E-TryCat  {!!}       b
+prepend-step (E-Try-Catch-Fail isE            ) b = {!!} --E-TryCatEx (prepend-step {!!} E-Error) b
+--prepend-step _ _ = {!!} 
+-}
+{-
 small-to-big : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} → 
                Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝ -> BStep {H1 = H1} {H2 = H2} t v
 small-to-big [] = value-of-value _
