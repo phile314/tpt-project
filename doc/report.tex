@@ -124,22 +124,135 @@ blablalb
 
 \section{Big-step Semantics}
 
+\subsection{Values}
+
 \begin{itemize}
 
 \item
-New:
+True
 \sproof
 \AxiomC{}
-\UnaryInfC{$true \stepsto vtrue$}
+\UnaryInfC{$\Phi \vdash$ \textbf{true} $\stepsto$ $\Phi \vdash$ \emph{vtrue}}
 \eproof
 
 \item
-IfTrue:
+False
 \sproof
-\AxiomC{$c \stepsto vtrue$}
-\AxiomC{$t \stepsto v$}
-\BinaryInfC{$if~c~then~t~else~e \stepsto v$}
+\AxiomC{}
+\UnaryInfC{$\Phi \vdash$ \textbf{false} $\stepsto$ $\Phi \vdash$ \emph{vfalse}}
 \eproof
+
+\item
+Num
+\sproof
+\AxiomC{}
+\UnaryInfC{$\Phi \vdash$ \textbf{num} m $\stepsto$ $\Phi \vdash$ \emph{vnum} m}
+\eproof
+
+\item
+Ref
+\sproof
+\AxiomC{}
+\UnaryInfC{$\Phi \vdash$ \textbf{ref} r $\stepsto$ $\Phi \vdash$ \emph{vref} r}
+\eproof
+
+\item
+Error
+\sproof
+\AxiomC{}
+\UnaryInfC{$\Phi \vdash$ \textbf{error} $\stepsto$ $\Phi \vdash$ \emph{verror}}
+\eproof
+
+\end{itemize}
+
+
+
+\subsection{If then else}
+
+\begin{itemize}
+
+\item
+IfTrue
+\sproof
+\AxiomC{$\Phi_1 \vdash$ c $\stepsto$ $\Phi_2 \vdash$ \emph{vtrue}}
+\AxiomC{$\Phi_2 \vdash$ t $\stepsto$ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e $\stepsto$ $\Phi_3 \vdash$ v}
+\eproof
+
+\item
+IfFalse
+\sproof
+\AxiomC{$\Phi_1 \vdash$ c $\stepsto$ $\Phi_2 \vdash$ \emph{vfalse}}
+\AxiomC{$\Phi_2 \vdash$ e $\stepsto$ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e $\stepsto$ $\Phi_3 \vdash$ v}
+\eproof
+
+\item
+IfErr
+\sproof
+\AxiomC{$\Phi_1 \vdash$ c $\stepsto$ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e $\stepsto$ $\Phi_2 \vdash$ \emph{verror}}
+\eproof
+
+\end{itemize}
+
+
+
+\subsection{Is zero?}
+
+\begin{itemize}
+
+\item
+IsZeroZ
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ \emph{vnat 0}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t $\stepsto$ $\Phi_2 \vdash$ \emph{vtrue}}
+\eproof
+
+\item
+IsZeroS
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ \emph{vnat (succ} n \emph{)}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t $\stepsto$ $\Phi_2 \vdash$ \emph{vfalse}}
+\eproof
+
+\item
+IsZeroErr
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t $\stepsto$ $\Phi_2 \vdash$ \emph{verror}}
+\eproof
+
+\end{itemize}
+
+
+
+\subsection{References}
+
+\begin{itemize}
+
+\item
+New
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ v}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t $\stepsto$ $\Phi_2 \doubleplus [v] \vdash$ \emph{vref} \underline{len}$_{\Phi_2}$}
+\eproof
+
+\item
+Deref
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ \emph{vref} r}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{!} t $\stepsto$ $\Phi_2 \vdash$ \underline{lookup} r $\Phi_2$}
+\eproof
+
+
+
 
 \end{itemize}
 
