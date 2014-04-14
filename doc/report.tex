@@ -39,8 +39,11 @@
   \normalsize
 }
 
+\DeclareDocumentCommand{\sstepe}{m m m m} {%
+  \ensuremath{{#1} \vdash {#3} \rightarrow {#2} \vdash {#4}}%
+}
 \DeclareDocumentCommand{\sstep}{O{} O{} m m} {%
-  \ensuremath{\Phi_{#1} \vdash {#3} \rightarrow \Phi_{#2} \vdash {#4}}%
+  \sstepe{\Phi_{#1}}{\Phi_{#2}}{#3}{#4}%
 }
 
 
@@ -87,6 +90,26 @@ blablalb
 \sproof
 \AxiomC{\sstep[0][1]{c}{c'}}
 \UnaryInfC{\sstep[0][1]{if \; c \; then \; t \; else \; e}{if \; c' \; then \; t \; else \; e}}
+\eproof
+
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{if \; true \; then \; t \; else \; e}{t}}
+\eproof
+
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{if \; false \; then \; t \; else \; e}{e}}
+\eproof
+
+\sproof
+\AxiomC{\sstep[0][1]{t}{t'}}
+\UnaryInfC{\sstep[0][1]{new \; t} {new \; t'}}
+\eproof
+
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstepe{\Phi}{(\Phi ++ [v])}{new \; v}{vref \; len_\Phi}}
 \eproof
 
 
