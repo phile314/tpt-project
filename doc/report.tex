@@ -8,11 +8,7 @@
 \usepackage{bussproofs}
 \usepackage{xparse}
 
-\newcommand\impfnt[1]{\mbox{\bf #1}}
-\newcommand{\SKIP}{\impfnt{skip}}
 \newcommand{\stepsto}{\Downarrow}
-\newcommand{\Rule}[2]{\infer{#2}{#1}}
-\newcommand{\RuleSide}[3]{\infer[#3]{#2}{#1}}
 
 % font size could be 10pt (default), 11pt or 12 pt
 % paper size coulde be letterpaper (default), legalpaper, executivepaper,
@@ -132,35 +128,35 @@ blablalb
 True
 \sproof
 \AxiomC{}
-\UnaryInfC{$\Phi \vdash$ \textbf{true} $\stepsto$ $\Phi \vdash$ \emph{vtrue}}
+\UnaryInfC{$\Phi \vdash$ \textbf{true} ~$\stepsto$~ $\Phi \vdash$ \emph{vtrue}}
 \eproof
 
 \item
 False
 \sproof
 \AxiomC{}
-\UnaryInfC{$\Phi \vdash$ \textbf{false} $\stepsto$ $\Phi \vdash$ \emph{vfalse}}
+\UnaryInfC{$\Phi \vdash$ \textbf{false} ~$\stepsto$~ $\Phi \vdash$ \emph{vfalse}}
 \eproof
 
 \item
 Num
 \sproof
 \AxiomC{}
-\UnaryInfC{$\Phi \vdash$ \textbf{num} m $\stepsto$ $\Phi \vdash$ \emph{vnum} m}
+\UnaryInfC{$\Phi \vdash$ \textbf{num} m ~$\stepsto$~ $\Phi \vdash$ \emph{vnum} m}
 \eproof
 
 \item
 Ref
 \sproof
 \AxiomC{}
-\UnaryInfC{$\Phi \vdash$ \textbf{ref} r $\stepsto$ $\Phi \vdash$ \emph{vref} r}
+\UnaryInfC{$\Phi \vdash$ \textbf{ref} r ~$\stepsto$~ $\Phi \vdash$ \emph{vref} r}
 \eproof
 
 \item
 Error
 \sproof
 \AxiomC{}
-\UnaryInfC{$\Phi \vdash$ \textbf{error} $\stepsto$ $\Phi \vdash$ \emph{verror}}
+\UnaryInfC{$\Phi \vdash$ \textbf{error} ~$\stepsto$~ $\Phi \vdash$ \emph{verror}}
 \eproof
 
 \end{itemize}
@@ -174,25 +170,25 @@ Error
 \item
 IfTrue
 \sproof
-\AxiomC{$\Phi_1 \vdash$ c $\stepsto$ $\Phi_2 \vdash$ \emph{vtrue}}
-\AxiomC{$\Phi_2 \vdash$ t $\stepsto$ $\Phi_3 \vdash$ v}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e $\stepsto$ $\Phi_3 \vdash$ v}
+\AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vtrue}}
+\AxiomC{$\Phi_2 \vdash$ t ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \eproof
 
 \item
 IfFalse
 \sproof
-\AxiomC{$\Phi_1 \vdash$ c $\stepsto$ $\Phi_2 \vdash$ \emph{vfalse}}
-\AxiomC{$\Phi_2 \vdash$ e $\stepsto$ $\Phi_3 \vdash$ v}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e $\stepsto$ $\Phi_3 \vdash$ v}
+\AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vfalse}}
+\AxiomC{$\Phi_2 \vdash$ e ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \eproof
 
 \item
 IfErr
 \sproof
-\AxiomC{$\Phi_1 \vdash$ c $\stepsto$ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e $\stepsto$ $\Phi_2 \vdash$ \emph{verror}}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \eproof
 
 \end{itemize}
@@ -206,25 +202,25 @@ IfErr
 \item
 IsZeroZ
 \sproof
-\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ \emph{vnat 0}}
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vnat 0}}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t $\stepsto$ $\Phi_2 \vdash$ \emph{vtrue}}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vtrue}}
 \eproof
 
 \item
 IsZeroS
 \sproof
-\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ \emph{vnat (succ} n \emph{)}}
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vnat (succ} n \emph{)}}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t $\stepsto$ $\Phi_2 \vdash$ \emph{vfalse}}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vfalse}}
 \eproof
 
 \item
 IsZeroErr
 \sproof
-\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t $\stepsto$ $\Phi_2 \vdash$ \emph{verror}}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \eproof
 
 \end{itemize}
@@ -238,23 +234,101 @@ IsZeroErr
 \item
 New
 \sproof
-\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ v}
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ v}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t $\stepsto$ $\Phi_2 \doubleplus [v] \vdash$ \emph{vref} \underline{len}$_{\Phi_2}$}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t ~$\stepsto$~ $\Phi_2 \doubleplus [v] \vdash$ \emph{vref} (\underline{len} $\Phi_2$)}
 \eproof
 
 \item
 Deref
 \sproof
-\AxiomC{$\Phi_1 \vdash$ t $\stepsto$ $\Phi_2 \vdash$ \emph{vref} r}
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{!} t $\stepsto$ $\Phi_2 \vdash$ \underline{lookup} r $\Phi_2$}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{!} t ~$\stepsto$~ $\Phi_2 \vdash$ \underline{lookup} r $\Phi_2$}
 \eproof
 
+\item
+DerefErr
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{!} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\eproof
 
+\item
+Ass
+\sproof
+\AxiomC{rep : \textbf{Elem} $\Phi_3$ r ~~ $\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
+\AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ \underline{replace} $\Phi_3$ rep v $\vdash$ v}
+\eproof
 
+\item
+AssOob
+\sproof
+\AxiomC{$\neg$ \textbf{Elem} $\Phi_3$ r ~~ $\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
+\AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ $\Phi_3$ $\vdash$ \emph{verror}}
+\eproof
+
+\item
+AssErr
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
+\eproof
 
 \end{itemize}
+
+
+
+\subsection{Sequencing}
+
+\begin{itemize}
+
+\item
+Seq
+\sproof
+\AxiomC{$\neg$ \textbf{isVError} v$_1$ ~~ $\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ v$_1$}
+\AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v$_2$}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{$\gg$} t$_2$ ~$\stepsto$~ $\Phi_3$ $\vdash$ v$_2$}
+\eproof
+
+\item
+SeqErr
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{$\gg$} t$_2$ ~$\stepsto$~ $\Phi_3$ $\vdash$ \emph{verror}}
+\eproof
+
+\end{itemize}
+
+
+
+\subsection{Try catch}
+
+\begin{itemize}
+
+\item
+TryCatch
+\sproof
+\AxiomC{$\neg$ \textbf{isVError} v$_1$}
+\AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{try} t$_1$ \textbf{catch} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ v}
+\eproof
+
+\item
+TryCatchErr
+\sproof
+\AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{try} t$_1$ \textbf{catch} t$_2$ ~$\stepsto$~ $\Phi_3$ $\vdash$ v}
+\eproof
+
+\end{itemize}
+
 
 
 \begin{thebibliography}{1}
