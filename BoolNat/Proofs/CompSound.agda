@@ -40,12 +40,18 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓complete (t <- t₁) H | < verror , heap > | bstp = E-AssErr bstp
 ⇓complete (ref x) H = E-Ref
 ⇓complete (try t catch t₁) H with ⟦ t ⟧ H | ⇓complete t H  
-⇓complete (try t catch t₁) H | < vtrue , heap > | bstp = {!!}
-⇓complete (try t catch t₁) H | < vfalse , heap > | bstp = {!!}
-⇓complete (try t catch t₁) H | < vnat x , heap > | bstp = {!!}
-⇓complete (try t catch t₁) H | < vref x , heap > | bstp = {!!}
-⇓complete (try t catch t₁) H | < verror , heap > | bstp = {!!}
-⇓complete (t1 >> t2) H = {!!}
+⇓complete (try t catch t₁) H | < vtrue , heap > | bstp = E-TryCat (λ z → z) bstp
+⇓complete (try t catch t₁) H | < vfalse , heap > | bstp = E-TryCat (λ z → z) bstp
+⇓complete (try t catch t₁) H | < vnat x , heap > | bstp = E-TryCat (λ z → z) bstp
+⇓complete (try t catch t₁) H | < vref x , heap > | bstp = E-TryCat (λ z → z) bstp
+⇓complete (try t catch t₁) H | < verror , H' > | bstp with ⟦ t₁ ⟧ H' | ⇓complete t₁ H'
+⇓complete (try t catch t₁) H | < verror , H' > | bstp | < value , heap > | bstp₁ = E-TryCatEx bstp bstp₁
+⇓complete (t1 >> t2) H with ⟦ t1 ⟧ H | ⇓complete t1 H
+⇓complete (t1 >> t2) H | < vtrue , heap > | bstp = E-Seq (λ z → z) bstp (⇓complete t2 heap)
+⇓complete (t1 >> t2) H | < vfalse , heap > | bstp = E-Seq (λ z → z) bstp (⇓complete t2 heap)
+⇓complete (t1 >> t2) H | < vnat x , heap > | bstp = E-Seq (λ z → z) bstp (⇓complete t2 heap)
+⇓complete (t1 >> t2) H | < vref x , heap > | bstp = E-Seq (λ z → z) bstp (⇓complete t2 heap)
+⇓complete (t1 >> t2) H | < verror , heap > | bstp = E-SeqErr bstp
 
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >
