@@ -84,6 +84,12 @@ blablalb
 \UnaryInfC{\sstep{iszero \; (suc \; v)}{false}}
 \eproof
 
+\sproof
+\AxiomC{\sstep[0][1]{c}{c'}}
+\UnaryInfC{\sstep[0][1]{if \; c \; then \; t \; else \; e}{if \; c' \; then \; t \; else \; e}}
+\eproof
+
+
 \begin{thebibliography}{1}
 
 \bibitem{PV14}
