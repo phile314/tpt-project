@@ -11,7 +11,7 @@ open import SmallStep
 open import BigStep
 open import Denotational
 
-open import Proofs.CompSound
+--open import Proofs.CompSound
 
 open import Relation.Binary.PropositionalEquality hiding ( [_] ) -- remove
 
@@ -32,12 +32,8 @@ err-is-verr {Ref ty} {vref x} ()
 err-is-verr {ty} {verror} err = unit
 
 
-verr-is-err : ∀ {ty} {v : Value ty} -> isVError v -> isError ⌜ v ⌝
-verr-is-err {.Boolean} {vtrue} ()
-verr-is-err {.Boolean} {vfalse} ()
-verr-is-err {.Natural} {vnat x} ()
-verr-is-err {Ref ty} {vref x} ()
-verr-is-err {ty} {verror} unit = unit
+verr-is-err : ∀ {ty} {t : Term ty} -> (isV : isValue t) -> isVError (⌞ t , isV ⌟) -> isError t
+verr-is-err = {!!}
 
 big-to-small : forall {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} ->
                BStep {H1 = H1} {H2 = H2} t v -> Steps {H1 = H1} {H2 = H2} t ⌜ v ⌝
@@ -80,6 +76,35 @@ value-of-value (vnat n) = E-Num
 value-of-value (vref x) = E-Ref
 value-of-value verror = E-Error
 
+value-of-term : ∀ {ty n} {H : Heap n} {t : Term ty} -> (isV : isValue t) -> BStep {H1 = H} {H2 = H} t (⌞ t , isV ⌟)
+value-of-term {.Boolean} {n} {H} {true} is = E-True
+value-of-term {.Boolean} {n} {H} {false} is = E-False
+value-of-term {ty} {n} {H} {error} is = E-Error
+value-of-term {.Natural} {n} {H} {num x} is = E-Num
+value-of-term {.Boolean} {n} {H} {iszero t} ()
+value-of-term {ty} {n} {H} {if t then t₁ else t₂} ()
+value-of-term {Ref ty} {n} {H} {new t} ()
+value-of-term {ty} {n} {H} { ! t} ()
+value-of-term {ty} {n} {H} {t <- t₁} ()
+value-of-term {(Ref ty)} {n} {H} {ref x} is = E-Ref
+value-of-term {ty} {n} {H} {try t catch t₁} ()
+value-of-term {ty} {n} {H} {t >> t₁} ()
+
+err-eq : ∀ {ty} {t : Term ty} -> (isError t) -> t ≡ error
+err-eq {.Boolean} {true} ()
+err-eq {.Boolean} {false} ()
+err-eq {ty} {error} unit = refl
+err-eq {.Natural} {num x} ()
+err-eq {.Boolean} {iszero t} ()
+err-eq {ty} {if t then t₁ else t₂} ()
+err-eq {Ref ty} {new t} ()
+err-eq {ty} { ! t} ()
+err-eq {ty} {t <- t₁} ()
+err-eq {Ref ty} {ref x} ()
+err-eq {ty} {try t catch t₁} ()
+err-eq {ty} {t >> t₁} ()
+
+
 -- Combining a single small step with a big step.
 
 prepend-step : forall {ty n1 n2 n3} {H1 : Heap n1} {H2 : Heap n2} {H3 : Heap n3} {t1 t2 : Term ty} {v : Value ty} -> 
@@ -114,9 +139,7 @@ prepend-step (E-AssLeft s) (E-AssErr b) = E-AssErr (prepend-step s b)
 prepend-step (E-AssRight isV s) (E-Ass rep b b₁) = E-Ass rep {!!} {!!}
 prepend-step (E-AssRight isV s) (E-AssOob x b b₁) = E-AssOob x {!!} (prepend-step s {!!})
 prepend-step (E-AssRight (proj₁ , proj₂) s) (E-AssErr b) = ⊥-elim (proj₂ {!!})
-prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {t} {v} isV eq rep) b with elem? H1 r ty
-prepend-step (E-AssRed-Suc isV eq rep) b | inj₁ x = E-Ass {!!} {!!} b
-prepend-step (E-AssRed-Suc isV eq rep) b | inj₂ y = ⊥-elim (y rep)
+prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {t} {v} isV eq rep) b = E-Ass {!rep!} {!!} b
 --... | inj₁ x with replace-heap v (inj₁ rep) | replace-result v (inj₁ rep)
 --... | rh | rr rewrite (sym eq) = E-Ass ? --{ty} {n} {n} {{!!}} {r} {H1} {H1} {{!!}} {ref r} E-Ref {!!}
 --... | rh rewrite (sym eq) with value-of-value {ty} {n} {H1} v
@@ -128,19 +151,20 @@ prepend-step (E-AssRed-Suc isV eq rep) b | inj₂ y = ⊥-elim (y rep)
 -- --Goal: BStep (ref .r <- .t2) .v
 -- ... | rh rewrite (sym eq) = E-Ass E-Ref {!!}
 --prepend-step (E-AssRed-Suc {v = v} isV eq rep) b | inj₂ y = ⊥-elim (y rep)
-prepend-step (E-AssRed-Fail notRep    ) E-Error = {!!}
-prepend-step E-Assign-Err1              E-Error = {!!}
+prepend-step {ty} (E-AssRed-Fail {r = r} {t = t} {isV = isV} notRep    ) E-Error = E-AssOob {v = ⌞ t , isV ⌟} notRep (value-of-value (vref {ty} r)) (value-of-term isV)
+prepend-step E-Assign-Err1              E-Error = E-AssErr E-Error
 
 prepend-step (E-Seq1 s) (E-Seq x b b₁) = E-Seq x (prepend-step s b) b₁
 prepend-step (E-Seq1 s) (E-SeqErr b) = E-SeqErr (prepend-step s b)
-prepend-step (E-SeqVal {ty1 = ty1} {t1 = t1} (proj₁ , proj₂)) b with ⟦ t1 ⟧ {!!} -- with ⌞ t1 , proj₁ ⌟
-prepend-step (E-SeqVal (proj₁ , proj₂)) b | Denotational.< value , heap > = E-Seq (λ x → proj₂ (verr-is-err {_} {{!value!}} {!!})) (value-of-value {!value!}) b
+prepend-step (E-SeqVal {ty1 = ty1} {t1 = t1} (proj₁ , proj₂)) b = E-Seq (λ x → proj₂ ({!!})) (value-of-term proj₁) b
+-- with ⟦ t1 ⟧ {!!} -- with ⌞ t1 , proj₁ ⌟
+--prepend-step (E-SeqVal (proj₁ , proj₂)) b | Denotational.< value , heap > = E-Seq (λ x → proj₂ (verr-is-err {_} {{!value!}} {!!})) (value-of-value _) b
 prepend-step E-Seq-Err    E-Error = E-SeqErr E-Error
 
 prepend-step (E-Try-Catch s) (E-TryCat   x b    ) = E-TryCat   x (prepend-step s b)
 prepend-step (E-Try-Catch s) (E-TryCatEx b1 b2) = E-TryCatEx (prepend-step s b1) b2
 prepend-step (E-Try-Catch-Suc  (proj₁ , proj₂)) b = E-TryCat  {!!}       b
-prepend-step (E-Try-Catch-Fail isE            ) b = {!!} --E-TryCatEx (prepend-step {!!} E-Error) b
+prepend-step {t1 = try t catch t'} (E-Try-Catch-Fail isE            ) b rewrite err-eq isE = E-TryCatEx (value-of-value verror) b
 --prepend-step _ _ = {!!} 
 
 {-
