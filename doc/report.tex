@@ -8,8 +8,6 @@
 \usepackage{bussproofs}
 \usepackage{xparse}
 
-\usepackage{proof}
-
 \newcommand\impfnt[1]{\mbox{\bf #1}}
 \newcommand{\SKIP}{\impfnt{skip}}
 \newcommand{\stepsto}{\Downarrow}
@@ -130,15 +128,18 @@ blablalb
 
 \item
 New:
-\begin{tabular}{c}
-\infer{true \stepsto vtrue}{}
-\end{tabular}
+\sproof
+\AxiomC{}
+\UnaryInfC{$true \stepsto vtrue$}
+\eproof
 
 \item
 IfTrue:
-\begin{tabular}{c}
-\infer{if~t~then~t1~else~t2 \stepsto v}{t \stepsto vtrue~~t1 \stepsto v}
-\end{tabular}
+\sproof
+\AxiomC{$c \stepsto vtrue$}
+\AxiomC{$t \stepsto v$}
+\BinaryInfC{$if~c~then~t~else~e \stepsto v$}
+\eproof
 
 \end{itemize}
 
