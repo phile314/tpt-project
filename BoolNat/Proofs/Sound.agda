@@ -9,6 +9,10 @@ open import Data.Sum
 open import Relation.Binary.PropositionalEquality hiding ( [_] )
 open import Data.Empty renaming (⊥-elim to contradiction)
 
+lemma : ∀ {ty r n} {H : Heap n} (el1 : Elem H r ty) -> (el2 : Elem H r ty) -> el1 ≡ el2 
+lemma Top Top = refl
+lemma (Pop el1) (Pop el2) rewrite lemma el1 el2 = refl
+
 ⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
          BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ < v , H2 >
 ⇓sound .true     .vtrue     E-True            = refl
@@ -34,12 +38,18 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓sound .(! t) .(lookup r H2) (E-Deref {t = t} bstp) | < vref r , H2 > | refl = refl
 ⇓sound {H1 = H1} (! t) .verror (E-DerefErr bstp) with  ⟦ t ⟧ H1 | ⇓sound t verror bstp
 ⇓sound {H1 = H1} (! t) .verror (E-DerefErr bstp) | < verror , H2 > | refl = refl 
-
-⇓sound (t1 <- t2) v (E-Ass  rep bstp bstp₁) = {!!}
-
-⇓sound (t1 <- t2) .verror (E-AssOob x bstp bstp₁) = {!!}
-⇓sound (t1 <- t2) .verror (E-AssErr bstp) = {!!}
-
+⇓sound {H1 = H1} (t1 <- t2) v (E-Ass el bstp bstp₁) with ⟦ t1 ⟧ H1 | ⇓sound t1 _ bstp
+⇓sound (t1 <- t2) v (E-Ass el bstp bstp₁) | < vref r , H2 > | refl with ⟦ t2 ⟧ H2 | ⇓sound t2 _ bstp₁
+⇓sound {ty} (t1 <- t2) v (E-Ass el bstp bstp₁) | < vref r , H2 > | refl | < .v , H3 > | refl with elem? H3 r ty
+⇓sound (t1 <- t2) v (E-Ass el bstp bstp₁) | < vref r , H2 > | refl | < .v , H3 > | refl | inj₁ el' rewrite lemma el el' = refl
+⇓sound (t1 <- t2) v (E-Ass el bstp bstp₁) | < vref r , H2 > | refl | < .v , H3 > | refl | inj₂ notEl = contradiction (notEl el)
+⇓sound {H1 = H1} (t1 <- t2) .verror (E-AssOob x bstp bstp₁) with ⟦ t1 ⟧ H1 | ⇓sound t1 _ bstp
+⇓sound (t1 <- t2) .verror (E-AssOob x bstp bstp₁) | < vref r , H2 > | refl with ⟦ t2 ⟧ H2 | ⇓sound t2 _ bstp₁ 
+⇓sound {ty} (t1 <- t2) .verror (E-AssOob x bstp bstp₁) | < vref r , H2 > | refl | < v , H3 > | refl with elem? H3 r ty
+⇓sound (t1 <- t2) .verror (E-AssOob notEl bstp bstp₁) | < vref r , H2 > | refl | < v , H3  > | refl | inj₁ el = contradiction (notEl el)
+⇓sound (t1 <- t2) .verror (E-AssOob x bstp bstp₁) | < vref r , H2 > | refl | < v , H3 > | refl | inj₂ y = refl
+⇓sound {H1 = H1} (t1 <- t2) .verror (E-AssErr bstp) with ⟦ t1 ⟧ H1 | ⇓sound t1 verror bstp
+⇓sound (t1 <- t2) .verror (E-AssErr bstp) | < verror , H2 > | refl = refl
 ⇓sound {H1 = H1} (t1 >> t2) v (E-Seq isG stp1 stp2) with ⟦ t1 ⟧ H1 | ⇓sound t1 _ stp1
 ⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vtrue , H2 > | refl with ⟦ t2 ⟧ H2 | ⇓sound t2 _ stp2
 ⇓sound (t1 >> t2) v (E-Seq notE stp1 stp2) | < vtrue , H3 > | refl | < .v , H2 > | refl = refl
