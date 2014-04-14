@@ -12,5 +12,5 @@ open import SmallStep
 open import Proofs.Determ
 open import Proofs.HeapTypePres
 open import Proofs.Misc
---open import Proofs.ProgPres
+open import Proofs.ProgPres
 open import Proofs.Termination

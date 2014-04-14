@@ -24,6 +24,12 @@ data Redex : ∀ {ty n} -> Term ty -> Heap n -> Set where
 data Is-value : {ty : Type} -> Term ty → Set where
   is-value : {ty : Type} -> (v : Value ty) → Is-value ⌜ v ⌝
 
+err? : ∀ {ty} {t : Term ty} -> (isV : Is-value t) -> (isError t ⊎ ¬ (isError t))
+err? (is-value vtrue) = inj₂ (λ x → x)
+err? (is-value vfalse) = inj₂ (λ x → x)
+err? (is-value (vnat x)) = inj₂ (λ x₁ → x₁)
+err? (is-value (vref x)) = inj₂ (λ x₁ → x₁)
+err? (is-value verror) = inj₁ unit
 
 -- Progress and preservation
 progress : ∀ {ty n} (H1 : Heap n) -> (t : Term ty) -> ((Is-value t) ⊎ Redex t H1)
@@ -52,7 +58,7 @@ progress H1 (t <- t₁) with progress H1 t
 progress H1 (.(⌜ v ⌝) <- t₁) | inj₁ (is-value v) with progress H1 t₁
 progress {ty} H1 (.(⌜ v₁ ⌝) <- .(⌜ v ⌝)) | inj₁ (is-value v₁) | inj₁ (is-value v) with v₁
 progress {ty} H1 (.(⌜ v₁ ⌝) <- .(⌜ v ⌝)) | inj₁ (is-value v₁) | inj₁ (is-value v) | vref x with elem? H1 x ty
-progress {ty} H1 (.(⌜ v₁ ⌝) <- .(⌜ v ⌝)) | inj₁ (is-value v₁) | inj₁ (is-value v) | vref x | inj₁ x₁ = inj₂ (Red (replace H1 x₁ v) ⌜ v ⌝ (E-AssRed-Suc {ty} {_} {x} {_} {H1} (isValue? v) refl x₁))
+progress {ty} H1 (.(⌜ v₁ ⌝) <- .(⌜ v ⌝)) | inj₁ (is-value v₁) | inj₁ (is-value v) | vref x | inj₁ x₁ = inj₂ (Red (replace H1 x₁ v) ⌜ v ⌝ (E-AssRed-Suc {ty} {_} {x} {H1} (isValue? v) refl x₁))
 progress {ty} H1 (.(⌜ v₁ ⌝) <- .(⌜ v ⌝)) | inj₁ (is-value v₁) | inj₁ (is-value v) | vref x | inj₂ y = inj₂ (Red H1 error (E-AssRed-Fail {ty} {_} {x} {_} {isValue? v} y))
 progress H1 (.(⌜ v₁ ⌝) <- .(⌜ v ⌝)) | inj₁ (is-value v₁) | inj₁ (is-value v) | verror = inj₂ (Red H1 error E-Assign-Err1)
 progress H1 (.(⌜ vref x₁ ⌝) <- t₁) | inj₁ (is-value (vref x₁)) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (ref x₁ <- t') (E-AssRight (unit , (λ x₂ → x₂)) x))
@@ -67,7 +73,13 @@ progress H1 (try .(num x) catch t₁) | inj₁ (is-value (vnat x)) = inj₂ (Red
 progress H1 (try .(ref x) catch t₁) | inj₁ (is-value (vref x)) = inj₂ (Red H1 (ref x) (E-Try-Catch-Suc (unit , (λ x₁ → x₁))))
 progress H1 (try t catch t₁) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (try t' catch t₁) (E-Try-Catch x))
 progress H1 (t1 >> t2) with progress H1 t1
-progress H1 (t1 >> t2) | inj₁ x = {!!}
+progress H1 (t1 >> t2) | inj₁ x with err? x
+progress H1 (.true >> t2) | inj₁ (is-value vtrue) | inj₁ ()
+progress H1 (.false >> t2) | inj₁ (is-value vfalse) | inj₁ ()
+progress H1 (.(num x) >> t2) | inj₁ (is-value (vnat x)) | inj₁ ()
+progress H1 (.(ref x) >> t2) | inj₁ (is-value (vref x)) | inj₁ ()
+progress H1 (.error >> t2) | inj₁ (is-value verror) | inj₁ x₁ = inj₂ (Red H1 error E-Seq-Err)
+progress H1 (.(⌜ v ⌝) >> t2) | inj₁ (is-value v) | inj₂ y = inj₂ (Red H1 t2 (E-SeqVal ((isValue? v) , y)))
 progress H1 (t1 >> t2) | inj₂ (Red H2 t' x) = inj₂ (Red H2 (t' >> t2) (E-Seq1 x))
 
 preservation : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {t' : Term ty} -> Step {H1 = H1} {H2 = H2} t t' -> ty ≡ ty
