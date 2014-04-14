@@ -35,8 +35,8 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓complete (t <- t₁) H with ⟦ t ⟧ H | ⇓complete t H
 ⇓complete (t <- t₁) H | < vref x , H' > | bstp with ⟦ t₁ ⟧ H' | ⇓complete t₁ H'
 ⇓complete {ty} (t <- t₁) H | < vref x , H' > | bstp | < value , H'' > | bstep₁ with elem? H'' x ty
-⇓complete (t <- t₁) H | < vref x , H' > | bstp | < value , H'' > | bstep₁ | inj₁ x₁ = E-Ass {!!} bstp {!bstep₁!}
-⇓complete (t <- t₁) H | < vref x , H' > | bstp | < value , H'' > | bstep₁ | inj₂ y = {!!}
+⇓complete (t <- t₁) H | < vref x , H' > | bstp | < value , H'' > | bstep₁ | inj₁ x₁ = E-Ass x₁ bstp bstep₁ 
+⇓complete (t <- t₁) H | < vref x , H' > | bstp | < value , H'' > | bstep₁ | inj₂ y = E-AssOob y bstp bstep₁
 ⇓complete (t <- t₁) H | < verror , heap > | bstp = E-AssErr bstp
 ⇓complete (ref x) H = E-Ref
 ⇓complete (try t catch t₁) H with ⟦ t ⟧ H | ⇓complete t H  

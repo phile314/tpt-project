@@ -41,9 +41,8 @@ record Result (ty : Type) : Set where
 ⟦_⟧ (! t) H | < verror , H' > = < verror , H' >
 ⟦_⟧ (t <- t₁) H with ⟦ t ⟧ H
 ⟦_⟧ (t <- t₁) H | < vref n , H₁ > with ⟦ t₁ ⟧ H₁
-⟦_⟧ (t <- t₁) H | < vref n , H₁ > | < verror , H₂ > = < verror , H₂ >
-⟦_⟧ {ty} (t <- t₁) H | < vref n , H₁ > | < v , H₂ > with elem? H₂ n ty -- TODO shouldn't there be a replace here?
-⟦_⟧ (t <- t₁) H | < vref n₁ , H₁ > | < v , H₂ > | inj₁ x = < v , H₂ >
+⟦_⟧ {ty} (t <- t₁) H | < vref n , H₁ > | < v , H₂ > with elem? H₂ n ty
+⟦_⟧ (t <- t₁) H | < vref n₁ , H₁ > | < v , H₂ > | inj₁ x = < v , replace H₂ x v >
 ⟦_⟧ (t <- t₁) H | < vref n₁ , H₁ > | < v , H₂ > | inj₂ y = < verror , H₂ >
 ⟦_⟧ (t <- t₁) H | < verror , H₁ > = < verror , H₁ >
 ⟦_⟧ (ref x) H = < vref x , H >
