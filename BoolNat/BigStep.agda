@@ -11,20 +11,6 @@ open import SmallStep
 
 open import Relation.Binary.PropositionalEquality hiding ( [_] ) -- remove
 
-try-replace : ∀ {ty n} {H : Heap n} -> ℕ -> Value ty -> ((Heap n) × (Value ty))
-try-replace {ty} {n} {H} i v with elem? H i ty
-try-replace {_} {_} {H} i v | inj₁ x = replace H x v , v
-try-replace {_} {_} {H} i v | inj₂ y = H , verror
-
-replace-result : ∀ {n H fn ty} -> Value ty -> ((Elem {n} H fn ty) ⊎ (¬ (Elem {n} H fn ty))) -> Value ty
-replace-result v (inj₁ x) = v
-replace-result v (inj₂ y) = verror
-
-replace-heap : ∀ {n H fn ty} -> Value ty -> ((Elem {n} H fn ty) ⊎ (¬ (Elem {n} H fn ty))) -> Heap n
-replace-heap {_} {H} v (inj₁ x) = replace H x v
-replace-heap {_} {H} v (inj₂ y) = H
-
-
 
 data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty → Set where
 
@@ -134,4 +120,56 @@ data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty �
                BStep {H1 = H2} {H2 = H3} t2                v                →
                BStep {H1 = H1} {H2 = H3} (try t1 catch t2) v
 
+
+--------------------------------------------------------------------------------
+-- Star extensions
+--------------------------------------------------------------------------------
+
+E-If* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t₁ t₁′ : Term Boolean} {t₂ t₃ : Term ty} →
+        Steps {H1 = H1} {H2 = H2} t₁ t₁′ →
+        Steps {H1 = H1} {H2 = H2} (if t₁ then t₂ else t₃) (if t₁′ then t₂ else t₃)
+E-If* [] = []
+E-If* (x :: stps) = E-If x :: E-If* stps
+
+E-New* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t′ : Term ty} ->
+        Steps {H1 = H1} {H2 = H2} t t′ →
+        Steps {H1 = H1} {H2 = H2} (new t) (new t′)
+E-New* [] = []
+E-New* (x :: stps) = E-New x :: E-New* stps
+
+E-AssR* : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty} ->
+         Steps {H1 = H1} {H2 = H2} t t' -> 
+         Steps {H1 = H1} {H2 = H2} (ref r <- t) (ref r <- t') 
+E-AssR* [] = []
+E-AssR* (x :: stps) = E-AssRight (unit , (λ x₁ → x₁)) x :: E-AssR* stps
+
+E-AssL* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term (Ref ty)} {t2 : Term ty} ->
+         Steps {H1 = H1} {H2 = H2} t t' -> 
+         Steps {H1 = H1} {H2 = H2} (t <- t2) (t' <- t2) 
+E-AssL* [] = []
+E-AssL* (x :: xs) = E-AssLeft x :: E-AssL* xs
+
+E-IsZero* : ∀ {t t' n m} {H1 : Heap n} {H2 : Heap m} ->
+            Steps {H1 = H1} {H2 = H2} t t' ->
+            Steps {H1 = H1} {H2 = H2} (iszero t) (iszero t')
+E-IsZero* [] = []
+E-IsZero* (x :: stps) = E-IsZero x :: E-IsZero* stps
+
+E-Try* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' t2 : Term ty} ->
+            Steps {H1 = H1} {H2 = H2} t t' ->
+            Steps {H1 = H1} {H2 = H2} (try t catch t2 ) (try t' catch t2)
+E-Try* [] = []
+E-Try* (x :: stps) = E-Try-Catch x :: E-Try* stps
+
+E-Deref* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term (Ref ty)} ->
+            Steps {H1 = H1} {H2 = H2} t t' ->
+            Steps {H1 = H1} {H2 = H2} (! t) (! t')
+E-Deref* [] = []
+E-Deref* (x :: stps) = E-Deref x :: E-Deref* stps
+
+E-Seq* : ∀ {ty1 ty2 n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty1} {t2 : Term ty2} ->
+            Steps {H1 = H1} {H2 = H2} t t' ->
+            Steps {H1 = H1} {H2 = H2} (t >> t2) (t' >> t2)
+E-Seq* [] = []
+E-Seq* (x :: stps) = E-Seq1 x :: E-Seq* stps
 

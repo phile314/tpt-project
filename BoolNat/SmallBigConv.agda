@@ -9,6 +9,9 @@ open import Relation.Nullary
 open import Base
 open import SmallStep
 open import BigStep
+open import Denotational
+
+open import Proofs.CompSound
 
 open import Relation.Binary.PropositionalEquality hiding ( [_] ) -- remove
 
@@ -16,54 +19,6 @@ open import Relation.Binary.PropositionalEquality hiding ( [_] ) -- remove
 -- Conversion between BigStep and SmallStep
 --------------------------------------------------------------------------------
 
--- An extension of the E-If rule, for multiple steps.
-E-If* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t₁ t₁′ : Term Boolean} {t₂ t₃ : Term ty} →
-        Steps {H1 = H1} {H2 = H2} t₁ t₁′ →
-        Steps {H1 = H1} {H2 = H2} (if t₁ then t₂ else t₃) (if t₁′ then t₂ else t₃)
-E-If* [] = []
-E-If* (x :: stps) = E-If x :: E-If* stps
-
-E-New* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t′ : Term ty} ->
-        Steps {H1 = H1} {H2 = H2} t t′ →
-        Steps {H1 = H1} {H2 = H2} (new t) (new t′)
-E-New* [] = []
-E-New* (x :: stps) = E-New x :: E-New* stps
-
-E-AssR* : ∀ {ty n m r} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty} ->
-         Steps {H1 = H1} {H2 = H2} t t' -> 
-         Steps {H1 = H1} {H2 = H2} (ref r <- t) (ref r <- t') 
-E-AssR* [] = []
-E-AssR* (x :: stps) = E-AssRight (unit , (λ x₁ → x₁)) x :: E-AssR* stps
-
-E-AssL* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term (Ref ty)} {t2 : Term ty} ->
-         Steps {H1 = H1} {H2 = H2} t t' -> 
-         Steps {H1 = H1} {H2 = H2} (t <- t2) (t' <- t2) 
-E-AssL* [] = []
-E-AssL* (x :: xs) = E-AssLeft x :: E-AssL* xs
-
-E-IsZero* : ∀ {t t' n m} {H1 : Heap n} {H2 : Heap m} ->
-            Steps {H1 = H1} {H2 = H2} t t' ->
-            Steps {H1 = H1} {H2 = H2} (iszero t) (iszero t')
-E-IsZero* [] = []
-E-IsZero* (x :: stps) = E-IsZero x :: E-IsZero* stps
-
-E-Try* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' t2 : Term ty} ->
-            Steps {H1 = H1} {H2 = H2} t t' ->
-            Steps {H1 = H1} {H2 = H2} (try t catch t2 ) (try t' catch t2)
-E-Try* [] = []
-E-Try* (x :: stps) = E-Try-Catch x :: E-Try* stps
-
-E-Deref* : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term (Ref ty)} ->
-            Steps {H1 = H1} {H2 = H2} t t' ->
-            Steps {H1 = H1} {H2 = H2} (! t) (! t')
-E-Deref* [] = []
-E-Deref* (x :: stps) = E-Deref x :: E-Deref* stps
-
-E-Seq* : ∀ {ty1 ty2 n m} {H1 : Heap n} {H2 : Heap m} {t t' : Term ty1} {t2 : Term ty2} ->
-            Steps {H1 = H1} {H2 = H2} t t' ->
-            Steps {H1 = H1} {H2 = H2} (t >> t2) (t' >> t2)
-E-Seq* [] = []
-E-Seq* (x :: stps) = E-Seq1 x :: E-Seq* stps
 
 
 -- Lemmas used for small-to-big
@@ -178,12 +133,8 @@ prepend-step E-Assign-Err1              E-Error = {!!}
 
 prepend-step (E-Seq1 s) (E-Seq x b b₁) = E-Seq x (prepend-step s b) b₁
 prepend-step (E-Seq1 s) (E-SeqErr b) = E-SeqErr (prepend-step s b)
-prepend-step (E-SeqVal {ty1 = ty1} {t1 = t1} (proj₁ , proj₂)) b with ⌞ t1 , proj₁ ⌟
-prepend-step (E-SeqVal {ty1 = .Boolean} (proj₁ , proj₂)) b | vtrue = E-Seq (λ x → proj₂ (verr-is-err {Boolean} {{!vtrue!}} x)) (value-of-value {!vtrue!}) b
-prepend-step (E-SeqVal (proj₁ , proj₂)) b | vfalse = {!!}
-prepend-step (E-SeqVal (proj₁ , proj₂)) b | vnat x = {!!}
-prepend-step (E-SeqVal (proj₁ , proj₂)) b | vref x = {!!}
-prepend-step (E-SeqVal (proj₁ , proj₂)) b | verror = ⊥-elim (proj₂ {!!}) -- 
+prepend-step (E-SeqVal {ty1 = ty1} {t1 = t1} (proj₁ , proj₂)) b with ⟦ t1 ⟧ {!!} -- with ⌞ t1 , proj₁ ⌟
+prepend-step (E-SeqVal (proj₁ , proj₂)) b | Denotational.< value , heap > = E-Seq (λ x → proj₂ (verr-is-err {_} {{!value!}} {!!})) (value-of-value {!value!}) b
 prepend-step E-Seq-Err    E-Error = E-SeqErr E-Error
 
 prepend-step (E-Try-Catch s) (E-TryCat   x b    ) = E-TryCat   x (prepend-step s b)

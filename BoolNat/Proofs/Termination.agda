@@ -50,16 +50,16 @@ termination H (if t then t₁ else t₂) | Halts vtrue H2 xs = prepend-steps (E-
 termination H (if t then t₁ else t₂) | Halts vfalse H2 xs = prepend-steps ((E-If* xs) ++ [ E-IfFalse ]) (termination H2 t₂)
 termination H (if t then t₁ else t₂) | Halts verror H2 xs = Halts verror H2 ((E-If* xs) ++ [ E-If-Err ])
 termination H (new t) with termination H t
-termination H (new t) | Halts v H2 xs = Halts (vref _) (Cons v H2) ((E-New* xs) ++ [ E-NewVal refl ])
+termination H (new t) | Halts v H2 xs = Halts (vref _) (append H2 v) ((E-New* xs) ++ [ E-NewVal refl ])
 termination H (! t) with termination H t
 termination H (! t) | Halts (vref x) H2 xs = Halts (lookup x H2) H2 ((E-Deref* xs) ++ [ E-DerefVal ])
 termination H (! t) | Halts verror H2 xs = Halts verror H2 ((E-Deref* xs) ++ [ E-Deref-Err ])
 termination H (t <- t₁) with termination H t
 termination H (t <- t₁) | Halts (vref x) H2 xs with termination H2 t₁
 termination {ty} {n} H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x with elem? H3 x₁ ty
-termination H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x₂ | inj₁ x = Halts v (replace H3 x v) ((E-AssignL* xs) ++ ((E-Assign* x₂) ++ [ (E-AssRed-Suc {_} {_} {_} {_} {H3} (isValue? v) refl x) ]))
-termination {ty} H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x | inj₂ y = Halts verror H3 ((E-AssignL* xs) ++ ((E-Assign* x) ++ [ (E-AssRed-Fail {ty} {_} {x₁} {_} {isValue? v} {H3} y) ]))
-termination H (t <- t₁) | Halts verror H2 xs = Halts verror H2 (E-AssignL* xs ++ [ E-Assign-Err1 ])
+termination H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x₂ | inj₁ x = Halts v (replace H3 x v) ((E-AssL* xs) ++ ((E-AssR* x₂) ++ [ (E-AssRed-Suc {_} {_} {_} {H3} (isValue? v) refl x) ]))
+termination {ty} H (t <- t₁) | Halts (vref x₁) H2 xs | Halts v H3 x | inj₂ y = Halts verror H3 ((E-AssL* xs) ++ ((E-AssR* x) ++ [ (E-AssRed-Fail {ty} {_} {x₁} {_} {isValue? v} {H3} y) ]))
+termination H (t <- t₁) | Halts verror H2 xs = Halts verror H2 (E-AssL* xs ++ [ E-Assign-Err1 ])
 termination H (ref x) = Halts (vref x) H []
 termination H (try t catch t₁) with termination H t
 termination H (try t catch t₁) | Halts verror H2 xs = prepend-steps (E-Try* xs ++ [ (E-Try-Catch-Fail unit) ]) (termination H2 t₁)
@@ -68,13 +68,9 @@ termination H (try t catch t₁) | Halts vfalse H2 xs = Halts vfalse H2 (E-Try* 
 termination H (try t catch t₁) | Halts (vnat x) H2 xs = Halts (vnat x) H2 (E-Try* xs ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
 termination H (try t catch t₁) | Halts (vref x) H2 xs = Halts (vref x) H2 (E-Try* xs ++ [ E-Try-Catch-Suc (unit , (λ x → x)) ])
 termination H (t1 >> t2) with termination H t1
-termination H (t1 >> t2) | Halts verror H2 x = Halts verror H2 ((E-Seq1* x) ++ [ E-Seq-Err ])
 termination H (t1 >> t2) | Halts v H2 x with termination H2 t2
-termination H (t1 >> t2) | Halts v₁ H2 x₁ | Halts v H3 x = Halts {!!} {!!} ((E-Seq1* x₁) ++ ({!!} ++ {!!}))
--- termination H (t1 >> t2) | Halts v H2 x with val-err? v
--- termination H (t1 >> t2) | Halts vtrue H2 x₁ | proj₁ , inj₁ x = {!!}
--- termination H (t1 >> t2) | Halts vfalse H2 x₁ | proj₁ , inj₁ x = {!!}
--- termination H (t1 >> t2) | Halts (vnat x) H2 x₂ | proj₁ , inj₁ x₁ = {!!}
--- termination H (t1 >> t2) | Halts (vref x) H2 x₂ | proj₁ , inj₁ x₁ = {!!}
--- termination H (t1 >> t2) | Halts verror H2 x₁ | proj₁ , inj₁ x = {!!} -- Halts verror H2 (E-Seq1* x₁ ++ [ {!x!} ])
--- termination H (t1 >> t2) | Halts v H2 x | proj₁ , inj₂ y = {!!}
+termination H (t1 >> t2) | Halts vtrue H2 x₂ | Halts v H3 x = Halts v H3 (E-Seq* x₂ ++ (E-SeqVal (unit , (λ z → z)) :: x))
+termination H (t1 >> t2) | Halts vfalse H2 x₂ | Halts v H3 x = Halts v H3 (E-Seq* x₂ ++ (E-SeqVal (unit , (λ z → z)) :: x))
+termination H (t1 >> t2) | Halts (vnat x₁) H2 x₂ | Halts v H3 x = Halts v H3 (E-Seq* x₂ ++ (E-SeqVal (unit , (λ z → z)) :: x))
+termination H (t1 >> t2) | Halts (vref x₁) H2 x₂ | Halts v H3 x = Halts v H3 (E-Seq* x₂ ++ (E-SeqVal (unit , (λ z → z)) :: x))
+termination H (t1 >> t2) | Halts verror H2 x₁ | _ = Halts verror H2 (E-Seq* x₁ ++ [ E-Seq-Err ])
