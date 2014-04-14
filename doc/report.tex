@@ -7,6 +7,7 @@
 \usepackage{amsfonts}
 \usepackage{bussproofs}
 \usepackage{xparse}
+
 % font size could be 10pt (default), 11pt or 12 pt
 % paper size coulde be letterpaper (default), legalpaper, executivepaper,
 % a4paper, a5paper or b5paper
@@ -25,6 +26,9 @@
 %   fleqn number on the rigth and  equation on the left side
 %   
 
+\newcommand\doubleplus{+\kern-1.3ex+\kern0.8ex}
+\newcommand\mdoubleplus{\ensuremath{\mathbin{+\mkern-10mu+}}}
+
 \newcommand{\sproof}{
   \scriptsize
   \begin{center}
@@ -40,7 +44,7 @@
 }
 
 \DeclareDocumentCommand{\sstepe}{m m m m} {%
-  \ensuremath{{#1} \vdash {#3} \rightarrow {#2} \vdash {#4}}%
+  \ensuremath{{#1} \vdash \text{{#3}} \; \rightarrow \; {#2} \vdash \text{{#4}}}%
 }
 \DeclareDocumentCommand{\sstep}{O{} O{} m m} {%
   \sstepe{\Phi_{#1}}{\Phi_{#2}}{#3}{#4}%
@@ -74,42 +78,42 @@ blablalb
 
 \sproof
 \AxiomC{\sstep[0][1]{t}{t'}}
-\UnaryInfC{\sstep[0][1]{iszero \; t}{iszero \; t'}}
+\UnaryInfC{\sstep[0][1]{iszero t}{iszero t'}}
 \eproof
 
 \sproof
 \AxiomC{}
-\UnaryInfC{\sstep{iszero \; 0}{true}}
+\UnaryInfC{\sstep{iszero 0}{true}}
 \eproof
 
 \sproof
 \AxiomC{}
-\UnaryInfC{\sstep{iszero \; (suc \; v)}{false}}
+\UnaryInfC{\sstep{iszero (suc v)}{false}}
 \eproof
 
 \sproof
 \AxiomC{\sstep[0][1]{c}{c'}}
-\UnaryInfC{\sstep[0][1]{if \; c \; then \; t \; else \; e}{if \; c' \; then \; t \; else \; e}}
+\UnaryInfC{\sstep[0][1]{if c then t else e}{if c' then t else e}}
 \eproof
 
 \sproof
 \AxiomC{}
-\UnaryInfC{\sstep{if \; true \; then \; t \; else \; e}{t}}
+\UnaryInfC{\sstep{if true then t else e}{t}}
 \eproof
 
 \sproof
 \AxiomC{}
-\UnaryInfC{\sstep{if \; false \; then \; t \; else \; e}{e}}
+\UnaryInfC{\sstep{if false then t else e}{e}}
 \eproof
 
 \sproof
 \AxiomC{\sstep[0][1]{t}{t'}}
-\UnaryInfC{\sstep[0][1]{new \; t} {new \; t'}}
+\UnaryInfC{\sstep[0][1]{new t} {new t'}}
 \eproof
 
 \sproof
 \AxiomC{}
-\UnaryInfC{\sstepe{\Phi}{(\Phi ++ [v])}{new \; v}{vref \; len_\Phi}}
+\UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus [v]}{new v}{vref $len_\Phi$}}
 \eproof
 
 
