@@ -21,7 +21,7 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓complete (iszero t) H with ⟦ t ⟧ H | ⇓complete t H
 ⇓complete (iszero t) H | < vnat zero , heap > | bstp = E-IsZerZ bstp
 ⇓complete (iszero t) H | < vnat (suc x) , heap > | bstp = E-IsZerS bstp
-⇓complete (iszero t) H | < verror , heap > | bstp = {!!}
+⇓complete (iszero t) H | < verror , heap > | bstp = E-IsZerErr bstp
 ⇓complete (if t then t₁ else t₂) H with ⟦ t ⟧ H | ⇓complete t H
 ⇓complete (if t then t₁ else t₂) H | < vtrue , heap > | bstp = E-IfTrue bstp (⇓complete t₁ heap)
 ⇓complete (if t then t₁ else t₂) H | < vfalse , heap > | bstp = E-IfFalse bstp (⇓complete t₂ heap)
@@ -34,7 +34,7 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓complete (t <- t₁) H with ⟦ t ⟧ H | ⇓complete t H
 ⇓complete (t <- t₁) H | < vref x , H' > | bstp with ⟦ t₁ ⟧ H' | ⇓complete t₁ H'
 ⇓complete (t <- t₁) H | < vref x , H' > | bstp | < value , heap > | bstep₁ = {!!}
-⇓complete (t <- t₁) H | < verror , heap > | bstp = {!!}
+⇓complete (t <- t₁) H | < verror , heap > | bstp = E-AssErr bstp
 ⇓complete (ref x) H = E-Ref
 ⇓complete (try t catch t₁) H with ⟦ t ⟧ H | ⇓complete t H  
 ⇓complete (try t catch t₁) H | < vtrue , heap > | bstp = {!!}
@@ -151,4 +151,4 @@ open import Data.Empty renaming (⊥-elim to contradiction)
 ⇓sound ._ ._ (E-AssErr {t1 = _>>_ {_} {._} _ _       } _) = {!!}
 ⇓sound ._ ._ (E-AssErr {t1 = ref {._} _              } _) = {!!}
 
-⇓sound ._ ._ (E-AssOob {._} {._} {._} {_} {_} {._} {._} {_} {_} {_} _ _) = {!!}
+⇓sound ._ ._ (E-AssOob {._} {._} _ _ k) = {!!}
