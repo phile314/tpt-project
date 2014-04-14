@@ -12,13 +12,8 @@ open import Data.Bool hiding ( if_then_else_ ) renaming ( _∧_ to _and_  ; _∨
 open import Function
 open import Relation.Nullary renaming ( ¬_ to Not )
 open import Relation.Binary.PropositionalEquality hiding ( [_] )
---open import Proofs.CompSound
+open import Proofs.Sound
 
--- TODO move all the examples to another module
--- TODO : Import sound from Proofs
-⇓sound : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} (t : Term ty) (v : Value ty) -> 
-         BStep {H1 = H1} {H2 = H2} t v -> ⟦ t ⟧ H1 ≡ D.< v , H2 >
-⇓sound = {!!}
 
 --------------------------------------------------------------------------------
 -- Predicates and combinators
@@ -206,7 +201,8 @@ data HeapEq : ∀ {n m} -> Heap n -> Heap m -> Set where
 ⇓expr-preserves-heap () (E-New bstp)
 ⇓expr-preserves-heap isEx (E-Deref bstp) = ⇓expr-preserves-heap isEx bstp
 ⇓expr-preserves-heap isEx (E-DerefErr bstp) = ⇓expr-preserves-heap isEx bstp
-⇓expr-preserves-heap () (E-Ass bstp bstp₁)
+⇓expr-preserves-heap () (E-Ass _ _ _)
+⇓expr-preserves-heap () (E-AssOob _ _ _)
 ⇓expr-preserves-heap () (E-AssErr bstp)
 ⇓expr-preserves-heap isEx (E-Seq x bstp bstp₁) with ⇓expr-preserves-heap (proj₁ isEx) bstp | ⇓expr-preserves-heap (proj₂ isEx) bstp₁
 ⇓expr-preserves-heap ty1 (E-Seq x bstp bstp₁) | Refl | Refl = Refl
