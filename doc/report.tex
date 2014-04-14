@@ -8,6 +8,14 @@
 \usepackage{bussproofs}
 \usepackage{xparse}
 
+\usepackage{proof}
+
+\newcommand\impfnt[1]{\mbox{\bf #1}}
+\newcommand{\SKIP}{\impfnt{skip}}
+\newcommand{\stepsto}{\Downarrow}
+\newcommand{\Rule}[2]{\infer{#2}{#1}}
+\newcommand{\RuleSide}[3]{\infer[#3]{#2}{#1}}
+
 % font size could be 10pt (default), 11pt or 12 pt
 % paper size coulde be letterpaper (default), legalpaper, executivepaper,
 % a4paper, a5paper or b5paper
@@ -115,6 +123,24 @@ blablalb
 \AxiomC{}
 \UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus [v]}{new v}{vref $len_\Phi$}}
 \eproof
+
+\section{Big-step Semantics}
+
+\begin{itemize}
+
+\item
+New:
+\begin{tabular}{c}
+\infer{true \stepsto vtrue}{}
+\end{tabular}
+
+\item
+IfTrue:
+\begin{tabular}{c}
+\infer{if~t~then~t1~else~t2 \stepsto v}{t \stepsto vtrue~~t1 \stepsto v}
+\end{tabular}
+
+\end{itemize}
 
 
 \begin{thebibliography}{1}
