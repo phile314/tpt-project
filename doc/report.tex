@@ -8,6 +8,8 @@
 \usepackage{bussproofs}
 \usepackage{xparse}
 
+\usepackage[toc,page]{appendix}
+
 \newcommand{\stepsto}{\Downarrow}
 
 % font size could be 10pt (default), 11pt or 12 pt
@@ -74,13 +76,66 @@
 
 \tableofcontents
 
-blablalb
 
-\section{Semantics}
+\section{Research question}
 
-\subsection{Small-step Semantics}
+1) Formalize semantics for a minimal programming language with mutable heap and exceptions.
 
-\subsubsection{If then else}
+2) Prove meta-theories.
+
+
+\section{Research contribution}
+
+1) Design and implementation in agda of such language.
+
+2) Formal proofs of progress, preservation, soundness, completeness etc. using agda 
+
+3) Development of an hoare logic on top of it, which allows to reason about the correctness of programs written in this language. 
+
+4) Proofs of the principal hoare logic theorems.
+
+\section{Research Method}
+
+Detour about attempts, failures, lessons learned:
+
+		- Lambda calculus
+
+		Challenges in modeling
+
+			- Total language (valid references)
+
+			- Function applications vs proof objects
+
+			- Statement vs expression (hoare)
+
+
+\section{Related (and further) Work}
+
+Comparison with mini-languages used in the course.
+
+Extend hoare logic to fully cope with the statement vs expression issue (evaluation changes the heap) 
+
+Complete the missing rules. 
+
+Make the theorems for hoare logic more usable.
+
+
+
+\begin{thebibliography}{1}
+
+\bibitem{PV14}
+  Wishnu Prasetya.
+  \emph{Lecture Notes Program Verification, v2014.0}.
+
+\end{thebibliography}
+
+
+
+\begin{appendices}
+
+\section{Small-step Semantics}
+
+\subsection{If then else}
 \begin{itemize}
 
 \item
@@ -114,7 +169,7 @@ IfErr
 \end{itemize}
 
 
-\subsubsection{Is zero?}
+\subsection{Is zero?}
 \begin{itemize}
 
 \item
@@ -148,7 +203,7 @@ IsZeroErr
 \end{itemize}
 
 
-\subsubsection{References}
+\subsection{References}
 \begin{itemize}
 
 \item
@@ -226,7 +281,7 @@ AssRedErr
 \end{itemize}
 
 
-\subsubsection{Sequencing}
+\subsection{Sequencing}
 \begin{itemize}
 
 \item
@@ -253,7 +308,7 @@ SeqErr
 \end{itemize}
 
 
-\subsubsection{Try catch}
+\subsection{Try catch}
 \begin{itemize}
 
 \item
@@ -281,9 +336,9 @@ TryCatchFail
 
 
 
-\subsection{Big-step Semantics}
+\section{Big-step Semantics}
 
-\subsubsection{Values}
+\subsection{Values}
 
 \begin{itemize}
 
@@ -326,7 +381,7 @@ Error
 
 
 
-\subsubsection{If then else}
+\subsection{If then else}
 
 \begin{itemize}
 
@@ -358,7 +413,7 @@ IfErr
 
 
 
-\subsubsection{Is zero?}
+\subsection{Is zero?}
 
 \begin{itemize}
 
@@ -390,7 +445,7 @@ IsZeroErr
 
 
 
-\subsubsection{References}
+\subsection{References}
 
 \begin{itemize}
 
@@ -446,7 +501,7 @@ AssErr
 
 
 
-\subsubsection{Sequencing}
+\subsection{Sequencing}
 
 \begin{itemize}
 
@@ -470,7 +525,7 @@ SeqErr
 
 
 
-\subsubsection{Try catch}
+\subsection{Try catch}
 
 \begin{itemize}
 
@@ -492,15 +547,7 @@ TryCatchErr
 
 \end{itemize}
 
-
-
-\begin{thebibliography}{1}
-
-\bibitem{PV14}
-  Wishnu Prasetya.
-  \emph{Lecture Notes Program Verification, v2014.0}.
-
-\end{thebibliography}
+\end{appendices}
 
 
 \end{document}
