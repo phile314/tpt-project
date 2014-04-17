@@ -104,6 +104,13 @@ IfFalse
 \UnaryInfC{\sstep{\textbf{if} \emph{false} \textbf{then} t \textbf{else} e}{e}}
 \eproof
 
+\item
+IfErr
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{\textbf{if} \emph{error} \textbf{then} t \textbf{else} e}{\emph{error}}}
+\eproof
+
 \end{itemize}
 
 
@@ -121,14 +128,21 @@ IsZero
 IsZeroZero
 \sproof
 \AxiomC{}
-\UnaryInfC{\sstep{\textbf{iszero} \emph{0}}{\emph{true}}}
+\UnaryInfC{\sstep{\textbf{iszero} (\emph{num} 0)}{\emph{true}}}
 \eproof
 
 \item
 IsZeroSucc
 \sproof
 \AxiomC{}
-\UnaryInfC{\sstep{\textbf{iszero} \emph{suc v}}{\emph{false}}}
+\UnaryInfC{\sstep{\textbf{iszero} (\emph{suc} v)}{\emph{false}}}
+\eproof
+
+\item
+IsZeroErr
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{\textbf{iszero} \emph{error}}{\emph{error}}}
 \eproof
 
 \end{itemize}
@@ -147,8 +161,66 @@ New
 \item
 NewVal
 \sproof
+\AxiomC{t $\equiv$ $\ulcorner$ v $\urcorner$}
+\UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus [v]}{\textbf{new} t}{\emph{ref} (\underline{len} $\Phi$)}}
+\eproof
+
+\item
+Deref
+\sproof
+\AxiomC{\sstep[0][1]{t}{t'}}
+\UnaryInfC{\sstep[0][1]{\textbf{!} t} {\textbf{!} t'}}
+\eproof
+
+\item
+DerefVal
+\sproof
 \AxiomC{}
-\UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus [v]}{\textbf{new} v}{\emph{vref (\underline{len} $\Phi$)}}}
+\UnaryInfC{\sstep{\textbf{!} (\emph{ref} n)} {$\ulcorner$ \underline{lookup} n $\Phi$ $\urcorner$}}
+\eproof
+
+\item
+DerefErr
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{\textbf{!} \emph{error}} {\emph{error}}}
+\eproof
+
+
+\item
+AssLeft
+\sproof
+\AxiomC{\sstep[0][1]{t$_1$}{t$_1$'}}
+\UnaryInfC{\sstep[0][1]{t$_1$ \textbf{:=} t$_2$} {t$_1$' \textbf{:=} t$_2$}}
+\eproof
+
+\item
+AssRight
+\sproof
+\AxiomC{\underline{isGoodValue} v ~~ \sstep[0][1]{t}{t'}}
+\UnaryInfC{\sstep[0][1]{v \textbf{:=} t} {v \textbf{:=} t'}}
+\eproof
+
+\item
+AssErr
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{\emph{error} \textbf{:=} t} {\emph{error}}}
+\eproof
+
+\item
+AssRed
+\sproof
+\AxiomC{t $\equiv$ $\ulcorner$ v $\urcorner$ ~~ rep : \textbf{Elem} $\Phi$ r}
+\UnaryInfC{\sstepe{\Phi}{\text{\underline{replace}}~\Phi~\text{rep v}}
+{(\emph{ref} r) \textbf{:=} t}{t}}
+\eproof
+
+\item
+AssRedErr
+\sproof
+\AxiomC{$\neg$ \textbf{Elem} $\Phi_3$ r}
+\UnaryInfC{\sstep{(\emph{ref} r) \textbf{:=} t} {\emph{error}}}
 \eproof
 
 \end{itemize}
@@ -156,13 +228,55 @@ NewVal
 
 \subsubsection{Sequencing}
 \begin{itemize}
+
 \item
+Seq
+\sproof
+\AxiomC{\sstep[0][1]{t$_1$}{t$_1$'}}
+\UnaryInfC{\sstep[0][1]{t$_1$ \textbf{$\gg$} t$_2$} {t$_1$' \textbf{$\gg$} t$_2$}}
+\eproof
+
+\item
+SeqVal
+\sproof
+\AxiomC{\underline{isGoodValue} t$_1$}
+\UnaryInfC{\sstep{t$_1$ \textbf{$\gg$} t$_2$} {t$_2$}}
+\eproof
+
+\item
+SeqErr
+\sproof
+\AxiomC{}
+\UnaryInfC{\sstep{\emph{error} \textbf{$\gg$} t} {\emph{error}}}
+\eproof
+
 \end{itemize}
 
 
 \subsubsection{Try catch}
 \begin{itemize}
+
 \item
+TryCatch
+\sproof
+\AxiomC{\sstep[0][1]{t$_1$}{t$_1$'}}
+\UnaryInfC{\sstep[0][1]{\textbf{try} t$_1$ \textbf{catch} t$_2$} {\textbf{try} t$_1$' \textbf{catch} t$_2$}}
+\eproof
+
+\item
+TryCatchSucc
+\sproof
+\AxiomC{\underline{isGoodValue} t$_1$}
+\UnaryInfC{\sstep{\textbf{try} t$_1$ \textbf{catch} t$_2$} {t$_1$}}
+\eproof
+
+\item
+TryCatchFail
+\sproof
+\AxiomC{\underline{isError} t$_1$}
+\UnaryInfC{\sstep{\textbf{try} t$_1$ \textbf{catch} t$_2$} {t$_2$}}
+\eproof
+
 \end{itemize}
 
 
