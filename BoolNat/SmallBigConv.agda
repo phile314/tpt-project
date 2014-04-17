@@ -10,6 +10,7 @@ open import Base
 open import SmallStep
 open import BigStep
 open import Denotational
+open import Relation.Binary.HeterogeneousEquality
 
 --open import Proofs.CompSound
 
@@ -76,6 +77,30 @@ value-of-value (vnat n) = E-Num
 value-of-value (vref x) = E-Ref
 value-of-value verror = E-Error
 
+-- BStep from value terms to values are Heap invariant
+val-of-val-inv : forall {ty n m k} {H1 : Heap n} {H2 : Heap m} {v : Value ty} {t : Term ty} -> (isValue t) -> BStep {H1 = H1} {H2 = H2} t v -> (H3 : Heap k) -> BStep {H1 = H3} {H2 = H3} t v
+val-of-val-inv isV E-True H = E-True
+val-of-val-inv isV E-False H = E-False
+val-of-val-inv isV E-Num H = E-Num
+val-of-val-inv isV E-Ref H = E-Ref
+val-of-val-inv isV E-Error H = E-Error
+val-of-val-inv () (E-IfTrue b b₁) H
+val-of-val-inv () (E-IfFalse b b₁) H
+val-of-val-inv () (E-IfErr b) H
+val-of-val-inv () (E-IsZerZ b) H
+val-of-val-inv () (E-IsZerS b) H
+val-of-val-inv () (E-IsZerErr b) H
+val-of-val-inv () (E-New b) H
+val-of-val-inv () (E-Deref b) H
+val-of-val-inv () (E-DerefErr b) H
+val-of-val-inv () (E-Ass rep b b₁) H
+val-of-val-inv () (E-AssOob x b b₁) H
+val-of-val-inv () (E-AssErr b) H
+val-of-val-inv () (E-Seq x b b₁) H
+val-of-val-inv () (E-SeqErr b) H
+val-of-val-inv () (E-TryCat x b) H
+val-of-val-inv () (E-TryCatEx b b₁) H
+
 value-of-term : ∀ {ty n} {H : Heap n} {t : Term ty} -> (isV : isValue t) -> BStep {H1 = H} {H2 = H} t (⌞ t , isV ⌟)
 value-of-term {.Boolean} {n} {H} {true} is = E-True
 value-of-term {.Boolean} {n} {H} {false} is = E-False
@@ -103,6 +128,7 @@ err-eq {ty} {t <- t₁} ()
 err-eq {Ref ty} {ref x} ()
 err-eq {ty} {try t catch t₁} ()
 err-eq {ty} {t >> t₁} ()
+
 
 
 -- Combining a single small step with a big step.
@@ -136,8 +162,31 @@ prepend-step E-Deref-Err E-Error        = E-DerefErr E-Error
 prepend-step (E-AssLeft s) (E-Ass rep b b₁) = E-Ass rep (prepend-step s b) b₁
 prepend-step (E-AssLeft s) (E-AssOob x b b₁) = E-AssOob x (prepend-step s b) b₁
 prepend-step (E-AssLeft s) (E-AssErr b) = E-AssErr (prepend-step s b)
-prepend-step (E-AssRight isV s) (E-Ass rep b b₁) = E-Ass rep {!!} {!!}
-prepend-step (E-AssRight isV s) (E-AssOob x b b₁) = E-AssOob x {!!} (prepend-step s {!!})
+prepend-step {H1 = H1} {H2 = .H2} {H3 = .(replace H4 rep _)} (E-AssRight {H1 = .H1} {H2 = .H2} (isV , notE) s) (E-Ass {H1 = H2} {H2 = H3} {H3 = H4} rep bstp bstp₁) with val-of-val-inv isV bstp H1
+... | bstp' = E-Ass rep bstp' (g bstp isV s bstp₁) --with val-of-val-eq isV bstp
+  where g : ∀ {ty n m k l} {H1 : Heap n} {H2 : Heap m} {H3 : Heap k} {H4 : Heap l} {t1 t2 : Term ty} {v : Value ty}
+            -> {t3 : Term (Ref ty)} -> {v3 : Value (Ref ty)} -> BStep {H1 = H2} {H2 = H3}  t3 v3 -> isValue t3
+            -> Step {H1 = H1} {H2 = H2} t1 t2 -> BStep {H1 = H3} {H2 = H4} t2 v -> BStep {H1 = H1} {H2 = H4} (t1) v
+        g E-Ref isV b2 b3 = prepend-step b2 b3
+        g E-Error isV b2 b3 = prepend-step b2 b3
+        g (E-IfTrue b1 b2) () b3 b4
+        g (E-IfFalse b1 b2) () b3 b4
+        g (E-IfErr b1) () b2 b3
+        g (E-New b1) () b2 b3
+        g (E-Deref b1) () b2 b3
+        g (E-DerefErr b1) () b2 b3
+        g (E-Ass rep b1 b2) () b3 b4
+        g (E-AssOob x b1 b2) () b3 b4
+        g (E-AssErr b1) () b2 b3
+        g (E-Seq x b1 b2) () b3 b4
+        g (E-SeqErr b1) () b2 b3
+        g (E-TryCat x b1) () b2 b3
+        g (E-TryCatEx b1 b2) () b3 b4
+
+--... | k = {!!} -- E-Ass rep bstp' (prepend-step s {!!})
+--prepend-step (E-AssRight isV s) (E-Ass {t1 = v₁} rep b b₁) with val-of-val-eq (proj₁ isV) b
+--prepend-step (E-AssRight s n3) (E-Ass .{H1 = H2} {H2 = H2} .{H3 = H2} rep b b₁) | refl = {!!} -- E-Ass {!!} {!!} (prepend-step s {!!}) --E-Ass rep {!!} (prepend-step {!!} {!!})
+prepend-step (E-AssRight isV s) (E-AssOob x b b₁) = E-AssOob x {!rep!} (prepend-step s {!!})
 prepend-step (E-AssRight (proj₁ , proj₂) s) (E-AssErr b) = ⊥-elim (proj₂ {!!})
 prepend-step (E-AssRed-Suc {ty} {n} {r} {H1} {t} {v} isV eq rep) b = E-Ass {!rep!} {!!} b
 --... | inj₁ x with replace-heap v (inj₁ rep) | replace-result v (inj₁ rep)
