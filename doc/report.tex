@@ -217,7 +217,7 @@ New
 NewVal
 \sproof
 \AxiomC{t $\equiv$ $\ulcorner$ v $\urcorner$}
-\UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus [v]}{\textbf{new} t}{\emph{ref} (\underline{len} $\Phi$)}}
+\UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus \text{[v]}}{\textbf{new} t}{\emph{ref} (\underline{len} $\Phi$)}}
 \eproof
 
 \item
@@ -454,7 +454,7 @@ New
 \sproof
 \AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ v}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t ~$\stepsto$~ $\Phi_2 \doubleplus [v] \vdash$ \emph{vref} (\underline{len} $\Phi_2$)}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t ~$\stepsto$~ $\Phi_2 \doubleplus$ [v] $\vdash$ \emph{vref} (\underline{len} $\Phi_2$)}
 \eproof
 
 \item
