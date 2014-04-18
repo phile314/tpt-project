@@ -253,7 +253,20 @@ prepend-step E-Seq-Err    E-Error = E-SeqErr E-Error
 
 prepend-step (E-Try-Catch s) (E-TryCat   x b    ) = E-TryCat   x (prepend-step s b)
 prepend-step (E-Try-Catch s) (E-TryCatEx b1 b2) = E-TryCatEx (prepend-step s b1) b2
-prepend-step (E-Try-Catch-Suc  (proj₁ , proj₂)) b = E-TryCat  (λ x → proj₂ {!!})       b
+prepend-step (E-Try-Catch-Suc  (proj₁ , proj₂)) b = E-TryCat  (λ x → proj₂ (z proj₁ b x))       b
+  where z : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {v : Value ty} {t : Term ty} -> isValue t -> (BStep {H1 = H1} {H2 = H2} t v) -> isVError v -> isError t
+        z {.Boolean} {.m} {m} {.H2} {H2} {.vtrue} {true} isV E-True ()
+        z {.Boolean} {.m} {m} {.H2} {H2} {.vfalse} {false} isV E-False ()
+        z {ty} {n} {m} {H1} {H2} {v} {error} isV b₁ isVE = unit
+        z {.Natural} {.m} {m} {.H2} {H2} {.(vnat x)} {num x} isV E-Num ()
+        z {.Boolean} {n} {m} {H1} {H2} {v} {iszero t} () b₁ isVE
+        z {ty} {n} {m} {H1} {H2} {v} {if t then t₁ else t₂} () b₁ isVE
+        z {(Ref ty)} {n} {m} {H1} {H2} {v} {new t} () b₁ isVE
+        z {ty} {n} {m} {H1} {H2} {v} { ! t} () b₁ isVE
+        z {ty} {n} {m} {H1} {H2} {v} {t <- t₁} () b₁ isVE
+        z {Ref ty} {.m} {m} {.H2} {H2} {.(vref x₁)} {ref x₁} isV E-Ref ()
+        z {ty} {n} {m} {H1} {H2} {v} {try t catch t₁} () b₁ isVE
+        z {ty} {n} {m} {H1} {H2} {v} {t >> t₁} () b₁ isVE
 prepend-step {t1 = try t catch t'} (E-Try-Catch-Fail isE            ) b rewrite err-eq isE = E-TryCatEx (value-of-value verror) b
 --prepend-step _ _ = {!!} 
 
