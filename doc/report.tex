@@ -106,6 +106,26 @@ at runtime.
 Having a total language on one hand simplifies proofs in that it reduces the number of possible evaluations.
 On the other hand, it requires that we can guarantee the totalness of the language in the proofs. This turned
 out to be rather difficult.
+
+One source of problems was finding a suitable encoding of reference-values. To be able to relate the proof
+objects stored inside a reference with the current heap, all references need to be indexed over the heap
+they are valid for. As references are part of the value domain, this implies that values need to be
+indexed over the heap. While we are not aware of any insurmountable problem caused by this, it leads
+to very verbose types in the whole program.
+
+A similar issue occurs when storing references themselves on the heap is allowed. The reference
+values on the heap now depend on the heap itself in their proof objects. Due to the different
+versions of the heap involved this is unlikely to cause circular dependencies, but it increases
+the complexity of the semantics and proofs greatly.
+An easy solution to this problem is disallowing references on the heap. How this would influence
+the semantics remains an open question.
+
+
+Due to the complexities shown above, we did not succeed in defining and using a total
+language in our setting. We have not found any unsolvable problem which would make
+defining a total language impossible, but finding a suitable encoding in Agda
+and proving properties of the semantics appears to be a hard problem nonetheless.
+
 -TODO describe problems
 -Value-Term conversions
 -Refs in Heap?
@@ -117,7 +137,7 @@ Using a non-total language on the other hand removes the problem of having to en
 Instead, the concept of failure now needs to be encoded either by defining a partial semantics
 or by lifting the partiality to the language itself.
 
-Lifting the partiality to the language itself makes the language total again, as it is now
+Lifting the partiality to the language itself makes the semantics total again, as it is now
 the problem of the user of the language to handle errors appropriately. This mimics the semantics
 of most widely used programming languages like C, Java, etc. in this regard.
 
