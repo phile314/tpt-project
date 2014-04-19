@@ -78,10 +78,16 @@
 
 
 \section{Research question}
+Providing formal semantics for example for a small arithmetic language is straightforward. In this project, we want to define such semantics
+for a minimal programming language which has a mutable heap. Adding mutable, global state makes a language no more sideeffect free in
+general, which makes the problem harder to solve.
 
-1) Formalize semantics for a minimal programming language with mutable heap and exceptions.
+We will first show different approaches possible to solve the problem and their restrictions. We then will define the formal
+semantics in Agda for one such approach.
 
-2) Prove meta-theories.
+
+Using the formal semantics, we then will prove some meta theories like preservation, soundness, etc..
+
 
 
 \section{Research contribution}
@@ -123,9 +129,9 @@ Make the theorems for hoare logic more usable.
 
 \begin{thebibliography}{1}
 
-\bibitem{PV14}
-  Wishnu Prasetya.
-  \emph{Lecture Notes Program Verification, v2014.0}.
+\bibitem{BP02}
+  Benjamin C. Pierce.
+  \emph{Types and Programming Languages}
 
 \end{thebibliography}
 
