@@ -93,7 +93,46 @@ Using the formal semantics, we then will prove some meta theories like preservat
 
 \section{Research Method}
 
-Detour about attempts, failures, lessons learned:
+Designing a suitable language to study the semantics of a mutable heap is not inherently complex, but influences greatly
+the ability to prove things. Therefor the choice of language has to be done careful, and we identified two
+major aspects defining any such language.
+
+\subsection{Totality}
+The first aspect is whether our language is total or not. A language shall be total if all evalutions
+are always guaranteed to succeed. A language is non-total, if an evaluation of a term might fail
+at runtime.
+
+\paragraph{Total version}
+Having a total language on one hand simplifies proofs in that it reduces the number of possible evaluations.
+On the other hand, it requires that we can guarantee the totalness of the language in the proofs. This turned
+out to be rather difficult.
+-TODO describe problems
+-Value-Term conversions
+-Refs in Heap?
+-Proof propagation?
+
+
+\paragraph{Partial version}
+Using a non-total language on the other hand removes the problem of having to ensure totality.
+Instead, the concept of failure now needs to be encoded either by defining a partial semantics
+or by lifting the partiality to the language itself.
+
+Lifting the partiality to the language itself makes the language total again, as it is now
+the problem of the user of the language to handle errors appropriately. This mimics the semantics
+of most widely used programming languages like C, Java, etc. in this regard.
+
+
+
+\subsection{Host Language}
+\paragraph{BoolNat}
+\paragraph{Simply typed $\lambda$-Calculus}
+
+
+
+
+
+
+
 
 		- Lambda calculus
 
