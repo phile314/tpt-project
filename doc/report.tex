@@ -114,6 +114,22 @@ major aspects in defining such a language.
 The first aspect is whether the language is total or not. We will call a language total if all heap accesses are always guaranteed
 to succeed. A language where any heap access might fail or diverge at runtime will be called non-total.
 
+The available heap operations include new allocations, dereferencing and assignment. An example of the
+terms for the non-total version is given in figure \ref{lst:part-term}.
+
+\begin{figure}
+{\scriptsize
+\begin{lstlisting}
+data Term : Type -> Set where
+  new  : forall {ty} -> Term ty -> Term (Ref ty)
+  !_   : forall {ty} -> Term (Ref ty) -> Term ty
+  _:=_ : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
+  ref  : forall {ty} -> Nat -> Term (Ref ty)
+\end{lstlisting}}
+\caption{Heap related terms for the partial language.}
+\label{lst:part-term}
+\end{figure}
+
 \paragraph{Total version}
 Having a total language on one hand simplifies proofs in that it reduces the number of possible evaluations.
 On the other hand, it requires that we can guarantee the totality of the language in the proofs. This turned
@@ -154,40 +170,30 @@ Lifting the partiality to the language itself makes the semantics total again.
 Handling errors appropriately is then a concern of the final user, which mimics the semantics of most widely used programming languages like C, Java, etc. in this regard.
 The terms for the partial heap-approach can be seen in figure \ref{lst:part-term}.
 
-\begin{figure}
-{\scriptsize
-\begin{lstlisting}
-data Term : Type -> Set where
-  new  : forall {ty} -> Term ty -> Term (Ref ty)
-  !_   : forall {ty} -> Term (Ref ty) -> Term ty
-  _:=_ : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
-  ref  : forall {ty} -> Nat -> Term (Ref ty)
-\end{lstlisting}}
-\caption{Terms for partial heap semantics}
-\label{lst:part-term}
-\end{figure}
 
 
 \subsection{Host Language}
 The second important choice is what other features apart from the heap itself the language will have. We will call this the \emph{Host Language} in the remainder of this report.
 
+\paragraph{BoolNat}
+The BoolNat language is a minimal language containing only boolean expressions and natural numbers. It already allows studying
+the semantics of a heap while keeping the complexity at a minimum.
+
+Our result is based upon a slightly extended version of this language, which will be explaind in section \ref{sec:boolnat}.
 
 \paragraph{Simply Typed $\lambda$-Calculus}
-Our first approach was to add a mutable heap to the Simply Typed $\lambda$-Calculus using a total semantics. We used the semantics discussed during the TPT lectures
-as base for this experiment.
+Our first approach was to add a mutable heap to the Simply Typed $\lambda$-Calculus using a total semantics. We used the
+semantics discussed during the TPT lectures as basis for this.
 
 The combined complexity of the Simply Typed $\lambda$-Calculus itself together with the totality requirement prevented that a solution could be found in a useful timeframe.
-How a partial semantics would work together with Simply Typed $\lambda$-Calculus has not been looked at, but we expect that our work on partial semantics for a simple
-boolean/naturals language can be used as inspiration.
+How a partial semantics would work together with Simply Typed $\lambda$-Calculus has not been looked at in this project, but we expect
+that our work on partial semantics for the simpler BoolNat language described in the remainder of this report provides a good
+foundation for further research in that direction.
 
-For further research we strongly recommend to first solve the problems in a simpler language and extend it later on.
 
-\paragraph{BoolNat}
-The BoolNat language contains only boolean expression and natural numbers.
 
 \section{Partial BoolNat language}
 \label{sec:boolnat}
-
 Due to the problems encountered with the Simply Typed $\lambda$-Calculus and the totality requirement, we will focus on a partial BoolNat
 language in the following chapters. To be more precise, it is a version of the BoolNat language extended with a try-catch construct and 
 sequencing. The terms of the language can be seen in figure \ref{lst:part-boolnat-term}.
@@ -216,18 +222,6 @@ data Term : Type -> Set where
 \label{lst:part-boolnat-term}
 \end{figure}
 
-
-
-
-		- Lambda calculus
-
-		Challenges in modeling
-
-			- Total language (valid references)
-
-			- Function applications vs proof objects
-
-			- Statement vs expression (hoare)
 
 
 \section{Research contribution}
