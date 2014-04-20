@@ -319,204 +319,162 @@ Make the theorems for hoare logic more usable.
 \section{Small-step Semantics}
 
 \subsection{If then else}
-\begin{itemize}
 
-\item
-If
-\sproof
+\nsproof
+\RightLabel{If}
 \AxiomC{\sstep[0][1]{t$_0$}{t$_0$'}}
 \UnaryInfC{\sstep[0][1]{\textbf{if} t$_0$ \textbf{then} t$_1$ \textbf{else} t$_2$}{\textbf{if} t$_0$' \textbf{then} t$_1$ \textbf{else} t$_2$}}
-\eproof
-
-\item
-IfTrue
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{IfTrue}
 \AxiomC{}
 \UnaryInfC{\sstep{\textbf{if} \emph{true} \textbf{then} t \textbf{else} e}{t}}
-\eproof
-
-\item
-IfFalse
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{IfFalse}
 \AxiomC{}
 \UnaryInfC{\sstep{\textbf{if} \emph{false} \textbf{then} t \textbf{else} e}{e}}
-\eproof
-
-\item
-IfErr
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{IfErr}
 \AxiomC{}
 \UnaryInfC{\sstep{\textbf{if} \emph{error} \textbf{then} t \textbf{else} e}{\emph{error}}}
-\eproof
-
-\end{itemize}
+\neproof
 
 
 \subsection{Is zero?}
-\begin{itemize}
 
-\item
-IsZero
-\sproof
+\nsproof
+\RightLabel{IsZero}
 \AxiomC{\sstep[0][1]{t}{t'}}
 \UnaryInfC{\sstep[0][1]{\textbf{iszero} t}{\textbf{iszero} t'}}
-\eproof
-
-\item
-IsZeroZero
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{IsZeroZ}
 \AxiomC{}
 \UnaryInfC{\sstep{\textbf{iszero} (\emph{num} 0)}{\emph{true}}}
-\eproof
-
-\item
-IsZeroSucc
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{IsZeroS}
 \AxiomC{}
 \UnaryInfC{\sstep{\textbf{iszero} (\emph{suc} v)}{\emph{false}}}
-\eproof
-
-\item
-IsZeroErr
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{IsZeroErr}
 \AxiomC{}
 \UnaryInfC{\sstep{\textbf{iszero} \emph{error}}{\emph{error}}}
-\eproof
-
-\end{itemize}
-
+\neproof
 
 \subsection{References}
-\begin{itemize}
 
-\item
-New
-\sproof
+\nsproof
+\RightLabel{New}
 \AxiomC{\sstep[0][1]{t}{t'}}
 \UnaryInfC{\sstep[0][1]{\textbf{new} t} {\textbf{new} t'}}
-\eproof
-
-\item
-NewVal
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{NewVal}
 \AxiomC{t $\equiv$ $\ulcorner$ v $\urcorner$}
 \UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus \text{[v]}}{\textbf{new} t}{\emph{ref} (\underline{len} $\Phi$)}}
-\eproof
-
-\item
-Deref
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{Deref}
 \AxiomC{\sstep[0][1]{t}{t'}}
 \UnaryInfC{\sstep[0][1]{\textbf{!} t} {\textbf{!} t'}}
-\eproof
-
-\item
-DerefVal
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{DerefVal}
 \AxiomC{}
 \UnaryInfC{\sstep{\textbf{!} (\emph{ref} n)} {$\ulcorner$ \underline{lookup} n $\Phi$ $\urcorner$}}
-\eproof
-
-\item
-DerefErr
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{DerefErr}
 \AxiomC{}
 \UnaryInfC{\sstep{\textbf{!} \emph{error}} {\emph{error}}}
-\eproof
-
-
-\item
-AssLeft
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{AssLeft}
 \AxiomC{\sstep[0][1]{t$_1$}{t$_1$'}}
 \UnaryInfC{\sstep[0][1]{t$_1$ \textbf{:=} t$_2$} {t$_1$' \textbf{:=} t$_2$}}
-\eproof
-
-\item
-AssRight
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{AssRight}
 \AxiomC{$\neg$\underline{isError} v ~~ \sstep[0][1]{t}{t'}}
 \UnaryInfC{\sstep[0][1]{v \textbf{:=} t} {v \textbf{:=} t'}}
-\eproof
-
-\item
-AssErr
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{AssErr}
 \AxiomC{}
 \UnaryInfC{\sstep{\emph{error} \textbf{:=} t} {\emph{error}}}
-\eproof
-
-\item
-AssRed
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{AssRed}
 \AxiomC{t $\equiv$ $\ulcorner$ v $\urcorner$ ~~ rep : \textbf{Elem} $\Phi$ r}
 \UnaryInfC{\sstepe{\Phi}{\text{\underline{replace}}~\Phi~\text{rep v}}
 {(\emph{ref} r) \textbf{:=} t}{t}}
-\eproof
-
-\item
-AssRedErr
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{AssRedErr}
 \AxiomC{$\neg$ \textbf{Elem} $\Phi$ r}
 \UnaryInfC{\sstep{(\emph{ref} r) \textbf{:=} t} {\emph{error}}}
-\eproof
-
-\end{itemize}
+\neproof
 
 
 \subsection{Sequencing}
-\begin{itemize}
 
-\item
-Seq
-\sproof
+\nsproof
+\RightLabel{Seq}
 \AxiomC{\sstep[0][1]{t$_1$}{t$_1$'}}
 \UnaryInfC{\sstep[0][1]{t$_1$ \textbf{$\gg$} t$_2$} {t$_1$' \textbf{$\gg$} t$_2$}}
-\eproof
-
-\item
-SeqVal
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{SeqVal}
 \AxiomC{$\neg$\underline{isError} v$_1$}
 \UnaryInfC{\sstep{v$_1$ \textbf{$\gg$} t$_2$} {t$_2$}}
-\eproof
-
-\item
-SeqErr
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{SeqErr}
 \AxiomC{}
 \UnaryInfC{\sstep{\emph{error} \textbf{$\gg$} t} {\emph{error}}}
-\eproof
-
-\end{itemize}
+\neproof
 
 
 \subsection{Try catch}
-\begin{itemize}
 
-\item
-TryCatch
-\sproof
+\nsproof
+\RightLabel{TryCatch}
 \AxiomC{\sstep[0][1]{t$_1$}{t$_1$'}}
 \UnaryInfC{\sstep[0][1]{\textbf{try} t$_1$ \textbf{catch} t$_2$} {\textbf{try} t$_1$' \textbf{catch} t$_2$}}
-\eproof
-
-\item
-TryCatchSucc
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{TryCatchSucc}
 \AxiomC{$\neg$\underline{isError} v$_1$}
 \UnaryInfC{\sstep{\textbf{try} v$_1$ \textbf{catch} t$_2$} {v$_1$}}
-\eproof
-
-\item
-TryCatchFail
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{TryCatchFail}
 \AxiomC{\underline{isError} t$_1$}
 \UnaryInfC{\sstep{\textbf{try} t$_1$ \textbf{catch} t$_2$} {t$_2$}}
-\eproof
-
-\end{itemize}
-
+\neproof
 
 
 \section{Big-step Semantics}
