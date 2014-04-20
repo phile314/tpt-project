@@ -1,6 +1,15 @@
 module Examples where
 
+open import Data.Unit
+open import Data.Empty
+open import Data.Sum
+open import Data.Nat
+open import Data.Product
+open import Data.Bool hiding ( if_then_else_ ) renaming ( _∧_ to _and_  ; _∨_ to _or_ )
+
+open import Denotational as D
 open import Base
+open import BigStep
 open import Hoare
 
 -- Expression
