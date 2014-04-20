@@ -155,13 +155,14 @@ Handling errors appropriately is then a concern of the final user, which mimics 
 The terms for the partial heap-approach can be seen in figure \ref{lst:part-term}.
 
 \begin{figure}
+{\scriptsize
 \begin{lstlisting}
 data Term : Type -> Set where
   new  : forall {ty} -> Term ty -> Term (Ref ty)
   !_   : forall {ty} -> Term (Ref ty) -> Term ty
   _:=_ : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
   ref  : forall {ty} -> Nat -> Term (Ref ty)
-\end{lstlisting}
+\end{lstlisting}}
 \caption{Terms for partial heap semantics}
 \label{lst:part-term}
 \end{figure}
@@ -192,6 +193,7 @@ language in the following chapters. To be more precise, it is a version of the B
 sequencing. The terms of the language can be seen in figure \ref{lst:part-boolnat-term}.
 
 \begin{figure}
+{\scriptsize
 \begin{lstlisting}
 data Term : Type -> Set where
   true          : Term Boolean
@@ -209,7 +211,7 @@ data Term : Type -> Set where
   ref           : forall {ty} -> Nat -> Term (Ref ty)
   try_catch_    : forall {ty} -> Term ty -> Term ty -> Term ty
   _>>_          : forall {ty1 ty2} -> Term ty1 -> Term ty2 -> Term ty2
-\end{lstlisting}
+\end{lstlisting}}
 \caption{The terms of the partial BoolNat language.}
 \label{lst:part-boolnat-term}
 \end{figure}
@@ -654,60 +656,57 @@ A general workaround is to embed the sequence rule inside this kind of rules, ho
 
 
 \section{Hoare Rules}
-\begin{itemize}
 
-\item Precondition strengthening
-\sproof
+\nsproof
+\RightLabel{Precondition strengthening}
 \AxiomC{$\models P \Rightarrow P'$}
 \AxiomC{\hoare{P'}{S}{Q}}
 \BinaryInfC{\hoare{P}{S}{Q}}
-\eproof
-
-\item Post condition weakening
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{Post condition weakening}
 \AxiomC{$\models Q' \Rightarrow Q$}
 \AxiomC{\hoare{P}{S}{Q'}}
 \BinaryInfC{\hoare{P}{S}{Q}}
-\eproof
-
-\item Conjunction
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{Conjunction}
 \AxiomC{\hoare{P1}{S}{Q1}}
 \AxiomC{\hoare{P2}{S}{Q2}}
 \BinaryInfC{\hoare{P1 \wedge P2}{S}{Q1 \wedge Q2}}
-\eproof
-
-\item Disjunction
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{Disjunction}
 \AxiomC{\hoare{P1}{S}{Q1}}
 \AxiomC{\hoare{P2}{S}{Q2}}
 \BinaryInfC{\hoare{P1 \vee P2}{S}{Q1 \vee Q2}}
-\eproof
-
-\item If-Then-Else ($S$ expression)
-
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{If-Then-Else ($S$ expression)}
 \AxiomC{\hoare{P \wedge g}{S1}{Q}}
 \AxiomC{\hoare{P \wedge \neg g}{S2}{Q}}
 \BinaryInfC{\hoare{P}{\texttt{if}\ g\ \texttt{then}\ S1\ \texttt{else}\ S2}{Q}}
-\eproof
-
-\item Sequencing
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{Sequencing}
 \AxiomC{\hoare{P}{S1}{R}}
 \AxiomC{\hoare{R}{S}{Q}}
 \BinaryInfC{\hoare{P}{S1\ ;\ S2}{Q}}
-\eproof
-
-\item New
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{New}
 \AxiomC{$\models P \Rightarrow Q_S$}
 \UnaryInfC{\hoare{P}{\texttt{new}\ S}{Q}}
-\eproof
+\neproof
+\\\\
 where $Q_S$ means that $Q$ holds for the heap in which the value evaluated from $S$ has been allocated.
 
-
-\end{itemize}
 
 \end{appendices}
 
