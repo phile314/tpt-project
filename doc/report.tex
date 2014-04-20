@@ -143,6 +143,7 @@ Handling errors appropriately is then a concern of the final user, which mimics 
 
 \subsection{Host Language}
 \paragraph{BoolNat}
+\label{sec:boolnat}
 \paragraph{Simply typed $\lambda$-Calculus}
 
 
@@ -165,10 +166,29 @@ Handling errors appropriately is then a concern of the final user, which mimics 
 
 \section{Research contribution}
 \label{sec:cont}
+The language described in~\ref{sec:boolnat} has been implemented in Agda together with a small-step, big-step and denotational semantics.
 
-1) Design and implementation in agda of such language.
+\subsection{Properties}
+\label{sec:metatheories}
+The following meta-theories have been proved:
+\begin{itemize}
+	\item Progress
+	\item Preservation
+	\item Soundness
+	\item Completeness
+	\item Determinism
+	\item Termination
+	\item Type preservation in the heap
+	\item Size preservation of the heap
+\end{itemize}
 
-2) Formal proofs of progress, preservation, soundness, completeness etc. using agda 
+Most of them are well-known properties of semantics. Those are proved mainly by case analyses and structural induction. By completeness and soundness follow that the big-step semantics is equivalent to the denotational semantics. At the moment the similar correspondence from small-step semantics and big-step semantics holds only in one direction. Nevertheless we expect it to hold as well, but because of the specific definitions used the proof is overly complicated, although not very interesting.
+
+\paragraph{Type preservation in the heap}
+This property states that when a cell of the heap is allocated, the type of the values that can be stored in that cell is fixed and cannot be changed. Although we did not use this property, we believe it could be useful in future work.
+
+\paragraph{Size preservation of the heap}
+This simple property states that the heap cannot shrink, but only grow arbitrarily.
 
 3) Development of an hoare logic on top of it, which allows to reason about the correctness of programs written in this language. 
 
