@@ -106,9 +106,14 @@ Having a total language on one hand simplifies proofs in that it reduces the num
 On the other hand, it requires that we can guarantee the totality of the language in the proofs. This turned
 out to be rather difficult.
 
+This proof can be encoded in Agda by adding a heap description object which we call \emph{shape}. The shape
+describes the cells of the heap and can be used to guarantee the success of a heap access. The design
+is very similar to the Context/Environment design used in the Simply Typed $\lambda$-Calculus
+during the TPT lectures.
+
 One source of problems was finding a suitable encoding of reference-values. To be able to relate the proof
-objects stored inside a reference with the current heap, all references need to be indexed over the heap
-they are valid for. As references are part of the value domain, this implies that values need to be
+objects stored inside a reference with the current heap, all references need to be indexed over the heap.
+As references are part of the value domain, this implies that values need to be
 indexed over the heap. While we are not aware of any insurmountable problem caused by this, it leads
 to very verbose types in the whole program.
 
@@ -125,6 +130,7 @@ language in our setting. We have not found any unsolvable problem which would ma
 defining a total language impossible, but finding a suitable encoding in Agda
 and proving properties of the semantics appears to be a hard problem nonetheless.
 
+
 -TODO describe problems
 -Value-Term conversions
 -Refs in Heap?
@@ -140,14 +146,67 @@ At first we tried to define a partial semantics, which unfortunately turned out 
 
 Lifting the partiality to the language itself makes the semantics total again.
 Handling errors appropriately is then a concern of the final user, which mimics the semantics of most widely used programming languages like C, Java, etc. in this regard.
+The terms for the partial heap-approach can be seen in figure \ref{lst:part-term}.
 
+\begin{figure}
+\begin{lstlisting}
+data Term : Type -> Set where
+  new  : forall {ty} -> Term ty -> Term (Ref ty)
+  !_   : forall {ty} -> Term (Ref ty) -> Term ty
+  _:=_ : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
+  ref  : forall {ty} -> Nat -> Term (Ref ty)
+\end{lstlisting}
+\caption{Terms for partial heap semantics}
+\label{lst:part-term}
+\end{figure}
 
 
 \subsection{Host Language}
-\paragraph{BoolNat}
-\label{sec:boolnat}
-\paragraph{Simply typed $\lambda$-Calculus}
+The second important choice is what other features apart from the heap itself the language will have. We will call this the \emph{Host Language} in the remainder of this report.
 
+
+\paragraph{Simply Typed $\lambda$-Calculus}
+Our first approach was to add a mutable heap to the Simply Typed $\lambda$-Calculus using a total semantics. We used the semantics discussed during the TPT lectures
+as base for this experiment.
+
+The combined complexity of the Simply Typed $\lambda$-Calculus itself together with the totality requirement prevented that a solution could be found in a useful timeframe.
+How a partial semantics would work together with Simply Typed $\lambda$-Calculus has not been looked at, but we expect that our work on partial semantics for a simple
+boolean/naturals language can be used as inspiration.
+
+For further research we strongly recommend to first solve the problems in a simpler language and extend it later on.
+
+\paragraph{BoolNat}
+The BoolNat language contains only boolean expression and natural numbers.
+
+\section{Partial BoolNat language}
+\label{sec:boolnat}
+
+Due to the problems encountered with the Simply Typed $\lambda$-Calculus and the totality requirement, we will focus on a partial BoolNat
+language in the following chapters. To be more precise, it is a version of the BoolNat language extended with a try-catch construct and 
+sequencing. The terms of the language can be seen in figure \ref{lst:part-boolnat-term}.
+
+\begin{figure}
+\begin{lstlisting}
+data Term : Type -> Set where
+  true          : Term Boolean
+  false         : Term Boolean
+  error         : forall {ty} -> Term ty 
+  num           : Nat -> Term Natural
+  iszero        : Term Natural -> Term Boolean
+  if_then_else_ : forall {ty} -> (cond  : Term Boolean)
+                              -> (tcase : Term ty)
+                              -> (fcase : Term ty)
+                              -> Term ty
+  new           : forall {ty} -> Term ty -> Term (Ref ty)
+  !_            : forall {ty} -> Term (Ref ty) -> Term ty
+  _:=_          : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
+  ref           : forall {ty} -> Nat -> Term (Ref ty)
+  try_catch_    : forall {ty} -> Term ty -> Term ty -> Term ty
+  _>>_          : forall {ty1 ty2} -> Term ty1 -> Term ty2 -> Term ty2
+\end{lstlisting}
+\caption{The terms of the partial BoolNat language.}
+\label{lst:part-boolnat-term}
+\end{figure}
 
 
 
