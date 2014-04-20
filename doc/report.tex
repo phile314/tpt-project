@@ -78,33 +78,30 @@
 
 
 \section{Research question}
-Providing formal semantics for example for a small arithmetic language is straightforward. In this project, we want to define such semantics
-for a minimal programming language which has a mutable heap. Adding mutable, global state makes a language no more sideeffect free in
-general, which makes the problem harder to solve.
+Defining a formal semantics for a small arithmetic language is straightforward. In this project, we aimed to enrich such a minimal programming language with a mutable heap, defining and formalizing its semantics. Adding mutable, global state makes the language impure, which  poses a number of problems and issues, such as threading the heap throughout the evaluation of a term and dealing with invalid references to the heap. 
+We managed to solve these problems and reached our goals. Furthermore we have successfully embedded hoare logic in the language, allowing to reason about the correctness of a program written in this minimal programming language.
 
-We will first show different approaches possible to solve the problem and their restrictions. We then will define the formal
-semantics in Agda for one such approach.
-
-
+\subsection{Overview}
+In section~\ref{sec:method} we show different alternative approaches to solve the problem and their restrictions. 
+In section \ref{sec:cont} we define the formal semantics in Agda for one such approach.
 Using the formal semantics, we then will prove some meta theories like preservation, soundness, etc..
 
 
 
 
 \section{Research Method}
-
+\label{sec:method}
 Designing a suitable language to study the semantics of a mutable heap is not inherently complex, but influences greatly
 the ability to prove things. Therefor the choice of language has to be done careful, and we identified two
 major aspects defining any such language.
 
 \subsection{Totality}
 The first aspect is whether our language is total or not. A language shall be total if all evalutions
-are always guaranteed to succeed. A language is non-total, if an evaluation of a term might fail
-at runtime.
+are always guaranteed to succeed. A language is non-total, if the evaluation of a term might fail or not terminate at runtime.
 
 \paragraph{Total version}
 Having a total language on one hand simplifies proofs in that it reduces the number of possible evaluations.
-On the other hand, it requires that we can guarantee the totalness of the language in the proofs. This turned
+On the other hand, it requires that we can guarantee the totality of the language in the proofs. This turned
 out to be rather difficult.
 
 One source of problems was finding a suitable encoding of reference-values. To be able to relate the proof
@@ -133,13 +130,14 @@ and proving properties of the semantics appears to be a hard problem nonetheless
 
 
 \paragraph{Partial version}
-Using a non-total language on the other hand removes the problem of having to ensure totality.
+Using a non-total language on the other hand relieves the burden of guaranteeing totality.
 Instead, the concept of failure now needs to be encoded either by defining a partial semantics
 or by lifting the partiality to the language itself.
 
-Lifting the partiality to the language itself makes the semantics total again, as it is now
-the problem of the user of the language to handle errors appropriately. This mimics the semantics
-of most widely used programming languages like C, Java, etc. in this regard.
+At first we tried to define a partial semantics, which unfortunately turned out to be fairly awkward and non-idiomatic. Proofs are limited only to the succeeding cases, which leads to verbose and error-prone proofs without gaining any benefit. 
+
+Lifting the partiality to the language itself makes the semantics total again.
+Handling errors appropriately is then a concern of the final user, which mimics the semantics of most widely used programming languages like C, Java, etc. in this regard.
 
 
 
@@ -166,7 +164,7 @@ of most widely used programming languages like C, Java, etc. in this regard.
 
 
 \section{Research contribution}
-
+\label{sec:cont}
 
 1) Design and implementation in agda of such language.
 
