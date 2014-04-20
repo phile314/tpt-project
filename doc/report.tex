@@ -148,6 +148,7 @@ The terms for the partial heap-approach can be seen in figure \ref{lst:part-term
 
 \begin{figure}
 \begin{lstlisting}
+data Term : Type -> Set where
  new  : forall {ty} -> Term ty -> Term (Ref ty)
  !_   : forall {ty} -> Term (Ref ty) -> Term ty
  _<-_ : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
@@ -175,12 +176,35 @@ For further research we strongly recommend to first solve the problems in a simp
 \paragraph{BoolNat}
 The BoolNat language contains only boolean expression and natural numbers.
 
-\section{Partial BoolNat language}
+\section{(Partial BoolNat language}
 \label{sec:boolnat}
 
-TODO
+Due to the problems encountered with the Simply Typed $\lambda$-Calculus and the totality requirement, we will focus on a partial BoolNat
+language in the following chapters. To be more precise, it is a version of the BoolNat language extended with a try-catch construct and 
+sequencing. The terms of the language can be seen in figure \ref{lst:part-boolnat-term}.
 
-
+\begin{figure}
+\begin{lstlisting}
+data Term : Type -> Set where
+ true          : Term Boolean
+ false         : Term Boolean
+ error         : forall {ty} -> Term ty 
+ num           : Nat -> Term Natural
+ iszero        : Term Natural -> Term Boolean
+ if_then_else_ : forall {ty} -> (cond  : Term Boolean)
+                             -> (tcase : Term ty)
+                             -> (fcase : Term ty)
+                             -> Term ty
+ new           : forall {ty} -> Term ty -> Term (Ref ty)
+ !_            : forall {ty} -> Term (Ref ty) -> Term ty
+ _<-_          : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
+ ref           : forall {ty} -> Nat -> Term (Ref ty)
+ try_catch_    : forall {ty} -> Term ty -> Term ty -> Term ty
+ _>>_          : forall {ty1 ty2} -> Term ty1 -> Term ty2 -> Term ty2
+\end{lstlisting}
+\caption{The terms of the partial BoolNat language.}
+\label{lst:part-boolnat-term}
+\end{figure}
 
 
 
