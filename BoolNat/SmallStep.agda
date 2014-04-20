@@ -67,12 +67,6 @@ data Step : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty
  E-Try-Catch-Fail : ∀ {ty n} {H : Heap n} {t : Term ty} {tc : Term ty} -> (isE : isError t) ->
                     Step {H1 = H} {H2 = H} (try t catch tc) tc
  
- -- Here we need to add all the "failing" rules such as 
- -- We dont need this rule because rrrors can be stored in the heap
--- E-Assign-Err2 : ∀ {ty n} {H : Heap n} {t : Term (Ref ty)} -> Step {H1 = H} {H2 = H} (t <- error) error
- 
-
--- ...
 
 -- Sequence of steps
 data Steps : ∀ {ty n m} -> {H1 : Heap n} -> {H2 : Heap m} -> Term ty -> Term ty -> Set where

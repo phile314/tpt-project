@@ -12,9 +12,7 @@ open import BigStep
 open import Denotational
 open import Relation.Binary.HeterogeneousEquality
 
---open import Proofs.CompSound
-
-open import Relation.Binary.PropositionalEquality hiding ( [_] ) -- remove
+open import Relation.Binary.PropositionalEquality hiding ( [_] )
 
 --------------------------------------------------------------------------------
 -- Conversion between BigStep and SmallStep

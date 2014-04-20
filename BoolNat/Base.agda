@@ -1,8 +1,6 @@
 -- This module defines an extension to the boolean expression language. Now unary natural numbers are introduced, 
 -- along with  a predicate to check whether a number is zero. This language is typed: terms can either represent a 
 -- boolean or a number.
--- Small-step and big-step semantics are also defined for this language and the soundness and completeness thereof are 
--- proven.
 
 module Base where
 

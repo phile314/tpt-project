@@ -1,5 +1,3 @@
--- This module contains the metatheories proved for the language
-
 module Proofs.Misc where
 
 open import Base

@@ -1,5 +1,3 @@
--- This module contains the metatheories proved for the language
-
 module Proofs.Termination where
 
 open import Base
@@ -18,10 +16,6 @@ open import Data.Empty
 --------------------------------------------------------------------------------
 -- Termination
 --------------------------------------------------------------------------------
-
--- With this formulation we cannot write the lemma prepend-steps.
--- I don't know whether inlining it would work.
--- I don't know if using another specific constructor would be better
 
 val-err? : ∀ {ty} (v : Value ty) -> (isValue ⌜ v ⌝ × ((isError ⌜ v ⌝) ⊎ (¬ isError ⌜ v ⌝)))
 val-err? vtrue = unit , (inj₂ (λ x → x))

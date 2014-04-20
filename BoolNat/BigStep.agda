@@ -9,7 +9,7 @@ open import Relation.Nullary
 open import Base
 open import SmallStep
 
-open import Relation.Binary.PropositionalEquality hiding ( [_] ) -- remove
+open import Relation.Binary.PropositionalEquality hiding ( [_] )
 
 
 data BStep : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} -> Term ty → Value ty → Set where

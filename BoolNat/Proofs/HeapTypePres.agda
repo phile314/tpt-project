@@ -23,7 +23,6 @@ data TypePres : ∀ {n m} -> Heap m -> Heap n -> Set where
 eq=>TypePres : ∀ {n} -> (H : Heap n) -> TypePres H H
 eq=>TypePres Nil = Base
 eq=>TypePres (Cons v H) = Write H H (eq=>TypePres H) v
---Cons (eq=>TypePres H) v
 
 h-pres-replace : ∀ {n r ty} {H : Heap n} {v : Value ty} -> (e : Elem H r ty) -> TypePres H (replace H  e v)
 h-pres-replace {suc n} .{zero} {ty} {Cons v H} {v'} Top = Write H H (eq=>TypePres H) v'
