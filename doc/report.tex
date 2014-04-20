@@ -144,11 +144,23 @@ At first we tried to define a partial semantics, which unfortunately turned out 
 
 Lifting the partiality to the language itself makes the semantics total again.
 Handling errors appropriately is then a concern of the final user, which mimics the semantics of most widely used programming languages like C, Java, etc. in this regard.
+The terms for the partial heap-approach can be seen in figure \ref{lst:part-term}.
 
+\begin{figure}
+\begin{lstlisting}
+ new  : forall {ty} -> Term ty -> Term (Ref ty)
+ !_   : forall {ty} -> Term (Ref ty) -> Term ty
+ _<-_ : forall {ty} -> Term (Ref ty) -> Term ty -> Term ty
+ ref  : forall {ty} -> Nat -> Term (Ref ty)
+\end{lstlisting}
+\caption{Terms for partial heap semantics}
+\label{lst:part-term}
+\end{figure}
 
 
 \subsection{Host Language}
 The second important choice is what other features apart from the heap itself the language will have. We will call this the \emph{Host Language} in the remainder of this report.
+
 
 \paragraph{Simply Typed $\lambda$-Calculus}
 Our first approach was to add a mutable heap to the Simply Typed $\lambda$-Calculus using a total semantics. We used the semantics discussed during the TPT lectures
@@ -158,10 +170,10 @@ The combined complexity of the Simply Typed $\lambda$-Calculus itself together w
 How a partial semantics would work together with Simply Typed $\lambda$-Calculus has not been looked at, but we expect that our work on partial semantics for a simple
 boolean/naturals language can be used as inspiration.
 
-For further research we strongly recommend to first solve the problems in a simple language and extend it later on.
+For further research we strongly recommend to first solve the problems in a simpler language and extend it later on.
 
 \paragraph{BoolNat}
-TODO
+The BoolNat language contains only boolean expression and natural numbers.
 
 \section{Partial BoolNat language}
 \label{sec:boolnat}
