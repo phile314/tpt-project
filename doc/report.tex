@@ -279,17 +279,30 @@ Partial interpretation is denoted by $ \left\langle P \right\rangle  S \left\lan
 Where \texttt{fail} is true when $v$ is \texttt{verror}.
 
 \section{Conclusion}
+\label{sec:conclusion}
+In this project we have designed and formalized a minimal language with mutable heap and exceptions. We have implemented it and its semantics using Agda and we have proved several meta-theories. 
+Lastly we have embedded hoare logic  in the language, allowing to reason about the correctness of programs written in this language.
 
 \subsection{Comparison}
-Comparison with mini-languages used in the course.
+The language we have studied in this project is more complex than the languages studied during the course because it is partial and the global state affects the evaluation of terms. In particular the operational semantics is not a relation between terms only but includes also the initial and final heap. In the same way the denotational semantics is a function from terms and heaps to values and heaps. It is crucial then to define the data types conveniently using indexes and parameters properly. In fact most of the problems we had during the project were caused ultimately by an inappropriate design of our data types, thus we suggest to always think carefully about these issues during the initial phase of this kind of projects.
+
+The proofs of the meta-theories, apart from the presence of the heap, are not inherently more difficult than those seen during the course, because the structure of the proof (structural induction and case analyses) is essentially the same.
+In our case they are simply more lengthy because of the greater number of constructs. Again sometimes we had to find proper definitions of our data types to express the theorems conveniently.
 
 \subsection{Future Work}
-Extend hoare logic to fully cope with the statement vs expression issue (evaluation changes the heap) 
+Future work should be focuses on the hoare logic part.
+Firstly the set of rules provided with the project is not complete, thus other rules should be added in order to cover all the constructs of the language.
 
-Complete the missing rules. 
+Secondly, although we proved few hoare inference rules, from our experience is rather difficult to use them directly to prove the correctness of a program.
+The problem is that several implicit parameters need to be filled manually, which makes the proof tedious and verbose.
+It would be interesting to rewrite the rules so that they could be used smoothly and effectively.
 
-Make the theorems for hoare logic more usable.
-
+Lastly hoare logic should be extended to fully cope with statefull evaluation.
+In our language there is no distinction between expressions and statements 
+(an expression is a term that does not change the heap when evaluated).
+However some hoare rules rely on the fact that there evaluation will not change it (see for example the If-Then-Else rule). It is not possible to release this restriction because, evaluating a term then might lead to a state in which the precondition is no more valid. Therefore with the available 
+rules it is possible to reason about a limited set of programs.
+A general workaround is to embed the sequence rule inside this kind of rules, however this leads to code duplication. We believe that this is a general pattern in our hoare rules, then it would be helpful to express this directly in the definition of hoare triples. 
 
 
 \begin{thebibliography}{1}
