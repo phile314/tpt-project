@@ -68,7 +68,7 @@
 
 
 
-\title{TPT Project (TODO add desc)}
+\title{TPT Project - Heap Semantics}
 \author{Marco Vassena  \\
     4110161 \\
     \and
@@ -90,8 +90,13 @@
 
 
 \section{Research question}
-Defining a formal semantics for a small arithmetic language is straightforward. In this project, we aimed to enrich such a minimal programming language with a mutable heap, defining and formalizing its semantics. Adding mutable, global state makes the language impure, which  poses a number of problems and issues, such as threading the heap throughout the evaluation of a term and dealing with invalid references to the heap. 
-We managed to solve these problems and reached our goals. Furthermore we have successfully embedded hoare logic in the language, allowing to reason about the correctness of a program written in this minimal programming language.
+Defining a formal semantics for a small arithmetic language is straightforward. In this project, we aimed to enrich such a
+minimal programming language with a mutable heap, defining and formalizing its semantics. Adding mutable, global state makes
+the language impure, which  poses a number of problems and issues, such as threading the heap through the evaluation of a term
+and dealing with invalid references to the heap.
+
+We managed to solve these problems and reached our goals. Furthermore we have successfully embedded hoare logic in the language,
+allowing to reason about the correctness of a program written in this minimal programming language.
 
 \subsection{Overview}
 In section~\ref{sec:method} we show different alternative approaches to solve the problem and their restrictions. 
@@ -103,54 +108,47 @@ Finally in~\ref{sec:conclusion} we draw our conclusions about the project, compa
 \label{sec:method}
 Designing a suitable language to study the semantics of a mutable heap is not inherently complex, but influences greatly
 the ability to prove things. Therefor the choice of language has to be done careful, and we identified two
-major aspects defining any such language.
+major aspects in defining such a language.
 
 \subsection{Totality}
-The first aspect is whether our language is total or not. A language shall be total if all evalutions
-are always guaranteed to succeed. A language is non-total, if the evaluation of a term might fail or not terminate at runtime.
+The first aspect is whether the language is total or not. We will call a language total if all heap accesses are always guaranteed
+to succeed. A language where any heap access might fail or diverge at runtime will be called non-total.
 
 \paragraph{Total version}
 Having a total language on one hand simplifies proofs in that it reduces the number of possible evaluations.
 On the other hand, it requires that we can guarantee the totality of the language in the proofs. This turned
 out to be rather difficult.
 
-This proof can be encoded in Agda by adding a heap description object which we call \emph{shape}. The shape
+This proof can be encoded in Agda by adding a heap description object which we call shape. The shape
 describes the cells of the heap and can be used to guarantee the success of a heap access. The design
 is very similar to the Context/Environment design used in the Simply Typed $\lambda$-Calculus
 during the TPT lectures.
 
-One source of problems was finding a suitable encoding of reference-values. To be able to relate the proof
-objects stored inside a reference with the current heap, all references need to be indexed over the heap.
-As references are part of the value domain, this implies that values need to be
-indexed over the heap. While we are not aware of any insurmountable problem caused by this, it leads
-to very verbose types in the whole program.
+While this provides a promising foundation to implement such a language in Agda, the details depend
+heavily on the design choices and restrictions present in the language.
 
-A similar issue occurs when storing references themselves on the heap is allowed. The reference
-values on the heap now depend on the heap itself in their proof objects. Due to the different
-versions of the heap involved this is unlikely to cause circular dependencies, but it increases
-the complexity of the semantics and proofs greatly.
-An easy solution to this problem is disallowing references on the heap. How this would influence
-the semantics remains an open question.
+First, a language may allow storing references to be stored on the heap. This leads to almost circular
+dependencies, because the heap elements may now indirectly depend on the heap. Because of the different
+versions of the heap involved, it is unlikely that a real circular dependency exists. Nonetheless,
+it complicates the proof that the language is total.
 
+Second, references are normally regarded as values. To be able to relate the references with the
+heap present during evaluation, the references need to be indexed by the shape. This in turn requires
+that values must be indexed by the shape, which is rather counterintuitive and verbose.
 
-Due to the complexities shown above, we did not succeed in defining and using a total
-language in our setting. We have not found any unsolvable problem which would make
-defining a total language impossible, but finding a suitable encoding in Agda
-and proving properties of the semantics appears to be a hard problem nonetheless.
+Other aspects may interfere with the definition of a total language in this setting as well.
 
-
--TODO describe problems
--Value-Term conversions
--Refs in Heap?
--Proof propagation?
+Due to the complexity involved in designing such a language, we do not have a finished solution for this approach.
+While we are not aware of any insurmountable problem, defining a suitable encoding in Agda
+and proving properties of its semantics is non-trivial.
 
 
 \paragraph{Partial version}
-Using a non-total language on the other hand relieves the burden of guaranteeing totality.
+Using a non-total language on the other hand is relieved from the burden of guaranteeing totality.
 Instead, the concept of failure now needs to be encoded either by defining a partial semantics
 or by lifting the partiality to the language itself.
 
-At first we tried to define a partial semantics, which unfortunately turned out to be fairly awkward and non-idiomatic. Proofs are limited only to the succeeding cases, which leads to verbose and error-prone proofs without gaining any benefit. 
+A first attempt to define a partial semantics turned out to be fairly awkward and non-idiomatic. Proofs are limited only to the succeeding cases, which leads to verbose and error-prone proofs without gaining any benefit. 
 
 Lifting the partiality to the language itself makes the semantics total again.
 Handling errors appropriately is then a concern of the final user, which mimics the semantics of most widely used programming languages like C, Java, etc. in this regard.
@@ -395,7 +393,7 @@ A general workaround is to embed the sequence rule inside this kind of rules, ho
 \nsproof
 \RightLabel{NewVal}
 \AxiomC{t $\equiv$ $\ulcorner$ v $\urcorner$}
-\UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus \text{[v]}}{\textbf{new} t}{\emph{ref} (\underline{len} $\Phi$)}}
+\UnaryInfC{\sstepe{\Phi}{\Phi \doubleplus \text{[v]}}{\textbf{new} t}{\emph{ref} (\underline{length} $\Phi$)}}
 \neproof
 \\\\
 \nsproof
@@ -578,7 +576,7 @@ A general workaround is to embed the sequence rule inside this kind of rules, ho
 \RightLabel{New}
 \AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ v}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t ~$\stepsto$~ $\Phi_2 \doubleplus$ [v] $\vdash$ \emph{vref} (\underline{len} $\Phi_2$)}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t ~$\stepsto$~ $\Phi_2 \doubleplus$ [v] $\vdash$ \emph{vref} (\underline{length} $\Phi_2$)}
 \neproof
 \hfill
 \nsproof
