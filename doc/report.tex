@@ -42,10 +42,20 @@
   \def\defaultHypSeparation{\hskip .1in}
 % whats that doing? ->  \def\fCenter{\models}
 }
-
 \newcommand{\eproof}{
   \end{prooftree}
   \end{center}
+  \normalsize
+}
+
+
+\newcommand{\nsproof}{
+  \scriptsize
+  \def\defaultHypSeparation{\hskip .1in}
+% whats that doing? ->  \def\fCenter{\models}
+}
+\newcommand{\neproof}{
+  \DisplayProof
   \normalsize
 }
 
@@ -205,9 +215,6 @@ data Term : Type -> Set where
 \caption{The terms of the partial BoolNat language.}
 \label{lst:part-boolnat-term}
 \end{figure}
-
-
-
 
 
 
@@ -528,213 +535,167 @@ TryCatchFail
 \section{Big-step Semantics}
 
 \subsection{Values}
-
-\begin{itemize}
-
-\item
-True
-\sproof
+\nsproof
+\RightLabel{True}
 \AxiomC{}
 \UnaryInfC{$\Phi \vdash$ \textbf{true} ~$\stepsto$~ $\Phi \vdash$ \emph{vtrue}}
-\eproof
-
-\item
-False
-\sproof
+\neproof
+%
+\nsproof
+\RightLabel{False}
 \AxiomC{}
 \UnaryInfC{$\Phi \vdash$ \textbf{false} ~$\stepsto$~ $\Phi \vdash$ \emph{vfalse}}
-\eproof
-
-\item
-Num
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{Num}
 \AxiomC{}
 \UnaryInfC{$\Phi \vdash$ \textbf{num} m ~$\stepsto$~ $\Phi \vdash$ \emph{vnum} m}
-\eproof
-
-\item
-Ref
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{Ref}
 \AxiomC{}
 \UnaryInfC{$\Phi \vdash$ \textbf{ref} r ~$\stepsto$~ $\Phi \vdash$ \emph{vref} r}
-\eproof
-
-\item
-Error
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{Error}
 \AxiomC{}
 \UnaryInfC{$\Phi \vdash$ \textbf{error} ~$\stepsto$~ $\Phi \vdash$ \emph{verror}}
-\eproof
-
-\end{itemize}
-
+\neproof
 
 
 \subsection{If then else}
 
-\begin{itemize}
-
-\item
-IfTrue
-\sproof
+\nsproof
+\RightLabel{IfTrue}
 \AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vtrue}}
 \AxiomC{$\Phi_2 \vdash$ t ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_3 \vdash$ v}
-\eproof
-
-\item
-IfFalse
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{IfFalse}
 \AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vfalse}}
 \AxiomC{$\Phi_2 \vdash$ e ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_3 \vdash$ v}
-\eproof
-
-\item
-IfErr
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{IfErr}
 \AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
-\eproof
-
-\end{itemize}
-
+\neproof
 
 
 \subsection{Is zero?}
 
-\begin{itemize}
-
-\item
-IsZeroZ
-\sproof
+\nsproof
+\RightLabel{IsZeroZ}
 \AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vnat 0}}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vtrue}}
-\eproof
-
-\item
-IsZeroS
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{IsZeroS}
 \AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vnat (succ} n \emph{)}}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vfalse}}
-\eproof
-
-\item
-IsZeroErr
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{IsZeroErr}
 \AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{isZero} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
-\eproof
-
-\end{itemize}
-
+\neproof
 
 
 \subsection{References}
 
-\begin{itemize}
-
-\item
-New
-\sproof
+\nsproof
+\RightLabel{New}
 \AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ v}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t ~$\stepsto$~ $\Phi_2 \doubleplus$ [v] $\vdash$ \emph{vref} (\underline{len} $\Phi_2$)}
-\eproof
-
-\item
-Deref
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{Deref}
 \AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{!} t ~$\stepsto$~ $\Phi_2 \vdash$ \underline{lookup} r $\Phi_2$}
-\eproof
-
-\item
-DerefErr
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{DerefErr}
 \AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{!} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
-\eproof
-
-\item
-Ass
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{Ass}
 \AxiomC{rep : \textbf{Elem} $\Phi_3$ r ~~ $\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
 \AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ \underline{replace} $\Phi_3$ rep v $\vdash$ v}
-\eproof
-
-\item
-AssOob
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{AssOob}
 \AxiomC{$\neg$ \textbf{Elem} $\Phi_3$ r}
 \AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
 \BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
-\eproof
-
-\item
-AssErr
-\sproof
+\neproof
+\hfill
+\nsproof
+\RightLabel{AssErr}
 \AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
-\eproof
-
-\end{itemize}
-
+\neproof
 
 
 \subsection{Sequencing}
 
-\begin{itemize}
-
-\item
-Seq
-\sproof
+\nsproof
+\RightLabel{Seq}
 \AxiomC{$\neg$ \textbf{isVError} v$_1$ ~~ $\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ v$_1$}
 \AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v$_2$}
 \BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{$\gg$} t$_2$ ~$\stepsto$~ $\Phi_3$ $\vdash$ v$_2$}
-\eproof
-
-\item
-SeqErr
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{SeqErr}
 \AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
 \BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{$\gg$} t$_2$ ~$\stepsto$~ $\Phi_3$ $\vdash$ \emph{verror}}
-\eproof
-
-\end{itemize}
-
+\neproof
 
 
 \subsection{Try catch}
 
-\begin{itemize}
-
-\item
-TryCatch
-\sproof
+\nsproof
+\RightLabel{TryCatch}
 \AxiomC{$\neg$ \textbf{isVError} v$_1$}
 \AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ v}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{try} t$_1$ \textbf{catch} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ v}
-\eproof
-
-\item
-TryCatchErr
-\sproof
+\neproof
+\\\\
+\nsproof
+\RightLabel{TryCatchErr}
 \AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{try} t$_1$ \textbf{catch} t$_2$ ~$\stepsto$~ $\Phi_3$ $\vdash$ v}
-\eproof
+\neproof
 
-\end{itemize}
+
+
+
+
 
 \section{Hoare Rules}
 \begin{itemize}
