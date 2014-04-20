@@ -188,6 +188,7 @@ Our first approach was to add a mutable heap to the Simply Typed $\lambda$-Calcu
 semantics discussed during the TPT lectures as basis for this.
 
 The combined complexity of the Simply Typed $\lambda$-Calculus itself together with the totality requirement prevented that a solution could be found in a useful timeframe.
+
 How a partial semantics would work together with Simply Typed $\lambda$-Calculus has not been looked at in this project, but we expect
 that our work on partial semantics for the simpler BoolNat language described in the remainder of this report provides a good
 foundation for further research in that direction.
@@ -280,7 +281,7 @@ data Term : Type -> Set where
 
 \section{Research contribution}
 \label{sec:cont}
-The language described in~\ref{sec:boolnat} has been implemented in Agda together with a small-step, big-step and denotational semantics.
+The language described in chapter \ref{sec:boolnat} has been implemented in Agda together with a small-step, big-step and denotational semantics.
 
 \subsection{Properties}
 \label{sec:metatheories}
@@ -341,23 +342,24 @@ Lastly we have embedded hoare logic  in the language, allowing to reason about t
 \subsection{Comparison}
 The language we have studied in this project is more complex than the languages studied during the course because it is partial and the global state affects the evaluation of terms. In particular the operational semantics is not a relation between terms only but includes also the initial and final heap. In the same way the denotational semantics is a function from terms and heaps to values and heaps. It is crucial then to define the data types conveniently using indexes and parameters properly. In fact most of the problems we had during the project were caused ultimately by an inappropriate design of our data types, thus we suggest to always think carefully about these issues during the initial phase of this kind of projects.
 
-The proofs of the meta-theories, apart from the presence of the heap, are not inherently more difficult than those seen during the course, because the structure of the proof (structural induction and case analyses) is essentially the same.
-In our case they are simply more lengthy because of the greater number of constructs. Again sometimes we had to find proper definitions of our data types to express the theorems conveniently.
+The proofs of the meta-theories, apart from the presence of the heap, are not inherently more difficult than those seen during the course, because the structure of the proofs (structural induction and case analyses) is essentially the same.
+In our case they are simply longer due to the greater number of constructs. Again sometimes we had to find proper definitions of our data types to express the theorems conveniently.
 
 \subsection{Future Work}
-Future work should be focuses on the hoare logic part.
+Future work should be focused on the hoare logic part.
 Firstly the set of rules provided with the project is not complete, thus other rules should be added in order to cover all the constructs of the language.
 
-Secondly, although we proved few hoare inference rules, from our experience is rather difficult to use them directly to prove the correctness of a program.
-The problem is that several implicit parameters need to be filled manually, which makes the proof tedious and verbose.
-It would be interesting to rewrite the rules so that they could be used smoothly and effectively.
+Secondly, although we proved a few hoare inference rules, from our experience it is rather difficult to use them directly to prove the correctness of a program.
+The problem is that several implicit parameters need to be filled in manually, which makes the proof tedious and verbose.
+It would be interesting to rewrite the rules so that they could be used more smoothly and effectively.
 
 Lastly hoare logic should be extended to fully cope with statefull evaluation.
 In our language there is no distinction between expressions and statements 
 (an expression is a term that does not change the heap when evaluated).
-However some hoare rules rely on the fact that there evaluation will not change it (see for example the If-Then-Else rule). It is not possible to release this restriction because, evaluating a term then might lead to a state in which the precondition is no more valid. Therefore with the available 
+However some hoare rules rely on the fact that the evaluation will not change the heap (see for example the If-Then-Else rule). It is
+not possible to lift this restriction, because evaluating a term then might lead to a state in which the precondition is no more valid. Therefore with the available 
 rules it is possible to reason about a limited set of programs.
-A general workaround is to embed the sequence rule inside this kind of rules, however this leads to code duplication. We believe that this is a general pattern in our hoare rules, then it would be helpful to express this directly in the definition of hoare triples. 
+A general workaround is to embed the sequence rule inside this kind of rules, however this leads to code duplication. We believe that this is a general pattern in our hoare rules, therefore it would be helpful to express this directly in the definition of hoare triples. 
 
 
 \begin{thebibliography}{1}
