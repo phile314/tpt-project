@@ -11,7 +11,9 @@
 \usepackage[toc,page]{appendix}
 
 \newcommand{\stepsto}{\Downarrow}
-
+\newcommand{\hoare}[3]{
+	 $\left\langle #1 \right\rangle   #2 \left\langle #3 \right\rangle$
+}
 % font size could be 10pt (default), 11pt or 12 pt
 % paper size coulde be letterpaper (default), legalpaper, executivepaper,
 % a4paper, a5paper or b5paper
@@ -188,11 +190,36 @@ Most of them are well-known properties of semantics. Those are proved mainly by 
 This property states that when a cell of the heap is allocated, the type of the values that can be stored in that cell is fixed and cannot be changed. Although we did not use this property, we believe it could be useful in future work.
 
 \paragraph{Size preservation of the heap}
-This simple property states that the heap cannot shrink, but only grow arbitrarily.
+This simple property states that the heap cannot shrink, but only grows.
+In our language it is not possible to deallocate something from the heap.
 
-3) Development of an hoare logic on top of it, which allows to reason about the correctness of programs written in this language. 
+\subsection{Hoare Logic}
+Hoare logic is a formal system used to reason about the correctness of a program. 
+This is achieved using Hoare triples $\left\langle P \right\rangle   S \left\langle Q \right\rangle$, where $P$ and $Q$ are predicates over the state and $S$ is a program, which means that if $P$ holds in some initial state, and $P$ is evaluated leading to some other state, in this final state $Q$ holds.
+We embedded this logic in our language and proved few inference rules so that it is actually possible to formally prove the correctness of a program written in our language.
 
-4) Proofs of the principal hoare logic theorems.
+\paragraph{Hoare Triples}
+Hoare triples $ \left\langle P \right\rangle   S \left\langle Q \right\rangle$ have been modeled following the definition. The only differences is that the state in our  setting is the heap. In order to make triples more expressive the post condition is a predicate over not only the final heap, but also the value resulting from the evaluation of $S$.
+
+\sproof
+\AxiomC{$\vdash (P\ \Phi_0)$}
+\AxiomC{$\Phi_0 \vdash S \Downarrow \Phi_1 \vdash v $}
+\BinaryInfC{$\vdash (Q\ \Phi_1\ v)$}
+\eproof
+Where $\vdash (P\  \Phi_0)$ means that $P$ holds for the initial heap $\Phi_0$ and $\vdash (Q\ \Phi_1\ v)$ means that $Q$ holds for the final heap $\Phi_1$ and for the resulting value $v$.
+
+Hoare triples come with two interpretations: total and partial.
+When using partial interpretation the termination of the program is assumed whereas in total interpretation it is a proof obligation.
+In our project we have provided either the interpretations, with the only difference that they refer to exceptions rather than non-termination.
+The semantics of the language specifies that when an exception is raised the computation is aborted, therefore it is not possible to guarantee the post condition.
+Partial interpretation is denoted by $ \left\langle P \right\rangle  S \left\langle Q \right\rangle^*$ :
+\sproof
+\AxiomC{$\vdash (P\ \Phi_0)$}
+\AxiomC{$\Phi_0 \vdash S \Downarrow \Phi_1 \vdash v $}
+\BinaryInfC{$\vdash \neg \texttt{fail} \Rightarrow (Q\ \Phi_1\ v)$}
+\eproof
+Where \texttt{fail} is true when $v$ is \texttt{verror}.
+
 
 
 \section{Related (and further) Work}
@@ -630,6 +657,62 @@ TryCatchErr
 \AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \BinaryInfC{$\Phi_1 \vdash$ \textbf{try} t$_1$ \textbf{catch} t$_2$ ~$\stepsto$~ $\Phi_3$ $\vdash$ v}
 \eproof
+
+\end{itemize}
+
+\section{Hoare Rules}
+\begin{itemize}
+
+\item Precondition strengthening
+\sproof
+\AxiomC{$\models P \Rightarrow P'$}
+\AxiomC{\hoare{P'}{S}{Q}}
+\BinaryInfC{\hoare{P}{S}{Q}}
+\eproof
+
+\item Post condition weakening
+\sproof
+\AxiomC{$\models Q' \Rightarrow Q$}
+\AxiomC{\hoare{P}{S}{Q'}}
+\BinaryInfC{\hoare{P}{S}{Q}}
+\eproof
+
+\item Conjunction
+\sproof
+\AxiomC{\hoare{P1}{S}{Q1}}
+\AxiomC{\hoare{P2}{S}{Q2}}
+\BinaryInfC{\hoare{P1 \wedge P2}{S}{Q1 \wedge Q2}}
+\eproof
+
+\item Disjunction
+\sproof
+\AxiomC{\hoare{P1}{S}{Q1}}
+\AxiomC{\hoare{P2}{S}{Q2}}
+\BinaryInfC{\hoare{P1 \vee P2}{S}{Q1 \vee Q2}}
+\eproof
+
+\item If-Then-Else ($S$ expression)
+
+\sproof
+\AxiomC{\hoare{P \wedge g}{S1}{Q}}
+\AxiomC{\hoare{P \wedge \neg g}{S2}{Q}}
+\BinaryInfC{\hoare{P}{\texttt{if}\ g\ \texttt{then}\ S1\ \texttt{else}\ S2}{Q}}
+\eproof
+
+\item Sequencing
+\sproof
+\AxiomC{\hoare{P}{S1}{R}}
+\AxiomC{\hoare{R}{S}{Q}}
+\BinaryInfC{\hoare{P}{S1\ ;\ S2}{Q}}
+\eproof
+
+\item New
+\sproof
+\AxiomC{$\models P \Rightarrow Q_S$}
+\UnaryInfC{\hoare{P}{\texttt{new}\ S}{Q}}
+\eproof
+where $Q_S$ means that $Q$ holds for the heap in which the value evaluated from $S$ has been allocated.
+
 
 \end{itemize}
 
