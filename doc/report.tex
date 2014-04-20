@@ -322,7 +322,7 @@ A general workaround is to embed the sequence rule inside this kind of rules, ho
 
 
 \begin{appendices}
-
+The letter $\Phi$ will be used to denote heaps.
 \section{Small-step Semantics}
 
 \subsection{If then else}
@@ -522,23 +522,23 @@ A general workaround is to embed the sequence rule inside this kind of rules, ho
 
 \nsproof
 \RightLabel{IfTrue}
-\AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vtrue}}
-\AxiomC{$\Phi_2 \vdash$ t ~$\stepsto$~ $\Phi_3 \vdash$ v}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\AxiomC{$\Phi_1 \vdash$ t$_0$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vtrue}}
+\AxiomC{$\Phi_2 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} t$_0$ \textbf{then} t$_1$ \textbf{else} t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \neproof
 \hfill
 \nsproof
 \RightLabel{IfFalse}
-\AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vfalse}}
-\AxiomC{$\Phi_2 \vdash$ e ~$\stepsto$~ $\Phi_3 \vdash$ v}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\AxiomC{$\Phi_1 \vdash$ t$_0$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vfalse}}
+\AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} t$_0$ \textbf{then} t$_1$ \textbf{else} t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
 \neproof
 \\\\
 \nsproof
 \RightLabel{IfErr}
-\AxiomC{$\Phi_1 \vdash$ c ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{$\Phi_1 \vdash$ t$_0$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} c \textbf{then} t \textbf{else} e ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{if} t$_0$ \textbf{then} t$_1$ \textbf{else} t$_2$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \neproof
 
 
