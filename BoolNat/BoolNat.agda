@@ -15,3 +15,5 @@ open import Proofs.HeapTypePres
 open import Proofs.Misc
 open import Proofs.ProgPres
 open import Proofs.Termination
+
+open import Examples

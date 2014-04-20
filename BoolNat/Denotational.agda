@@ -52,13 +52,3 @@ record Result (ty : Type) : Set where
 ⟦_⟧ (t >> t₁) H with ⟦ t ⟧ H
 ⟦_⟧ (t >> t₁) H | < verror , H' > = < verror , H' >
 ⟦_⟧ (t >> t₁) H | < v , H' > = ⟦ t₁ ⟧ H'
-
--- TODO move to the example module.
--- Here the implicit type parameter fixes the type assigned to error
--- and determines which replace will fail. In both cases the failure is
--- due to the fact that type in the heap would not be preserved.
-t : Term Natural
-t = new true >> (_>>_ {Natural} (ref 0 <- error) (ref 0 <- num 1))
-
-v : Result Natural
-v = ⟦ t ⟧ Nil

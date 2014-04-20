@@ -154,15 +154,6 @@ absurd {false} p₁ p₂ = p₁
 <_>_<_> {ty} P S Q = ∀ {n m} -> {H1 : Heap n} {H2 : Heap m} {v : Value ty} ->
                      BStep {H1 = H1} {H2 = H2} S v -> T (P (pArg H1)) -> T (Q (qArg v (pArg H2)))
 
--- Examples
-trivial : ∀ {ty} {t : Term ty} -> < True > t < True >
-trivial = λ {ty} {t} {n} {m} {H1} {H2} {v} _ _ → tt
-
--- An invalid hoare triple cannot be constructed
-invalid : ∀ {ty n m} {H1 : Heap n} {H2 : Heap m} {t : Term ty} {v : Value ty} -> 
-          BStep {H1 = H1} {H2 = H2} t v -> < True > t < False > -> ⊥ 
-invalid bstp triple = triple bstp tt
-
 
 -- An expression is a particular kind of term which does not affect the state (Heap)
 isExpr : ∀ {ty} -> Term ty -> Set
@@ -210,13 +201,6 @@ data HeapEq : ∀ {n m} -> Heap n -> Heap m -> Set where
 ⇓expr-preserves-heap isEx (E-TryCat isEr bstp) = ⇓expr-preserves-heap (proj₁ isEx) bstp
 ⇓expr-preserves-heap isEx (E-TryCatEx bstp1 bstp2) with ⇓expr-preserves-heap (proj₁ isEx) bstp1 | ⇓expr-preserves-heap (proj₂ isEx) bstp2
 ⇓expr-preserves-heap {ty} {.m} {m} _ (E-TryCatEx bstp1 bstp2) | Refl | Refl = Refl
-
--- examples
-const-exprs : isExpr (Base.true)
-const-exprs = tt
-
-if-expr : isExpr (if Base.false then (num 1) else error)
-if-expr = tt , tt , tt
 
 --------------------------------------------------------------------------------
 -- Theorems
@@ -344,29 +328,6 @@ if-expr = tt , tt , tt
       hoare-ifP {isEx = isEx} pS1q pS2q (E-IfFalse bstp bstp₁) TP | Refl = pS2q bstp₁ (pack∧ TP (lift-false bstp))
       hoare-ifP ps1q ps2q (E-IfErr bstp) TP = tt
 
-
-
-
--- hoare-if : ∀ {ty} {P : PredicateP} {R Q : PredicateQ} {c : Term Boolean} {S1 S2 : Term ty} →
---            (isEx : isExpr c) → < P ∧ lift c > S1 < Q > → < P ∧ (¬ (lift c)) > S2 < Q > → ⊧ (P ⇒ (λ x → Q (qArg {Boolean} verror x))) →
---            < P > if c then S1 else S2 < Q >
--- hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
--- hoare-if isEx t-t t-e err (E-IfTrue bstp bstp₁) TP | D.< vtrue , H2 > | refl | Refl = t-t bstp₁ (pack TP (lift-true {_} {_} {_} {_} {_} {isEx} bstp))
--- hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfFalse bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp | ⇓expr-preserves-heap isEx bstp
--- hoare-if isEx t-t t-e err (E-IfFalse bstp bstp₁) TP | D.< vfalse , H2 > | refl | Refl = t-e bstp₁ (pack TP (lift-false bstp))
--- hoare-if {c = c} isEx t-t t-e err {H1 = H1} (E-IfErr bstp) TP with ⇓expr-preserves-heap isEx bstp
--- hoare-if {P = P} {Q = Q} isEx t-t t-e err {H1 = H1} {H2 = .H1} (E-IfErr bstp) TP | Refl with err {pArg H1}
--- ... | e with split (not (P (pArg H1))) (Q (qArg verror (pArg H1))) e
--- hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₁ (proj₁ , proj₂) = {!!}
--- hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₁ x) = ⊥-elim (lemma TP x)
--- hoare-if isEx t-t t-e err (E-IfErr bstp) TP | Refl | e | inj₂ (inj₂ y) = {!!}
---hoare-if {c = c} t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP with ⟦ c ⟧ H1 | ⇓sound _ _  bstp
--- T      (.R (qArg vtrue (pArg H2)) and (lift .c (pArg H2) | ⟦ .c ⟧ H2))
--- hoare-if t-c t-t t-e {H1 = H1} (E-IfTrue bstp bstp₁) TP | (D.< vtrue , H2 >) | refl = t-t bstp₁ (pack (t-c bstp TP) (lift-true {!!}))
--- hoare-if t-c t-t t-e (E-IfFalse bstp bstp₁) TP = {!!}
--- hoare-if t-c t-t t-e (E-IfErr bstp) TP = {!!}
---... | ec | ss = {!!}
-
 getPArg : QArg -> PArg
 getPArg (qArg x x₁) = x₁
 
@@ -386,56 +347,3 @@ hoare-seq2 {ty} {ty'} {R = R} {Q = Q} pS1r rS2q seq err (E-SeqErr {H2 = H2} bstp
 ... | err' with mp {_} {verror} (λ x → R (withError (qArg {ty} x (pArg H2)))) (λ x → Q (qArg verror (pArg H2))) err' s1
 ... | i = i
 
-
---------------------------------------------------------------------------------
--- Examples
---------------------------------------------------------------------------------
-
-open Total
-
--- Short hands
-_[_] : ∀ {ty n} -> Heap n -> ℕ -> Value ty
-_[_] H n = lookup n H 
-
-_==_ : ∀ {ty} -> Value ty -> Value ty -> Bool 
-_==_ vtrue vtrue = true
-_==_ vfalse vfalse = true
-_==_ (vnat n) (vnat m) with compare n m
-vnat .m == vnat m | equal .m = true
-(vnat n) == (vnat m) | _ = false
-_==_ (vref n) (vref m) with compare n m 
-vref .m == vref m | equal .m = true
-(vref m) == (vref n) | _ = false
-_==_ verror verror = true
-_==_ _ _ = false
-
-p1 : Term (Ref Natural)
-p1 = new (num 1)
-
-Q1 : PredicateQ 
-Q1 (qArg v (pArg H)) = (H [ 0 ] ) == vnat 1
-
---h1 : < isEmpty > p1 < Q1 >
---h1 (E-New b) = {!!}
---h1 {.0} {.(suc _)} {Nil} {H2 = (append H2 v)} (E-New bstp) tt = {!!}
-
---  with ⟦ p1 ⟧ Nil | ⇓sound _ _ (E-New bstp) | ⟦ num 1 ⟧ Nil | ⇓sound _ _ bstp
--- h1 {._} {.(suc _)} {Nil} {Cons v H2} (E-New bstp) tt | .(D.< vref 0 , Cons v H2 >) | refl | .(D.< v , H2 >) | refl = {!!}
-
--- hoare-new {P = isEmpty} {Q = Q1} (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 {!pArg ?!}) (inj₂ {!!})) (E-New bstp) tt
---  (pack∨ (not (isEmpty (pArg Nil))) (alloc (num 1) Q1 (pArg Nil)) (inj₂ tt)) (E-New bstp) {!!} -- 
---h1 {.(suc _)} {.(suc _)} {Cons v H1} (E-New bstp) ()
-
-p2 : Term Boolean
-p2 = if Base.true then Base.true else Base.false
-
-Q2 : PredicateQ
-Q2 (qArg vtrue x₁) = true
-Q2 (qArg v x₁) = false
-
-h2 : < True > p2 < Q2 >
-h2 (E-IfTrue {v = vtrue} E-True bstp₁) tt = tt
-h2 (E-IfTrue {v = vfalse} E-True ()) tt
-h2 (E-IfTrue {v = verror} E-True ()) tt
-h2 (E-IfFalse () bstp₁) tt
-h2 (E-IfErr ()) tt
