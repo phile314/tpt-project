@@ -86,10 +86,8 @@ We managed to solve these problems and reached our goals. Furthermore we have su
 \subsection{Overview}
 In section~\ref{sec:method} we show different alternative approaches to solve the problem and their restrictions. 
 In section \ref{sec:cont} we define the formal semantics in Agda for one such approach.
-Using the formal semantics, we then will prove some meta theories like preservation, soundness, etc..
-
-
-
+Section~\ref{sec:metatheories} lists the theoretical results proved and in~\ref{sec:hoare} the embedding of hoare logic is explained.
+Finally in~\ref{sec:conclusion} we draw our conclusions about the project, compare it to the languages studied during the course and propose few ideas for future work.
 
 \section{Research Method}
 \label{sec:method}
@@ -253,6 +251,7 @@ This simple property states that the heap cannot shrink, but only grows.
 In our language it is not possible to deallocate something from the heap.
 
 \subsection{Hoare Logic}
+\label{sec:hoare}
 Hoare logic is a formal system used to reason about the correctness of a program. 
 This is achieved using Hoare triples $\left\langle P \right\rangle   S \left\langle Q \right\rangle$, where $P$ and $Q$ are predicates over the state and $S$ is a program, which means that if $P$ holds in some initial state, and $P$ is evaluated leading to some other state, in this final state $Q$ holds.
 We embedded this logic in our language and proved few inference rules so that it is actually possible to formally prove the correctness of a program written in our language.
@@ -279,12 +278,12 @@ Partial interpretation is denoted by $ \left\langle P \right\rangle  S \left\lan
 \eproof
 Where \texttt{fail} is true when $v$ is \texttt{verror}.
 
+\section{Conclusion}
 
-
-\section{Related (and further) Work}
-
+\subsection{Comparison}
 Comparison with mini-languages used in the course.
 
+\subsection{Future Work}
 Extend hoare logic to fully cope with the statement vs expression issue (evaluation changes the heap) 
 
 Complete the missing rules. 
@@ -298,6 +297,11 @@ Make the theorems for hoare logic more usable.
 \bibitem{BP02}
   Benjamin C. Pierce.
   \emph{Types and Programming Languages}
+
+\bibitem{BPSF}
+	Benjamin C. Pierce.
+	\emph{Software Foundations and Programming Languages}
+
 
 \end{thebibliography}
 
