@@ -35,6 +35,8 @@
 \newcommand\doubleplus{+\kern-1.3ex+\kern0.8ex}
 \newcommand\mdoubleplus{\ensuremath{\mathbin{+\mkern-10mu+}}}
 
+\newcommand\tassig{:=}
+
 \newcommand{\sproof}{
   \scriptsize
   \begin{center}
@@ -197,6 +199,11 @@ foundation for further research in that direction.
 Due to the problems encountered with the Simply Typed $\lambda$-Calculus and the totality requirement, we will focus on a partial BoolNat
 language in the following chapters. To be more precise, it is a version of the BoolNat language extended with a try-catch construct and 
 sequencing. The terms of the language can be seen in figure \ref{lst:part-boolnat-term}.
+The big-step semantics of the heap can be found in figure \ref{fig:heap-big}. The ":=" symbol is used in this report for the assignment
+operation for better readability. In the
+Agda source code, assignment is represented by "\textless--".
+
+The full small- and big-step semantics can be found in appendix \ref{app:small} and \ref{app:big}.
 
 \begin{figure}
 {\scriptsize
@@ -220,6 +227,53 @@ data Term : Type -> Set where
 \end{lstlisting}}
 \caption{The terms of the partial BoolNat language.}
 \label{lst:part-boolnat-term}
+\end{figure}
+
+\begin{figure}
+\nsproof
+\RightLabel{New}
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ v}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{new} t ~$\stepsto$~ $\Phi_2 \doubleplus$ [v] $\vdash$ \emph{vref} (\underline{length} $\Phi_2$)}
+\neproof
+\hfill
+\nsproof
+\RightLabel{Deref}
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{!} t ~$\stepsto$~ $\Phi_2 \vdash$ \underline{lookup} r $\Phi_2$}
+\neproof
+\\\\
+\nsproof
+\RightLabel{DerefErr}
+\AxiomC{$\Phi_1 \vdash$ t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ \textbf{!} t ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\neproof
+\hfill
+\nsproof
+\RightLabel{Ass}
+\AxiomC{\textbf{Elem} $\Phi_3$ r ~~ $\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
+\AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{\tassig} t$_2$ ~$\stepsto$~ \underline{replace} $\Phi_3$ r v $\vdash$ v}
+\neproof
+\\\\
+\nsproof
+\RightLabel{AssOob}
+\AxiomC{$\neg$ \textbf{Elem} $\Phi_3$ r}
+\AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{\tassig} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
+\neproof
+\hfill
+\nsproof
+\RightLabel{AssErr}
+\AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
+\AxiomC{}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{\tassig} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
+\neproof
+
+\caption{Heap related big-step semantics.}
+\label{fig:heap-big}
 \end{figure}
 
 
@@ -322,8 +376,10 @@ A general workaround is to embed the sequence rule inside this kind of rules, ho
 
 
 \begin{appendices}
-The letter $\Phi$ will be used to denote heaps.
+The letter $\Phi$ will be used to denote heaps. The ":=" symbol is used here for assignment for better readability. In the
+Agda source code assignment is represented by "\textless--".
 \section{Small-step Semantics}
+\label{app:small}
 
 \subsection{If then else}
 
@@ -413,32 +469,32 @@ The letter $\Phi$ will be used to denote heaps.
 \nsproof
 \RightLabel{AssLeft}
 \AxiomC{\sstep[0][1]{t$_1$}{t$_1$'}}
-\UnaryInfC{\sstep[0][1]{t$_1$ \textbf{:=} t$_2$} {t$_1$' \textbf{:=} t$_2$}}
+\UnaryInfC{\sstep[0][1]{t$_1$ \textbf{\tassig} t$_2$} {t$_1$' \textbf{\tassig} t$_2$}}
 \neproof
 \\\\
 \nsproof
 \RightLabel{AssRight}
 \AxiomC{$\neg$\underline{isError} v ~~ \sstep[0][1]{t}{t'}}
-\UnaryInfC{\sstep[0][1]{v \textbf{:=} t} {v \textbf{:=} t'}}
+\UnaryInfC{\sstep[0][1]{v \textbf{\tassig} t} {v \textbf{\tassig} t'}}
 \neproof
 \hfill
 \nsproof
 \RightLabel{AssErr}
 \AxiomC{}
-\UnaryInfC{\sstep{\emph{error} \textbf{:=} t} {\emph{error}}}
+\UnaryInfC{\sstep{\emph{error} \textbf{\tassig} t} {\emph{error}}}
 \neproof
 \\\\
 \nsproof
 \RightLabel{AssRed}
-\AxiomC{t $\equiv$ $\ulcorner$ v $\urcorner$ ~~ rep : \textbf{Elem} $\Phi$ r}
-\UnaryInfC{\sstepe{\Phi}{\text{\underline{replace}}~\Phi~\text{rep v}}
-{(\emph{ref} r) \textbf{:=} t}{t}}
+\AxiomC{t $\equiv$ $\ulcorner$ v $\urcorner$ ~~ \textbf{Elem} $\Phi$ r}
+\UnaryInfC{\sstepe{\Phi}{\text{\underline{replace}}~\Phi~\text{r v}}
+{(\emph{ref} r) \textbf{\tassig} t}{t}}
 \neproof
 \hfill
 \nsproof
 \RightLabel{AssRedErr}
 \AxiomC{$\neg$ \textbf{Elem} $\Phi$ r}
-\UnaryInfC{\sstep{(\emph{ref} r) \textbf{:=} t} {\emph{error}}}
+\UnaryInfC{\sstep{(\emph{ref} r) \textbf{\tassig} t} {\emph{error}}}
 \neproof
 
 
@@ -485,6 +541,7 @@ The letter $\Phi$ will be used to denote heaps.
 
 
 \section{Big-step Semantics}
+\label{app:big}
 
 \subsection{Values}
 \nsproof
@@ -591,23 +648,23 @@ The letter $\Phi$ will be used to denote heaps.
 \hfill
 \nsproof
 \RightLabel{Ass}
-\AxiomC{rep : \textbf{Elem} $\Phi_3$ r ~~ $\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
+\AxiomC{\textbf{Elem} $\Phi_3$ r ~~ $\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
 \AxiomC{$\Phi_2 \vdash$ t$_2$ ~$\stepsto$~ $\Phi_3 \vdash$ v}
-\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ \underline{replace} $\Phi_3$ rep v $\vdash$ v}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{\tassig} t$_2$ ~$\stepsto$~ \underline{replace} $\Phi_3$ r v $\vdash$ v}
 \neproof
 \\\\
 \nsproof
 \RightLabel{AssOob}
 \AxiomC{$\neg$ \textbf{Elem} $\Phi_3$ r}
 \AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{vref} r}
-\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{\tassig} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
 \neproof
 \hfill
 \nsproof
 \RightLabel{AssErr}
 \AxiomC{$\Phi_1 \vdash$ t$_1$ ~$\stepsto$~ $\Phi_2 \vdash$ \emph{verror}}
 \AxiomC{}
-\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{:=} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
+\BinaryInfC{$\Phi_1 \vdash$ t$_1$ \textbf{\tassig} t$_2$ ~$\stepsto$~ $\Phi_2$ $\vdash$ \emph{verror}}
 \neproof
 
 
